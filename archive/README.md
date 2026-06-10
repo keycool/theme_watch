@@ -9,6 +9,9 @@
 - `legacy_l1_outputs`
   - 一级行业阶段的榜单、候选分析和扫描结果
 
+- `legacy_l1_pipeline`
+  - 一级行业阶段的主扫描脚本、样本池脚本、榜单生成脚本
+
 - `focus_experiments`
   - 二级行业局部聚焦试验产物
 
