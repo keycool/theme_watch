@@ -1,0 +1,352 @@
+{
+  "generated_at": "2026-06-02T15:23:49",
+  "report_path": "D:\\CC\\Industry Insight\\tushare_capability_report.json",
+  "ok_count": 8,
+  "error_count": 4,
+  "probes": [
+    {
+      "name": "trade_cal",
+      "expectation": "基础连通性与常规权限",
+      "started_at": "2026-06-02T15:23:47",
+      "status": "ok",
+      "error_type": null,
+      "message": null,
+      "rows": 5,
+      "sample": [
+        {
+          "exchange": "SSE",
+          "cal_date": "20260605",
+          "is_open": 1,
+          "pretrade_date": "20260604"
+        },
+        {
+          "exchange": "SSE",
+          "cal_date": "20260604",
+          "is_open": 1,
+          "pretrade_date": "20260603"
+        },
+        {
+          "exchange": "SSE",
+          "cal_date": "20260603",
+          "is_open": 1,
+          "pretrade_date": "20260602"
+        }
+      ]
+    },
+    {
+      "name": "stock_basic",
+      "expectation": "基础股票接口",
+      "started_at": "2026-06-02T15:23:47",
+      "status": "ok",
+      "error_type": null,
+      "message": null,
+      "rows": 5,
+      "sample": [
+        {
+          "ts_code": "000001.SZ",
+          "name": "平安银行",
+          "industry": "银行",
+          "list_date": "19910403"
+        },
+        {
+          "ts_code": "000002.SZ",
+          "name": "万科Ａ",
+          "industry": "全国地产",
+          "list_date": "19910129"
+        },
+        {
+          "ts_code": "000004.SZ",
+          "name": "*ST国华",
+          "industry": "软件服务",
+          "list_date": "19901201"
+        }
+      ]
+    },
+    {
+      "name": "daily_basic",
+      "expectation": "股票日度市值接口",
+      "started_at": "2026-06-02T15:23:47",
+      "status": "ok",
+      "error_type": null,
+      "message": null,
+      "rows": 5,
+      "sample": [
+        {
+          "ts_code": "601375.SH",
+          "trade_date": "20260527",
+          "total_mv": 1843225.2259,
+          "circ_mv": 1368665.3209
+        },
+        {
+          "ts_code": "600033.SH",
+          "trade_date": "20260527",
+          "total_mv": 966028.8,
+          "circ_mv": 966028.8
+        },
+        {
+          "ts_code": "600505.SH",
+          "trade_date": "20260527",
+          "total_mv": 470292.075,
+          "circ_mv": 470292.075
+        }
+      ]
+    },
+    {
+      "name": "limit_list_d",
+      "expectation": "涨停/炸板接口",
+      "started_at": "2026-06-02T15:23:48",
+      "status": "error",
+      "error_type": "rate_limited",
+      "message": "抱歉，您访问接口(limit_list_d)频率超限(1次/天)，具体频次详情：https://tushare.pro/document/1?doc_id=108。",
+      "rows": null,
+      "sample": null
+    },
+    {
+      "name": "stk_limit",
+      "expectation": "单股涨跌停价接口",
+      "started_at": "2026-06-02T15:23:48",
+      "status": "ok",
+      "error_type": null,
+      "message": null,
+      "rows": 1,
+      "sample": [
+        {
+          "trade_date": "20260527",
+          "ts_code": "600519.SH",
+          "up_limit": 1400.72,
+          "down_limit": 1146.04
+        }
+      ]
+    },
+    {
+      "name": "index_classify",
+      "expectation": "申万行业分类接口",
+      "started_at": "2026-06-02T15:23:48",
+      "status": "ok",
+      "error_type": null,
+      "message": null,
+      "rows": 5,
+      "sample": [
+        {
+          "index_code": "801010.SI",
+          "industry_name": "农林牧渔",
+          "level": "L1",
+          "industry_code": "110000",
+          "is_pub": "1",
+          "parent_code": "0",
+          "src": "SW2021"
+        },
+        {
+          "index_code": "801030.SI",
+          "industry_name": "基础化工",
+          "level": "L1",
+          "industry_code": "220000",
+          "is_pub": "1",
+          "parent_code": "0",
+          "src": "SW2021"
+        },
+        {
+          "index_code": "801040.SI",
+          "industry_name": "钢铁",
+          "level": "L1",
+          "industry_code": "230000",
+          "is_pub": "1",
+          "parent_code": "0",
+          "src": "SW2021"
+        }
+      ]
+    },
+    {
+      "name": "index_member_all",
+      "expectation": "申万行业成分接口",
+      "started_at": "2026-06-02T15:23:48",
+      "status": "ok",
+      "error_type": null,
+      "message": null,
+      "rows": 5,
+      "sample": [
+        {
+          "l1_code": "801780.SI",
+          "l1_name": "银行",
+          "l2_code": "801783.SI",
+          "l2_name": "股份制银行Ⅱ",
+          "l3_code": "857831.SI",
+          "l3_name": "股份制银行Ⅲ",
+          "ts_code": "000001.SZ",
+          "name": "平安银行",
+          "in_date": "19910403",
+          "out_date": null,
+          "is_new": "Y"
+        },
+        {
+          "l1_code": "801780.SI",
+          "l1_name": "银行",
+          "l2_code": "801784.SI",
+          "l2_name": "城商行Ⅱ",
+          "l3_code": "857841.SI",
+          "l3_name": "城商行Ⅲ",
+          "ts_code": "001227.SZ",
+          "name": "兰州银行",
+          "in_date": "20211210",
+          "out_date": null,
+          "is_new": "Y"
+        },
+        {
+          "l1_code": "801780.SI",
+          "l1_name": "银行",
+          "l2_code": "801784.SI",
+          "l2_name": "城商行Ⅱ",
+          "l3_code": "857841.SI",
+          "l3_name": "城商行Ⅲ",
+          "ts_code": "002142.SZ",
+          "name": "宁波银行",
+          "in_date": "20070718",
+          "out_date": null,
+          "is_new": "Y"
+        }
+      ]
+    },
+    {
+      "name": "sw_daily",
+      "expectation": "申万行业日线，正式版行业模型核心接口",
+      "started_at": "2026-06-02T15:23:48",
+      "status": "ok",
+      "error_type": null,
+      "message": null,
+      "rows": 5,
+      "sample": [
+        {
+          "ts_code": "801120.SI",
+          "trade_date": "20260601",
+          "name": "食品饮料",
+          "open": 14702.58,
+          "low": 14615.4,
+          "high": 14748.19,
+          "close": 14718.38,
+          "change": -44.24,
+          "pct_change": -0.3,
+          "vol": 194620.0,
+          "amount": 3793056.0,
+          "pe": 21.03,
+          "pb": 3.33,
+          "float_mv": 165416846.0,
+          "total_mv": 391105640.0
+        },
+        {
+          "ts_code": "801120.SI",
+          "trade_date": "20260529",
+          "name": "食品饮料",
+          "open": 14275.77,
+          "low": 14275.77,
+          "high": 14850.12,
+          "close": 14762.62,
+          "change": 432.26,
+          "pct_change": 3.02,
+          "vol": 210972.0,
+          "amount": 4984489.0,
+          "pe": 21.09,
+          "pb": 3.34,
+          "float_mv": 165924731.0,
+          "total_mv": 392423829.0
+        },
+        {
+          "ts_code": "801120.SI",
+          "trade_date": "20260528",
+          "name": "食品饮料",
+          "open": 14482.75,
+          "low": 14308.46,
+          "high": 14539.74,
+          "close": 14330.36,
+          "change": -292.11,
+          "pct_change": -2.0,
+          "vol": 180823.0,
+          "amount": 3510998.0,
+          "pe": 20.48,
+          "pb": 3.24,
+          "float_mv": 161066286.0,
+          "total_mv": 380935393.0
+        }
+      ]
+    },
+    {
+      "name": "ths_index",
+      "expectation": "同花顺行业板块列表接口",
+      "started_at": "2026-06-02T15:23:48",
+      "status": "error",
+      "error_type": "rate_limited",
+      "message": "抱歉，您访问接口(ths_index)频率超限(1次/小时)，具体频次详情：https://tushare.pro/document/1?doc_id=108。",
+      "rows": null,
+      "sample": null
+    },
+    {
+      "name": "ths_daily",
+      "expectation": "同花顺行业日线，替代行业模型核心接口",
+      "started_at": "2026-06-02T15:23:49",
+      "status": "error",
+      "error_type": "rate_limited",
+      "message": "抱歉，您访问接口(ths_daily)频率超限(1次/小时)，具体频次详情：https://tushare.pro/document/1?doc_id=108。",
+      "rows": null,
+      "sample": null
+    },
+    {
+      "name": "ths_member",
+      "expectation": "同花顺板块成分接口",
+      "started_at": "2026-06-02T15:23:49",
+      "status": "error",
+      "error_type": "rate_limited",
+      "message": "抱歉，您访问接口(ths_member)频率超限(1次/小时)，具体频次详情：https://tushare.pro/document/1?doc_id=108。",
+      "rows": null,
+      "sample": null
+    },
+    {
+      "name": "daily",
+      "expectation": "个股日线接口",
+      "started_at": "2026-06-02T15:23:49",
+      "status": "ok",
+      "error_type": null,
+      "message": null,
+      "rows": 5,
+      "sample": [
+        {
+          "ts_code": "600519.SH",
+          "trade_date": "20260601",
+          "open": 1327.0,
+          "high": 1327.0,
+          "low": 1301.31,
+          "close": 1309.6,
+          "pre_close": 1326.0,
+          "change": -16.4,
+          "pct_chg": -1.2368,
+          "vol": 43844.6,
+          "amount": 5741133.268
+        },
+        {
+          "ts_code": "600519.SH",
+          "trade_date": "20260529",
+          "open": 1270.6,
+          "high": 1329.0,
+          "low": 1270.0,
+          "close": 1326.0,
+          "pre_close": 1275.98,
+          "change": 50.02,
+          "pct_chg": 3.9201,
+          "vol": 76478.05,
+          "amount": 10037388.211
+        },
+        {
+          "ts_code": "600519.SH",
+          "trade_date": "20260528",
+          "open": 1290.0,
+          "high": 1304.0,
+          "low": 1271.0,
+          "close": 1275.98,
+          "pre_close": 1303.0,
+          "change": -27.02,
+          "pct_chg": -2.0737,
+          "vol": 45889.98,
+          "amount": 5895475.019
+        }
+      ]
+    }
+  ]
+}
