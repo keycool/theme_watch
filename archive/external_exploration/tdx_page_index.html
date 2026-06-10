@@ -1,0 +1,293 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="white" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <script>
+        // httpå¼ºå¶è·³è½¬https
+        (function() {
+            if (location.href.toLowerCase().indexOf('http://sns.tdx.com.cn') == 0) {
+                location.href = location.href.replace(/^http/i, 'https');
+            }
+        })();
+    </script>
+    <link rel="SHORTCUT ICON" href="static/favicon.ico" type="image/x-icon">
+    <style lang="css">
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        
+        html {
+            overflow: scroll;
+            overflow-x: auto;
+        }
+        
+         ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        
+         ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, .1);
+            border: 1px solid #fff;
+            border-radius: 10px;
+        }
+        
+         ::-webkit-scrollbar-track {
+            background: #fff;
+        }
+        
+        .display-none {
+            display: none;
+        }
+        
+        .app-nav {
+            background: #30333f;
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            z-index: 1900;
+            box-shadow: 0px 4px 12px 0px rgba(51, 51, 51, 0.32);
+            font-size: 14px;
+        }
+        
+        .app-nav a {
+            text-decoration: none;
+        }
+        
+        #nav {
+            position: relative;
+            background: #30333f;
+            margin: 0 auto;
+            width: 1200px;
+            height: 48px;
+            z-index: 1900;
+        }
+        
+        #nav .logo {
+            display: block;
+            position: absolute;
+            width: 100px;
+            height: 30px;
+            margin-top: 9px;
+            margin-left: 10px;
+            /* background: url("images/logo_nav_sns.png") center center no-repeat; */
+        }
+        
+        #nav .menu {
+            position: absolute;
+            left: 159px;
+            top: 14px;
+            font-size: 0px;
+        }
+        
+        #nav .menu a {
+            display: inline-block;
+            opacity: 0.8;
+            width: 29px;
+            height: 19px;
+            font-family: Microsoft YaHei, Microsoft YaHei-Bold;
+            line-height: 19px;
+            margin-right: 30px;
+            text-align: center;
+            color: #fff;
+            font-size: 14px;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+        
+        #nav .menu a:nth-child(2) {
+            width: 45px;
+        }
+        
+        #nav .menu a:hover {
+            opacity: 1;
+        }
+        
+        #nav .menu a.active {
+            opacity: 1;
+            border-bottom: #fff solid 2px;
+            padding-bottom: 23px;
+        }
+        
+        #nav .menu-ext {
+            position: absolute;
+            margin-left: 470px;
+            top: 12px;
+            z-index: 1901;
+        }
+        
+        #nav .menu-ext a {
+            display: inline-block;
+            width: 100px;
+            height: 24px;
+            text-align: center;
+            line-height: 21px;
+            color: #fff;
+            opacity: 0.8;
+        }
+        
+        #nav .menu-ext a:hover {
+            opacity: 1;
+        }
+        
+        #nav .menu-ext a.write-a {
+            border: #ccc solid 1px;
+            border-radius: 13px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .app-nav .search {
+            position: absolute;
+            left: 674px;
+            top: 12px;
+        }
+        
+        .app-nav .search input {
+            width: 200px;
+            height: 24px;
+            border-radius: 16px;
+            border: #30333f inset 1px;
+            box-sizing: border-box;
+            padding-left: 32px;
+            /* background: #fff url("images/btn_topbar_find.png") 12px center
+            no-repeat; */
+            background-size: 16px 16px;
+        }
+        
+        .app-nav .search .focus,
+        .app-nav .search input:focus {
+            /* background-image: url("images/btn_topbar_find2.png"); */
+            border-color: #e93030;
+        }
+        
+        .app-nav .search input::placeholder {
+            color: #999;
+        }
+        
+        .app-nav .user {
+            position: absolute;
+            right: 20px;
+            top: 4px;
+            width: 202px;
+            height: 40px;
+        }
+        
+        .app-nav .user .reg {
+            position: absolute;
+            right: 0px;
+            height: 30px;
+            line-height: 30px;
+            top: 5px;
+            color: #65666c;
+            font-size: 14px;
+        }
+        
+        .app-nav .user .reg a {
+            color: #fff;
+            display: inline-block;
+            padding: 0 2px 0 2px;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        
+        .app-nav .user .reg a:hover {
+            color: #eee;
+        }
+    </style>
+    <link href="../tdx_libs/videojs/videojs.min.css" rel="stylesheet">
+<link href="./css/vender.8c8cf53e.css" rel="stylesheet"><link href="./css/helper.09a37400.css" rel="stylesheet"><link href="./css/page_index.7a84891a.css" rel="stylesheet"></head>
+
+<body>
+    <div id="app">
+        <div class="app-nav display-none">
+            <div id="nav">
+                <a href="page_index.html#/index" class="logo"></a>
+
+                <div class="menu">
+                    <a id="index" href="page_index.html#/index">é¦é¡µ</a>
+                    <a id="zbs" href="page_index.html#/zbs">è´¢è§é¢</a>
+                    <a id="public" href="page_index.html#/publicnew">è¯¾ç¨</a>
+                    <a id="circleall" href="page_index.html#/CircleAll?toggleLableId=5191">è®ºå</a>
+                    <a id="bbs" href="page_index.html#/bbs">åå­</a>
+                    <a id="zh" href="page_index.html#/zh">ç»å</a>
+                    <a id="topicall" href="page_index.html#/TopicAll">è¯é¢</a>
+                    <a class="" href="../tdx_sns_my/page_my.html">æç</a>
+                </div>
+                <div>
+                    <!-- <div class="menu-ext">
+                  <a class="write-a" href="../tdx_sns_xzpt/page_index.html" target="_blank">åä½å¹³å°</a>
+                </div> -->
+                    <form class="search">
+                        <input type="text" placeholder="æç´¢" />
+                    </form>
+
+                    <!-- <div class="user">
+                  <div class="reg">
+                    <a href="javascript:">ç»å½</a>
+                    |
+                    <a href="javascript:">æ³¨å</a>
+                  </div>
+                </div> -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        // httpå¼ºå¶è·³è½¬https
+        (function() {
+            var hash = location.hash
+            if (hash.indexOf('index') > -1) {
+                document.getElementById('index').setAttribute("class", "active")
+            } else if (hash.indexOf('zbs') > -1) {
+                document.getElementById('zbs').setAttribute("class", "active")
+            } else if (hash.indexOf('public') > -1) {
+                document.getElementById('public').setAttribute("class", "active")
+            } else if (hash.indexOf('bbs') > -1) {
+                document.getElementById('bbs').setAttribute("class", "active")
+            }
+            if (location.href.indexOf('page_proxy') == -1 && getUrlParam().pop != 1) {
+                document.getElementsByClassName("app-nav")[0].setAttribute("class", "app-nav")
+            }
+
+            function getUrlParam(name) {
+                let param = {};
+                let url = window.location.href;
+                let index = url.indexOf("?");
+                if (index == -1) {
+                    return param;
+                }
+
+                url = url.substr(index + 1);
+                let queryArr = url.split("&");
+                queryArr.forEach(function(p) {
+                    let a = p.split("=");
+                    param[a[0]] = a[1];
+                })
+                if (name) {
+                    return param[name]
+                }
+                return param;
+            }
+        })();
+    </script>
+    <script src="../tdx_libs/checkbrowser.js"></script>
+    <script src="../tdx_libs/jquery.min.js"></script>
+    <script src="../tdx_libs/vue.min.js"></script>
+    <script src="../tdx_libs/layer/layer.js"></script>
+    <script src="../tdx_libs/plupload/js/plupload.full.min.js"></script>
+    <script src="../tdx_libs/videojs/videojs.min.js"></script>
+    <script src="../tdx_libs/tdx-sns-cfg.js"></script>
+    <script src="../tdx_libs/liveplayer.min.js"></script>
+<script type="text/javascript" src="js/vender.8c8cf53e.js"></script><script type="text/javascript" src="js/helper.09a37400.js"></script><script type="text/javascript" src="js/page_index.7a84891a.js"></script></body>
+
+</html>
