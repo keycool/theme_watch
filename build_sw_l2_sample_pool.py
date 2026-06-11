@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from build_sw_l1_sample_pool import DEFAULT_END_DATE, YI_TO_TUSHARE_MV, get_pro, get_sw_daily
+from sw_data_utils import DEFAULT_END_DATE, YI_TO_TUSHARE_MV, get_pro, get_sw_daily
 
 
 ROOT = Path(__file__).resolve().parent

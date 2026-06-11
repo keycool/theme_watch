@@ -43,6 +43,7 @@ class StrategyInputs:
     amount_latest: Optional[float] = None
     amount_ma20: Optional[float] = None
     recent_2d_above_ma250: Optional[bool] = None
+    above_ma250_3pct_streak: Optional[int] = None
     leader_count: Optional[int] = None
     leader_top1_name: Optional[str] = None
     leader_top1_pct_change: Optional[float] = None
@@ -73,6 +74,7 @@ class StrategyEvaluation:
     b1_above_ma250_ok: Optional[bool]
     b2_volume_breakout_ok: Optional[bool]
     b3_hold_above_ma250_ok: Optional[bool]
+    b4_new_breakout_ok: Optional[bool]
     breakout_emerged: bool
     breakout_confirmed: bool
     c1_leaders_identified_ok: Optional[bool]
@@ -106,7 +108,7 @@ def compute_prefilter(inputs: StrategyInputs) -> tuple[str, int, Optional[str]]:
 def compute_structure(inputs: StrategyInputs) -> tuple[int, Optional[bool], Optional[bool], Optional[bool], Optional[bool], bool]:
     a1 = None
     if inputs.latest_close is not None and inputs.close_120d_high is not None:
-        a1 = inputs.latest_close <= inputs.close_120d_high * 0.90
+        a1 = inputs.latest_close <= inputs.close_120d_high * 0.85
 
     a2 = None
     if inputs.range_first_80 not in (None, 0) and inputs.range_last_40 is not None:
@@ -116,14 +118,14 @@ def compute_structure(inputs: StrategyInputs) -> tuple[int, Optional[bool], Opti
     if inputs.close_40d_low is not None and inputs.close_120d_low is not None:
         a3 = inputs.close_40d_low >= inputs.close_120d_low * 1.02
 
-    a4 = _safe_ge(0.50, inputs.ret_120d_rank_pct)
+    a4 = _safe_ge(0.40, inputs.ret_120d_rank_pct)
 
     score = _bool_score(a1) + _bool_score(a2) + _bool_score(a3) + _bool_score(a4)
     ok = all(value is True for value in (a1, a2, a3, a4))
     return score, a1, a2, a3, a4, ok
 
 
-def compute_breakout(inputs: StrategyInputs) -> tuple[Optional[bool], Optional[bool], Optional[bool], bool, bool]:
+def compute_breakout(inputs: StrategyInputs) -> tuple[Optional[bool], Optional[bool], Optional[bool], Optional[bool], bool, bool]:
     b1 = None
     if inputs.latest_close is not None and inputs.ma250 is not None and inputs.ma250 != 0:
         b1 = inputs.latest_close >= inputs.ma250 * 1.03
@@ -133,10 +135,11 @@ def compute_breakout(inputs: StrategyInputs) -> tuple[Optional[bool], Optional[b
         b2 = inputs.amount_latest >= inputs.amount_ma20 * 1.20
 
     b3 = inputs.recent_2d_above_ma250
+    b4 = None if inputs.above_ma250_3pct_streak is None else inputs.above_ma250_3pct_streak <= 20
 
-    emerged = b1 is True and b2 is True
+    emerged = b1 is True and b2 is True and b4 is True
     confirmed = emerged and b3 is True
-    return b1, b2, b3, emerged, confirmed
+    return b1, b2, b3, b4, emerged, confirmed
 
 
 def compute_leader(inputs: StrategyInputs) -> tuple[Optional[bool], Optional[bool], Optional[bool], Optional[bool], bool, bool]:
@@ -220,7 +223,7 @@ def build_comments(
 def evaluate_strategy(inputs: StrategyInputs) -> StrategyEvaluation:
     prefilter_label, hit_count, trend_extension_strength = compute_prefilter(inputs)
     structure_score, a1, a2, a3, a4, structure_ok = compute_structure(inputs)
-    b1, b2, b3, breakout_emerged, breakout_confirmed = compute_breakout(inputs)
+    b1, b2, b3, b4, breakout_emerged, breakout_confirmed = compute_breakout(inputs)
     c1, c2, c3, c4, leader_turning_strong_ok, leader_confirmed_ok = compute_leader(inputs)
     observation_strength = compute_observation_strength(inputs, leader_turning_strong_ok)
 
@@ -264,6 +267,7 @@ def evaluate_strategy(inputs: StrategyInputs) -> StrategyEvaluation:
         b1_above_ma250_ok=b1,
         b2_volume_breakout_ok=b2,
         b3_hold_above_ma250_ok=b3,
+        b4_new_breakout_ok=b4,
         breakout_emerged=breakout_emerged,
         breakout_confirmed=breakout_confirmed,
         c1_leaders_identified_ok=c1,

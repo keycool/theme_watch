@@ -114,10 +114,10 @@
 
 | 规则 | 建议表达式 |
 | --- | --- |
-| `A1` | `latest_close <= close_120d_high * 0.90` |
+| `A1` | `latest_close <= close_120d_high * 0.85` |
 | `A2` | `range_last_40 <= range_first_80 * 0.90` |
 | `A3` | `close_40d_low >= close_120d_low * 1.02` |
-| `A4` | `ret_120d_rank_pct <= 0.50` |
+| `A4` | `ret_120d_rank_pct <= 0.40` |
 
 建议判定：
 
@@ -137,11 +137,13 @@
 | `close_ma250_ratio` | 收盘价相对年线比例 | `latest_close / ma250` | 计算字段 | B1 使用 |
 | `amount_ma20_ratio` | 成交额相对 20 日均额比例 | `amount_latest / amount_ma20` | 计算字段 | B2 使用 |
 | `recent_2d_above_ma250` | 最近 2 日是否都在年线上 | `sw_daily.close` 与 `ma250` | 计算字段 | B3 使用 |
+| `above_ma250_3pct_streak` | 连续站上 `ma250 * 1.03` 的交易日数量 | `sw_daily.close` 与 `ma250` | 计算字段 | B4 使用 |
 | `b1_above_ma250_ok` | 是否站上年线 | 规则判定 | 规则字段 | B1 |
 | `b2_volume_breakout_ok` | 是否带量突破 | 规则判定 | 规则字段 | B2 |
 | `b3_hold_above_ma250_ok` | 是否站稳年线 | 规则判定 | 规则字段 | B3 |
-| `breakout_emerged` | 是否出现突破 | 规则聚合 | 规则字段 | B1+B2 |
-| `breakout_confirmed` | 是否确认突破 | 规则聚合 | 规则字段 | B1+B2+B3 |
+| `b4_new_breakout_ok` | 是否属于近期新突破 | 规则判定 | 规则字段 | B4 |
+| `breakout_emerged` | 是否出现突破 | 规则聚合 | 规则字段 | B1+B2+B4 |
+| `breakout_confirmed` | 是否确认突破 | 规则聚合 | 规则字段 | B1+B2+B3+B4 |
 
 ## 5.2 规则映射
 
@@ -150,11 +152,12 @@
 | `B1` | `close_ma250_ratio >= 1.03` |
 | `B2` | `amount_ma20_ratio >= 1.20` |
 | `B3` | `recent_2d_above_ma250 == True` |
+| `B4` | `above_ma250_3pct_streak <= 20` |
 
 建议判定：
 
-- `breakout_emerged = B1 and B2`
-- `breakout_confirmed = B1 and B2 and B3`
+- `breakout_emerged = B1 and B2 and B4`
+- `breakout_confirmed = B1 and B2 and B3 and B4`
 
 ---
 

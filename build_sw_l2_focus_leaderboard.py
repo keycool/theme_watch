@@ -5,19 +5,14 @@ from typing import List, Optional
 
 import pandas as pd
 
-from build_sw_l1_sample_pool import get_pro
 from industry_start_strategy_v1_engine import StrategyInputs, evaluate_strategy
-from run_sw_l1_strategy_scan import (
-    MASTER_HISTORY_PATH,
-    _build_histories,
-    _build_strategy_input,
-    _build_leader_snapshots,
-    _compute_ret_120d_ranks,
-)
+from strategy_scan_common import build_histories, build_strategy_input, compute_ret_120d_ranks
+from sw_data_utils import get_daily_basic, get_daily_market, get_pro, get_members_by_level, get_stock_daily_with_cache
 
 
 ROOT = Path(__file__).resolve().parent
 CLASSIFY_PATH = ROOT / ".cache_scan_v2" / "sw_index_classify.csv"
+MASTER_HISTORY_PATH = ROOT / ".cache_scan_v2" / "sw_daily_full_history.csv"
 OUTPUT_MD = ROOT / "sw_l2_focus_leaderboard.md"
 OUTPUT_CSV = ROOT / "sw_l2_focus_scan.csv"
 
@@ -80,19 +75,10 @@ def get_members_by_index_code(pro, index_code: str, classify_df: pd.DataFrame) -
     if row.empty:
         return pd.DataFrame()
     level = str(row.iloc[0]["level"])
-    if level == "L1":
-        return pro.index_member_all(l1_code=index_code)
-    if level == "L2":
-        return pro.index_member_all(l2_code=index_code)
-    if level == "L3":
-        return pro.index_member_all(l3_code=index_code)
-    return pd.DataFrame()
+    return get_members_by_level(pro, index_code, level)
 
 
 def build_leader_snapshots_l2(pro, latest_date: str, classify_df: pd.DataFrame, industry_codes: List[str]) -> dict[str, dict]:
-    from industry_start_cached_scan_v2 import get_daily_basic, get_daily_market
-    from run_sw_l1_strategy_scan import _get_stock_daily_with_cache
-
     latest_basic = get_daily_basic(pro, latest_date)
     latest_market = get_daily_market(pro, latest_date)
     latest_basic["total_mv"] = pd.to_numeric(latest_basic["total_mv"], errors="coerce")
@@ -116,7 +102,7 @@ def build_leader_snapshots_l2(pro, latest_date: str, classify_df: pd.DataFrame, 
         market_row = latest_market[latest_market["ts_code"] == leader_top1["ts_code"]]
         top1_pct = None if market_row.empty else float(market_row.iloc[0]["pct_chg"])
 
-        daily = _get_stock_daily_with_cache(
+        daily = get_stock_daily_with_cache(
             pro,
             ts_code=str(leader_top1["ts_code"]),
             start_date="20240101",
@@ -154,8 +140,8 @@ def build_leader_snapshots_l2(pro, latest_date: str, classify_df: pd.DataFrame, 
 def run_focus_scan() -> pd.DataFrame:
     classify_df = load_classify()
     history_df = load_history()
-    histories = _build_histories(history_df)
-    ranks = _compute_ret_120d_ranks(histories)
+    histories = build_histories(history_df)
+    ranks = compute_ret_120d_ranks(histories)
     pool = build_focus_l2_pool(classify_df, history_df)
 
     pro = get_pro()
@@ -172,7 +158,7 @@ def run_focus_scan() -> pd.DataFrame:
         history = histories.get(code)
         if history is None or history.empty:
             continue
-        inputs = _build_strategy_input(row.rename({"index_code": "industry_code"}), history, ranks.get(code), leader_snapshots.get(code))
+        inputs = build_strategy_input(row.rename({"index_code": "industry_code"}), history, ranks.get(code), leader_snapshots.get(code))
         evaluation = evaluate_strategy(inputs)
         rows.append(
             {
