@@ -205,9 +205,7 @@ def _card(row: pd.Series, history: pd.DataFrame) -> str:
     below_ma250_streak = ma250_convergence["below_streak"]
     below_ma250_text = "-" if below_ma250_streak is None else f"{below_ma250_streak} 天"
     latest_gap_text = _fmt_pct(ma250_convergence["latest_gap"])
-    min_gap_120_text = _fmt_pct(ma250_convergence["min_gap_120"])
     repair_text = _fmt_pct(ma250_convergence["repair_from_120_low"])
-    convergence_stage = escape(str(ma250_convergence["stage"]))
     summary = escape(str(row.get("summary_line", "")))
 
     return f"""
@@ -228,9 +226,7 @@ def _card(row: pd.Series, history: pd.DataFrame) -> str:
     <span>龙头当日涨幅：<strong>{leader_pct}</strong></span>
     <span>连续低于 MA250：<strong>{below_ma250_text}</strong></span>
     <span>当前距 MA250：<strong>{latest_gap_text}</strong></span>
-    <span>120日最深偏离：<strong>{min_gap_120_text}</strong></span>
     <span>从深偏离修复：<strong>{repair_text}</strong></span>
-    <span>年线路径：<strong>{convergence_stage}</strong></span>
     <span>吸筹率分位：<strong>{absorption_rank}</strong></span>
   </div>
   <p class="summary">{summary}</p>
