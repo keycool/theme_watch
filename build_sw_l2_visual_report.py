@@ -29,6 +29,12 @@ def _fmt_pct(value: object, digits: int = 2, default: str = "-") -> str:
     return f"{float(value) * 100:.{digits}f}%"
 
 
+def _fmt_sigma(value: object, digits: int = 2, default: str = "-") -> str:
+    if value is None or pd.isna(value):
+        return default
+    return f"{float(value):.{digits}f}σ"
+
+
 def _priority(row: pd.Series) -> tuple[int, float]:
     label = str(row.get("final_label", ""))
     crowding = str(row.get("crowding_label", ""))
@@ -156,6 +162,7 @@ def _ma250_convergence(history: pd.DataFrame) -> dict[str, object]:
             "latest_gap": None,
             "min_gap_120": None,
             "repair_from_120_low": None,
+            "repair_sigma": None,
             "stage": "数据不足",
         }
 
@@ -171,6 +178,8 @@ def _ma250_convergence(history: pd.DataFrame) -> dict[str, object]:
     latest_gap = float(latest["ma250_gap"])
     min_gap_120 = float(last_120["ma250_gap"].min())
     repair_from_120_low = latest_gap - min_gap_120
+    gap_std_120 = float(last_120["ma250_gap"].std())
+    repair_sigma = None if pd.isna(gap_std_120) or gap_std_120 <= 0 else repair_from_120_low / gap_std_120
 
     if latest_gap >= 0:
         stage = "已越过年线"
@@ -188,6 +197,7 @@ def _ma250_convergence(history: pd.DataFrame) -> dict[str, object]:
         "latest_gap": latest_gap,
         "min_gap_120": min_gap_120,
         "repair_from_120_low": repair_from_120_low,
+        "repair_sigma": repair_sigma,
         "stage": stage,
     }
 
@@ -205,7 +215,7 @@ def _card(row: pd.Series, history: pd.DataFrame) -> str:
     below_ma250_streak = ma250_convergence["below_streak"]
     below_ma250_text = "-" if below_ma250_streak is None else f"{below_ma250_streak} 天"
     latest_gap_text = _fmt_pct(ma250_convergence["latest_gap"])
-    repair_text = _fmt_pct(ma250_convergence["repair_from_120_low"])
+    repair_text = _fmt_sigma(ma250_convergence["repair_sigma"])
     summary = escape(str(row.get("summary_line", "")))
 
     return f"""
@@ -226,7 +236,7 @@ def _card(row: pd.Series, history: pd.DataFrame) -> str:
     <span>龙头当日涨幅：<strong>{leader_pct}</strong></span>
     <span>连续低于 MA250：<strong>{below_ma250_text}</strong></span>
     <span>当前距 MA250：<strong>{latest_gap_text}</strong></span>
-    <span>从深偏离修复：<strong>{repair_text}</strong></span>
+    <span>偏离修复σ：<strong>{repair_text}</strong></span>
     <span>吸筹率分位：<strong>{absorption_rank}</strong></span>
   </div>
   <p class="summary">{summary}</p>
