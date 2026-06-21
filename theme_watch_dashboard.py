@@ -17,7 +17,7 @@ ETF_CARDS = [
         "name": "半导体 ETF",
         "map": "801081.SI 半导体",
         "status": "趋势延续 / 拥挤偏高",
-        "note": "趋势已展开，更适合观察回踩和拥挤度，不应误判为刚启动。",
+        "note": "趋势已展开，辅助关注拥挤偏高后的回踩风险。",
         "href": "pages/theme_512480_sw_l2_watch_report.html",
     },
     {
@@ -26,7 +26,7 @@ ETF_CARDS = [
         "name": "光伏 ETF",
         "map": "801735.SI 光伏设备",
         "status": "趋势延续",
-        "note": "和电网设备同属电力设备大链条，但单独观察。",
+        "note": "当前更偏趋势延续，辅助关注是否继续扩散。",
         "href": "pages/theme_515790_sw_l2_watch_report.html",
     },
     {
@@ -35,7 +35,7 @@ ETF_CARDS = [
         "name": "软件 ETF",
         "map": "801104.SI 软件开发、801103.SI IT服务Ⅱ",
         "status": "未启动 / 拥挤正常",
-        "note": "软件开发和 IT 服务为核心，不再和计算机设备混成一个大组。",
+        "note": "当前未启动，辅助状态偏正常。",
         "href": "pages/theme_515230_software_watch_report.html",
     },
     {
@@ -44,7 +44,7 @@ ETF_CARDS = [
         "name": "计算机 ETF",
         "map": "801101.SI 计算机设备",
         "status": "未启动 / 拥挤正常",
-        "note": "单独观察设备链，通信链条只作为扩散对照。",
+        "note": "当前未启动，辅助状态偏正常。",
         "href": "pages/theme_159998_computer_watch_report.html",
     },
     {
@@ -53,7 +53,7 @@ ETF_CARDS = [
         "name": "传媒 ETF",
         "map": "801767.SI 数字媒体、801765.SI 广告营销、801764.SI 游戏Ⅱ",
         "status": "未启动 / 拥挤正常",
-        "note": "传媒链条集中，部分二级未纳入主扫描池。",
+        "note": "当前未启动，辅助状态偏正常。",
         "href": "pages/theme_512980_sw_l2_watch_report.html",
     },
     {
@@ -62,7 +62,7 @@ ETF_CARDS = [
         "name": "电网设备主题指数",
         "map": "801738.SI 电网设备",
         "status": "趋势延续",
-        "note": "不是 ETF，但作为实际观察标的纳入首页。",
+        "note": "不是 ETF，但作为实际观察标的；当前更偏趋势延续。",
         "href": "pages/theme_931994_sw_l2_watch_report.html",
     },
     {
@@ -71,7 +71,7 @@ ETF_CARDS = [
         "name": "通信链条对照组",
         "map": "801102.SI 通信设备、801223.SI 通信服务",
         "status": "未启动 / 观察中",
-        "note": "归入科技成长板块，但仍作为软件/计算机的扩散对照，不作为独立 ETF 入口。",
+        "note": "不是核心 ETF，主要作为软件/计算机的扩散对照；当前未启动到观察中。",
         "href": "pages/theme_communication_compare_report.html",
     },
     {
@@ -80,7 +80,7 @@ ETF_CARDS = [
         "name": "消费 ETF",
         "map": "801125.SI 白酒Ⅱ、801129.SI 调味发酵品Ⅱ、801127.SI 饮料乳品",
         "status": "未启动 / 观察中",
-        "note": "和酒 ETF 高度重叠，入口单列，详情共用消费酒观察页。",
+        "note": "当前未启动到观察中。",
         "href": "pages/theme_consumption_liquor_sw_l2_watch_report.html",
     },
     {
@@ -89,7 +89,7 @@ ETF_CARDS = [
         "name": "酒 ETF",
         "map": "801125.SI 白酒Ⅱ、801128.SI 非白酒",
         "status": "未启动",
-        "note": "消费酒链条的窄基入口，详情共用消费酒观察页。",
+        "note": "当前未启动，辅助等待结构修复。",
         "href": "pages/theme_consumption_liquor_sw_l2_watch_report.html",
     },
     {
@@ -98,7 +98,7 @@ ETF_CARDS = [
         "name": "医药 ETF",
         "map": "医疗服务、生物制品、化学制药、医疗器械、中药Ⅱ",
         "status": "未启动 / 观察中",
-        "note": "宽基医药入口，适合看医药生物整体修复。",
+        "note": "宽基医药入口，当前未启动到观察中，辅助关注修复质量。",
         "href": "pages/theme_512010_medicine_watch_report.html",
     },
     {
@@ -107,7 +107,7 @@ ETF_CARDS = [
         "name": "医疗 ETF",
         "map": "801156.SI 医疗服务、801153.SI 医疗器械",
         "status": "未启动 / 观察中",
-        "note": "更偏医疗服务和医疗器械，和创新药链条分开观察。",
+        "note": "当前未启动到观察中。",
         "href": "pages/theme_512170_healthcare_watch_report.html",
     },
     {
@@ -116,7 +116,7 @@ ETF_CARDS = [
         "name": "创新药 ETF",
         "map": "801151.SI 化学制药、801152.SI 生物制品、801156.SI 医疗服务",
         "status": "未启动 / 观察中",
-        "note": "更偏创新药和 CXO 服务链。",
+        "note": "当前未启动到观察中。",
         "href": "pages/theme_159992_innovative_drug_watch_report.html",
     },
     {
@@ -125,7 +125,7 @@ ETF_CARDS = [
         "name": "家电 ETF",
         "map": "小家电、家电零部件Ⅱ、黑色家电、厨卫电器、白色家电",
         "status": "观察中",
-        "note": "按家电内部链条展示，不机械采用相关性前五。",
+        "note": "当前观察中，辅助关注是否站稳修复。",
         "href": "pages/theme_159996_sw_l2_watch_report.html",
     },
     {
@@ -134,7 +134,7 @@ ETF_CARDS = [
         "name": "能源 ETF",
         "map": "煤炭开采、炼化及贸易、油服工程、燃气Ⅱ",
         "status": "观察中 / 拥挤正常",
-        "note": "行业属性更强；和易方达红利在煤炭、炼化、交运等高股息资源资产上有重叠。",
+        "note": "当前观察中，辅助状态偏正常。",
         "href": "pages/theme_cycle_resources_sw_l2_watch_report.html",
     },
     {
@@ -143,7 +143,7 @@ ETF_CARDS = [
         "name": "石油 ETF",
         "map": "炼化及贸易、油服工程、燃气Ⅱ",
         "status": "观察中 / 拥挤正常",
-        "note": "纳入周期资源页，和煤炭/能源一起看资源链。",
+        "note": "当前观察中，辅助状态偏正常。",
         "href": "pages/theme_cycle_resources_sw_l2_watch_report.html",
     },
     {
@@ -152,7 +152,7 @@ ETF_CARDS = [
         "name": "煤炭 ETF",
         "map": "801951.SI 煤炭开采、801952.SI 焦炭Ⅱ",
         "status": "观察中 / 拥挤正常",
-        "note": "更像高股息/资源防御端，重点防止过热消退。",
+        "note": "当前观察中，辅助关注过热消退。",
         "href": "pages/theme_cycle_resources_sw_l2_watch_report.html",
     },
     {
@@ -161,7 +161,7 @@ ETF_CARDS = [
         "name": "化工 ETF",
         "map": "化学制品、农化制品、化学原料、冶钢原料、化学纤维",
         "status": "观察中 / 拥挤偏高",
-        "note": "和能源/煤炭拆开，作为基础化工对照。",
+        "note": "当前观察中但拥挤偏高，辅助关注分歧。",
         "href": "pages/theme_159870_chemical_compare_report.html",
     },
     {
@@ -170,7 +170,7 @@ ETF_CARDS = [
         "name": "易方达红利 ETF",
         "map": "煤炭开采、炼化及贸易、铁路公路、航运港口、基础建设",
         "status": "未启动 / 观察中",
-        "note": "偏高股息资源/交运/基建组合；和能源 ETF 有重叠，但这里主要作为红利风格观察。",
+        "note": "红利风格标的，行业分布较宽；当前未启动到观察中。",
         "href": "pages/theme_515180_sw_l2_watch_report.html",
     },
     {
@@ -179,7 +179,7 @@ ETF_CARDS = [
         "name": "红利低波 ETF",
         "map": "城商行Ⅱ、农商行Ⅱ、股份制银行Ⅱ、国有大型银行Ⅱ",
         "status": "观察中",
-        "note": "和红利 ETF 风格相近，但行业结构不同，不合并。",
+        "note": "红利低波风格标的；当前观察中，辅助关注稳定性。",
         "href": "pages/theme_512890_sw_l2_watch_report.html",
     },
     {
@@ -188,7 +188,7 @@ ETF_CARDS = [
         "name": "证券 ETF",
         "map": "801193.SI 证券Ⅱ、801191.SI 多元金融、801194.SI 保险Ⅱ",
         "status": "观察中 / 拥挤正常",
-        "note": "软件/计算机已排除到独立观察页。",
+        "note": "当前观察中，辅助状态偏正常。",
         "href": "pages/theme_512880_sw_l2_watch_report.html",
     },
     {
@@ -197,47 +197,51 @@ ETF_CARDS = [
         "name": "房地产 ETF",
         "map": "房地产开发、房地产服务、装修建材、房屋建设Ⅱ、装修装饰Ⅱ",
         "status": "未启动 / 拥挤正常",
-        "note": "改用 Tushare 涨跌幅字段后，和房地产开发相关性约 0.98，已从低相关校验转为正式观察。",
+        "note": "当前未启动，辅助状态偏正常。",
         "href": "pages/theme_512200_real_estate_watch_report.html",
     },
 ]
 
 
-def _group_cards(cards: list[dict[str, str]]) -> str:
-    grouped: dict[str, list[dict[str, str]]] = {}
+def _overview_table(cards: list[dict[str, str]]) -> str:
+    rows = []
     for card in cards:
-        grouped.setdefault(card["bucket"], []).append(card)
-
-    sections: list[str] = []
-    for bucket, bucket_cards in grouped.items():
-        rendered_cards = []
-        for card in bucket_cards:
-            rendered_cards.append(
-                f"""
-<article class="theme-card">
-  <div class="card-top">
-    <span class="group-tag">{escape(bucket)}</span>
-    <a href="{escape(card['href'])}">打开观察页</a>
-  </div>
-  <p class="code">{escape(card['code'])}</p>
-  <h2>{escape(card['name'])}</h2>
-  <dl>
-    <dt>映射申万二级</dt><dd>{escape(card['map'])}</dd>
-    <dt>当前状态</dt><dd>{escape(card['status'])}</dd>
-    <dt>备注</dt><dd>{escape(card['note'])}</dd>
-  </dl>
-</article>
-"""
-            )
-        sections.append(
+        rows.append(
             f"""
-<section>
-  <h1>{escape(bucket)}</h1>
-  <div class="grid">{''.join(rendered_cards)}</div>
-</section>
+<tr>
+  <td><a class="target-link" href="{escape(card['href'])}">{escape(card['name'])}</a></td>
+  <td class="mono">{escape(card['code'])}</td>
+  <td><span class="status-pill">{escape(card['status'])}</span></td>
+  <td>{escape(card['map'])}</td>
+  <td><span class="table-bucket">{escape(card['bucket'])}</span></td>
+  <td>{escape(card['note'])}</td>
+</tr>
 """
         )
-    return "\n".join(sections)
+
+    return f"""
+<section class="overview-table-section">
+  <div class="section-title">
+    <h1>观察标的一览表</h1>
+    <p>先用表格横向比较状态、映射行业和备注；需要看图形细节时再打开观察页。</p>
+  </div>
+  <div class="table-wrap">
+    <table class="overview-table">
+      <thead>
+        <tr>
+          <th>标的</th>
+          <th>代码</th>
+          <th>当前状态</th>
+          <th>映射申万二级</th>
+          <th>分类</th>
+          <th>备注</th>
+        </tr>
+      </thead>
+      <tbody>{''.join(rows)}</tbody>
+    </table>
+  </div>
+</section>
+"""
 
 
 def build_dashboard() -> None:
@@ -273,7 +277,7 @@ def build_dashboard() -> None:
     header {{ margin-bottom: 28px; }}
     header h1 {{ margin: 0 0 10px; font-size: clamp(30px, 4vw, 52px); letter-spacing: -0.05em; }}
     header p {{ margin: 0; color: var(--muted); line-height: 1.8; }}
-    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }}
+    .nav {{ display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }}
     .nav a {{
       color: var(--accent-2);
       text-decoration: none;
@@ -282,35 +286,73 @@ def build_dashboard() -> None:
       padding: 8px 12px;
       background: rgba(255, 250, 241, 0.72);
     }}
-    section {{ margin-top: 30px; }}
-    section > h1 {{ margin: 0 0 14px; font-size: 22px; }}
-    .grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }}
-    .theme-card {{
-      padding: 18px;
+    .overview-table-section {{
+      margin-top: 26px;
+      padding: 20px;
       border: 1px solid var(--line);
-      border-radius: 22px;
-      background: rgba(255, 250, 241, 0.9);
+      border-radius: 24px;
+      background: rgba(255, 250, 241, 0.88);
       box-shadow: 0 18px 42px rgba(77, 54, 22, 0.10);
     }}
-    .card-top {{ display: flex; justify-content: space-between; gap: 14px; align-items: center; }}
-    .group-tag {{
+    .section-title {{
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 14px;
+    }}
+    .section-title h1 {{ margin: 0; font-size: 24px; }}
+    .section-title p {{ margin: 0; color: var(--muted); line-height: 1.6; max-width: 620px; }}
+    .table-wrap {{ overflow-x: auto; border-radius: 16px; border: 1px solid rgba(70, 52, 27, 0.10); }}
+    .overview-table {{
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
+      background: rgba(255, 255, 255, 0.44);
+      font-size: 13px;
+    }}
+    .overview-table th {{
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      text-align: left;
+      padding: 12px 12px;
+      color: #415056;
+      background: #f0e2c8;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }}
+    .overview-table td {{
+      padding: 12px;
+      vertical-align: top;
+      border-bottom: 1px solid rgba(70, 52, 27, 0.10);
+      line-height: 1.55;
+    }}
+    .overview-table tbody tr:hover {{ background: rgba(31, 111, 120, 0.06); }}
+    .table-bucket {{
       display: inline-flex;
       border-radius: 999px;
-      padding: 6px 10px;
+      padding: 5px 9px;
       background: rgba(31, 111, 120, 0.12);
       color: var(--accent-2);
-      font-size: 12px;
+      white-space: nowrap;
     }}
-    .card-top a {{ color: var(--accent); text-decoration: none; font-weight: 700; }}
-    .code {{ margin: 16px 0 4px; color: var(--accent-2); font-weight: 800; letter-spacing: 0.02em; }}
-    h2 {{ margin: 0 0 12px; font-size: 24px; }}
-    dl {{ margin: 0; display: grid; grid-template-columns: 100px 1fr; gap: 8px 12px; }}
-    dt {{ color: var(--muted); }}
-    dd {{ margin: 0; line-height: 1.55; }}
-    .support {{ margin-top: 44px; padding-top: 10px; border-top: 1px solid var(--line); }}
+    .target-link {{ color: var(--ink); font-weight: 900; text-decoration: none; }}
+    .target-link:hover {{ color: var(--accent); }}
+    .status-pill {{
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: rgba(182, 75, 44, 0.11);
+      color: var(--accent);
+      white-space: nowrap;
+    }}
+    .mono {{ font-family: Consolas, "Liberation Mono", monospace; font-weight: 700; color: var(--accent-2); }}
+    .support {{ margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); line-height: 1.7; }}
+    .support p {{ margin: 12px 0 0; }}
     @media (max-width: 860px) {{
-      .grid {{ grid-template-columns: 1fr; }}
-      dl {{ grid-template-columns: 1fr; }}
+      .section-title {{ display: block; }}
+      .section-title p {{ margin-top: 8px; }}
     }}
   </style>
 </head>
@@ -319,13 +361,16 @@ def build_dashboard() -> None:
   <header>
     <h1>ETF 标的观察总览</h1>
     <p>首页按实际观察标的组织：先看 ETF / 指数本身，再进入它映射到的申万二级行业图形页。生成时间：{escape(generated_at)}</p>
+  </header>
+  {_overview_table(ETF_CARDS)}
+  <footer class="support">
     <div class="nav">
       <a href="theme_watch_sop.md">SOP</a>
       <a href="daily_update_runbook.md">每日更新手册</a>
       <a href="theme_to_sw_watchlist.md">映射清单</a>
     </div>
-  </header>
-  {_group_cards(ETF_CARDS)}
+    <p>以上内容仅用于个人研究、数据观察和策略复盘，不构成任何投资建议、买卖依据或收益承诺。</p>
+  </footer>
 </main>
 </body>
 </html>
