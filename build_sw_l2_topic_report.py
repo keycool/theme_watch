@@ -129,11 +129,16 @@ def build_topic_report(codes: list[str], title: str, output_path: Path) -> None:
     .amount-bars rect {{ fill: rgba(31, 111, 120, 0.14); }}
     .axis-text {{ fill: var(--muted); font-size: 12px; }}
     .axis-text.right {{ text-anchor: end; }}
+    .metric-groups {{ display: grid; grid-template-columns: 1.45fr 1fr; gap: 10px; margin-top: 8px; }}
+    .metric-group {{ border-radius: 16px; padding: 10px 12px; border: 1px solid rgba(69, 52, 28, 0.10); }}
+    .metric-group.primary {{ background: rgba(31, 111, 120, 0.07); }}
+    .metric-group.auxiliary {{ background: rgba(187, 77, 45, 0.06); }}
+    .metric-group h3 {{ margin: 0 0 8px; font-size: 13px; letter-spacing: 0.08em; color: var(--muted); }}
     .metrics {{ display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 13px; color: var(--muted); }}
     .metrics strong {{ color: var(--ink); }}
     .summary {{ margin-top: 12px !important; line-height: 1.6; font-size: 13px; }}
     .empty-chart {{ padding: 80px 0; text-align: center; color: var(--muted); }}
-    @media (max-width: 1080px) {{ .grid-cards {{ grid-template-columns: 1fr; }} }}
+    @media (max-width: 1080px) {{ .grid-cards, .metric-groups {{ grid-template-columns: 1fr; }} }}
   </style>
 </head>
 <body>
@@ -141,7 +146,7 @@ def build_topic_report(codes: list[str], title: str, output_path: Path) -> None:
   <header>
     <h1>{escape(title)}</h1>
     <p>数据主线：Tushare 申万二级行业 · 最新扫描日：{latest_date} · 生成时间：{escape(generated_at)}</p>
-    <p>红线为收盘价，蓝线为 MA250，底部浅蓝柱为成交额；卡片内已加入“连续低于 MA250”统计。</p>
+    <p>红线为收盘价，蓝线为 MA250，底部浅蓝柱为成交额；卡片指标已分为“主指标”和“辅助指标”。</p>
     {missing_note}
   </header>
   <section class="grid-cards">

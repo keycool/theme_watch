@@ -8,6 +8,7 @@ from sw_data_utils import DEFAULT_END_DATE, YI_TO_TUSHARE_MV, get_pro, get_sw_da
 
 ROOT = Path(__file__).resolve().parent
 CLASSIFY_PATH = ROOT / ".cache_scan_v2" / "sw_index_classify.csv"
+MASTER_HISTORY_PATH = ROOT / ".cache_scan_v2" / "sw_daily_full_history.csv"
 OUTPUT_CSV = ROOT / "sw_l2_sample_pool.csv"
 OUTPUT_MD = ROOT / "sw_l2_sample_pool_summary.md"
 DEFAULT_THRESHOLD_YI = 2000.0
@@ -15,6 +16,15 @@ DEFAULT_THRESHOLD_YI = 2000.0
 
 def load_classify() -> pd.DataFrame:
     return pd.read_csv(CLASSIFY_PATH, dtype=str)
+
+
+def load_sw_daily_snapshot(pro, end_date: str) -> pd.DataFrame:
+    if MASTER_HISTORY_PATH.exists():
+        df = pd.read_csv(MASTER_HISTORY_PATH, dtype={"ts_code": str, "trade_date": str})
+        df = df[df["trade_date"].astype(str) <= str(end_date)].copy()
+        if not df.empty:
+            return df
+    return get_sw_daily(pro, start_date="20250506", end_date=end_date)
 
 
 def build_sample_pool(end_date: str, threshold_yi: float) -> pd.DataFrame:
@@ -30,7 +40,7 @@ def build_sample_pool(end_date: str, threshold_yi: float) -> pd.DataFrame:
         }
     )
 
-    sw_daily = get_sw_daily(pro, start_date="20250506", end_date=end_date)
+    sw_daily = load_sw_daily_snapshot(pro, end_date=end_date)
     if sw_daily.empty:
         raise RuntimeError("sw_daily returned no rows, cannot build sample pool.")
 

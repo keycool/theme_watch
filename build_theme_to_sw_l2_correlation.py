@@ -15,10 +15,24 @@ SCAN_CSV = ROOT / "sw_l2_strategy_scan.csv"
 CACHE_DIR = ROOT / ".cache_scan_v2"
 
 
-def _load_theme_daily(ts_code: str, source: str, start_date: str, end_date: str) -> pd.DataFrame:
+def _return_series(df: pd.DataFrame, close_col: str, pct_col: str | None = None) -> pd.Series:
+    if pct_col and pct_col in df.columns:
+        pct = pd.to_numeric(df[pct_col], errors="coerce")
+        if pct.notna().sum() > 0:
+            return pct / 100.0
+    return pd.to_numeric(df[close_col], errors="coerce").pct_change()
+
+
+def _load_theme_daily(
+    ts_code: str,
+    source: str,
+    start_date: str,
+    end_date: str,
+    force_refresh: bool = False,
+) -> pd.DataFrame:
     cache_key = ts_code.replace(".", "_")
     cache_path = CACHE_DIR / f"{source}_daily_{cache_key}_{start_date}_{end_date}.csv"
-    if cache_path.exists():
+    if cache_path.exists() and not force_refresh:
         return pd.read_csv(cache_path, dtype={"ts_code": str, "trade_date": str})
 
     pro = get_pro()
@@ -33,9 +47,24 @@ def _load_theme_daily(ts_code: str, source: str, start_date: str, end_date: str)
     return df
 
 
-def build_correlation(ts_code: str, source: str, start_date: str, end_date: str, output: Path) -> pd.DataFrame:
-    theme = _load_theme_daily(ts_code, source, start_date, end_date).sort_values("trade_date").copy()
-    theme["theme_ret"] = pd.to_numeric(theme["close"], errors="coerce").pct_change()
+def build_correlation(
+    ts_code: str,
+    source: str,
+    start_date: str,
+    end_date: str,
+    output: Path,
+    force_refresh: bool = False,
+) -> pd.DataFrame:
+    theme = _load_theme_daily(
+        ts_code,
+        source,
+        start_date,
+        end_date,
+        force_refresh=force_refresh,
+    ).sort_values("trade_date").copy()
+    if theme.empty:
+        raise RuntimeError(f"{source}_daily returned no rows for {ts_code}.")
+    theme["theme_ret"] = _return_series(theme, close_col="close", pct_col="pct_chg")
 
     classify = pd.read_csv(CLASSIFY_CSV, dtype=str)
     l2_codes = set(classify[classify["level"] == "L2"]["index_code"].astype(str))
@@ -43,7 +72,10 @@ def build_correlation(ts_code: str, source: str, start_date: str, end_date: str,
     sw = pd.read_csv(HISTORY_CSV, dtype={"ts_code": str, "trade_date": str})
     sw = sw[sw["ts_code"].isin(l2_codes)].sort_values(["ts_code", "trade_date"]).copy()
     sw["close"] = pd.to_numeric(sw["close"], errors="coerce")
-    sw["sw_ret"] = sw.groupby("ts_code")["close"].pct_change()
+    if "pct_change" in sw.columns:
+        sw["sw_ret"] = pd.to_numeric(sw["pct_change"], errors="coerce") / 100.0
+    else:
+        sw["sw_ret"] = sw.groupby("ts_code")["close"].pct_change()
 
     scan = pd.read_csv(SCAN_CSV)
     scan_map = scan.set_index("industry_code").to_dict("index")
@@ -91,6 +123,7 @@ def main() -> None:
     parser.add_argument("--start-date", default="20240101")
     parser.add_argument("--end-date", default="20260630")
     parser.add_argument("--output", required=True)
+    parser.add_argument("--force-refresh", action="store_true")
     args = parser.parse_args()
 
     result = build_correlation(
@@ -99,6 +132,7 @@ def main() -> None:
         start_date=args.start_date,
         end_date=args.end_date,
         output=Path(args.output),
+        force_refresh=args.force_refresh,
     )
     print(result.head(15).to_string(index=False))
 

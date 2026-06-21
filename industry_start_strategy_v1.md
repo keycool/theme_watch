@@ -117,6 +117,7 @@
 
 详见：
 - [industry_crowding_filter_v1.md](/D:/CC/Industry%20Insight/industry_crowding_filter_v1.md)
+- [indicator_hierarchy_v1.md](/D:/CC/Industry%20Insight/indicator_hierarchy_v1.md)
 
 ## 4.1 启动识别体系
 

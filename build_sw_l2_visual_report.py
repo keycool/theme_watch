@@ -160,6 +160,7 @@ def _ma250_convergence(history: pd.DataFrame) -> dict[str, object]:
         return {
             "below_streak": None,
             "latest_gap": None,
+            "gap_sigma": None,
             "min_gap_120": None,
             "repair_from_120_low": None,
             "repair_sigma": None,
@@ -179,6 +180,7 @@ def _ma250_convergence(history: pd.DataFrame) -> dict[str, object]:
     min_gap_120 = float(last_120["ma250_gap"].min())
     repair_from_120_low = latest_gap - min_gap_120
     gap_std_120 = float(last_120["ma250_gap"].std())
+    gap_sigma = None if pd.isna(gap_std_120) or gap_std_120 <= 0 else latest_gap / gap_std_120
     repair_sigma = None if pd.isna(gap_std_120) or gap_std_120 <= 0 else repair_from_120_low / gap_std_120
 
     if latest_gap >= 0:
@@ -195,10 +197,32 @@ def _ma250_convergence(history: pd.DataFrame) -> dict[str, object]:
     return {
         "below_streak": below_streak,
         "latest_gap": latest_gap,
+        "gap_sigma": gap_sigma,
         "min_gap_120": min_gap_120,
         "repair_from_120_low": repair_from_120_low,
         "repair_sigma": repair_sigma,
         "stage": stage,
+    }
+
+
+def _spot_volatility(history: pd.DataFrame) -> dict[str, object]:
+    full_history = history.copy()
+    for column in ["high", "low", "close"]:
+        full_history[column] = pd.to_numeric(full_history[column], errors="coerce")
+    full_history["spot_volatility"] = (full_history["high"] - full_history["low"]) / full_history["close"]
+
+    valid = full_history.dropna(subset=["spot_volatility"])
+    if valid.empty:
+        return {"vol_sigma": None}
+
+    last_120 = valid.tail(120)
+    latest_vol = float(valid.iloc[-1]["spot_volatility"])
+    vol_mean_120 = float(last_120["spot_volatility"].mean())
+    vol_std_120 = float(last_120["spot_volatility"].std())
+    return {
+        "vol_sigma": None
+        if pd.isna(vol_std_120) or vol_std_120 <= 0
+        else (latest_vol - vol_mean_120) / vol_std_120,
     }
 
 
@@ -214,8 +238,9 @@ def _card(row: pd.Series, history: pd.DataFrame) -> str:
     ma250_convergence = _ma250_convergence(history)
     below_ma250_streak = ma250_convergence["below_streak"]
     below_ma250_text = "-" if below_ma250_streak is None else f"{below_ma250_streak} 天"
-    latest_gap_text = _fmt_pct(ma250_convergence["latest_gap"])
-    repair_text = _fmt_sigma(ma250_convergence["repair_sigma"])
+    gap_sigma_text = _fmt_sigma(ma250_convergence["gap_sigma"])
+    spot_volatility = _spot_volatility(history)
+    vol_sigma_text = _fmt_sigma(spot_volatility["vol_sigma"])
     summary = escape(str(row.get("summary_line", "")))
 
     return f"""
@@ -231,13 +256,23 @@ def _card(row: pd.Series, history: pd.DataFrame) -> str:
     </div>
   </div>
   {_build_svg(history)}
-  <div class="metrics">
-    <span>龙头：<strong>{leader}</strong></span>
-    <span>龙头当日涨幅：<strong>{leader_pct}</strong></span>
-    <span>连续低于 MA250：<strong>{below_ma250_text}</strong></span>
-    <span>当前距 MA250：<strong>{latest_gap_text}</strong></span>
-    <span>偏离修复σ：<strong>{repair_text}</strong></span>
+  <div class="metric-groups">
+    <div class="metric-group primary">
+      <h3>主指标</h3>
+      <div class="metrics">
+        <span>连续低于 MA250：<strong>{below_ma250_text}</strong></span>
+        <span>偏离度σ：<strong>{gap_sigma_text}</strong></span>
+        <span>龙头：<strong>{leader}</strong></span>
+        <span>龙头当日涨幅：<strong>{leader_pct}</strong></span>
+      </div>
+    </div>
+    <div class="metric-group auxiliary">
+      <h3>辅助指标</h3>
+      <div class="metrics">
     <span>吸筹率分位：<strong>{absorption_rank}</strong></span>
+        <span>波动率σ：<strong>{vol_sigma_text}</strong></span>
+      </div>
+    </div>
   </div>
   <p class="summary">{summary}</p>
 </article>
@@ -365,6 +400,11 @@ def build_report() -> None:
     .amount-bars rect {{ fill: rgba(31, 111, 120, 0.14); }}
     .axis-text {{ fill: var(--muted); font-size: 12px; }}
     .axis-text.right {{ text-anchor: end; }}
+    .metric-groups {{ display: grid; grid-template-columns: 1.45fr 1fr; gap: 10px; margin-top: 8px; }}
+    .metric-group {{ border-radius: 16px; padding: 10px 12px; border: 1px solid rgba(69, 52, 28, 0.10); }}
+    .metric-group.primary {{ background: rgba(31, 111, 120, 0.07); }}
+    .metric-group.auxiliary {{ background: rgba(187, 77, 45, 0.06); }}
+    .metric-group h3 {{ margin: 0 0 8px; font-size: 13px; letter-spacing: 0.08em; color: var(--muted); }}
     .metrics {{ display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 13px; color: var(--muted); }}
     .metrics strong {{ color: var(--ink); }}
     .summary {{ margin-top: 12px !important; line-height: 1.6; font-size: 13px; }}
@@ -374,6 +414,7 @@ def build_report() -> None:
       .overview, .grid-cards {{ grid-template-columns: 1fr; }}
       .card-head {{ display: block; }}
       .badges {{ justify-content: flex-start; margin-top: 10px; }}
+      .metric-groups {{ grid-template-columns: 1fr; }}
     }}
   </style>
 </head>
@@ -382,7 +423,7 @@ def build_report() -> None:
   <header>
     <h1>申万二级行业启动策略图形报告</h1>
     <p>数据主线：Tushare · 最新扫描日：{latest_date} · 生成时间：{escape(generated_at)}</p>
-    <p>图中红线为收盘价，蓝线为 MA250，底部浅蓝柱为成交额强弱。这个页面用于快速肉眼校验“低位收敛、年线位置、是否已过热”。</p>
+    <p>图中红线为收盘价，蓝线为 MA250，底部浅蓝柱为成交额强弱。卡片指标已分为“主指标”和“辅助指标”，用于快速肉眼校验“低位收敛、年线位置、是否已过热”。</p>
   </header>
   {_overview(scan)}
   <section class="grid-cards">

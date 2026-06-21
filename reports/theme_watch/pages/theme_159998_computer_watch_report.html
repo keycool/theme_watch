@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>计算机 ETF 观察组 - 申万二级关联观察</title>
+  <style>
+    :root {
+      --paper: #f7efe1;
+      --ink: #1b2a2f;
+      --muted: #66747a;
+      --line: #dac7a8;
+      --accent: #bb4d2d;
+      --accent-2: #1f6f78;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 8%, rgba(187, 77, 45, 0.18), transparent 28rem),
+        radial-gradient(circle at 88% 18%, rgba(31, 111, 120, 0.16), transparent 24rem),
+        linear-gradient(135deg, #fbf6ed 0%, var(--paper) 52%, #ead9bd 100%);
+      font-family: "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    }
+    main { max-width: 1180px; margin: 0 auto; padding: 40px 20px 56px; }
+    header { margin-bottom: 24px; }
+    h1 { margin: 0 0 10px; font-size: clamp(28px, 4vw, 46px); letter-spacing: -0.04em; }
+    header p { margin: 0; color: var(--muted); line-height: 1.7; }
+    .warn { margin-top: 12px; color: #9f3e25; }
+    .grid-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+    .card {
+      border: 1px solid rgba(69, 52, 28, 0.16);
+      background: rgba(255, 250, 241, 0.88);
+      box-shadow: 0 18px 42px rgba(77, 54, 22, 0.10);
+      backdrop-filter: blur(8px);
+      border-radius: 22px;
+      padding: 18px;
+      overflow: hidden;
+    }
+    .card-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+    .card h2 { margin: 0 0 4px; font-size: 22px; }
+    .card p { margin: 0; color: var(--muted); }
+    .badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .badge { border-radius: 999px; padding: 7px 10px; font-size: 12px; white-space: nowrap; }
+    .badge.label { background: rgba(31, 111, 120, 0.14); color: var(--accent-2); }
+    .badge.crowding { background: rgba(187, 77, 45, 0.13); color: var(--accent); }
+    .sparkline { width: 100%; margin: 16px 0 6px; display: block; }
+    .grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 8; }
+    .line { fill: none; stroke-linejoin: round; stroke-linecap: round; stroke-width: 3.2; }
+    .line.close { stroke: var(--accent); }
+    .line.ma { stroke: var(--accent-2); opacity: 0.72; }
+    .amount-bars rect { fill: rgba(31, 111, 120, 0.14); }
+    .axis-text { fill: var(--muted); font-size: 12px; }
+    .axis-text.right { text-anchor: end; }
+    .metric-groups { display: grid; grid-template-columns: 1.45fr 1fr; gap: 10px; margin-top: 8px; }
+    .metric-group { border-radius: 16px; padding: 10px 12px; border: 1px solid rgba(69, 52, 28, 0.10); }
+    .metric-group.primary { background: rgba(31, 111, 120, 0.07); }
+    .metric-group.auxiliary { background: rgba(187, 77, 45, 0.06); }
+    .metric-group h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: 0.08em; color: var(--muted); }
+    .metrics { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 13px; color: var(--muted); }
+    .metrics strong { color: var(--ink); }
+    .summary { margin-top: 12px !important; line-height: 1.6; font-size: 13px; }
+    .empty-chart { padding: 80px 0; text-align: center; color: var(--muted); }
+    @media (max-width: 1080px) { .grid-cards, .metric-groups { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>计算机 ETF 观察组 - 申万二级关联观察</h1>
+    <p>数据主线：Tushare 申万二级行业 · 最新扫描日：20260618 · 生成时间：2026-06-21 12:05:18</p>
+    <p>红线为收盘价，蓝线为 MA250，底部浅蓝柱为成交额；卡片指标已分为“主指标”和“辅助指标”。</p>
+    
+  </header>
+  <section class="grid-cards">
+    
+<article class="card">
+  <div class="card-head">
+    <div>
+      <h2>计算机设备</h2>
+      <p>801101.SI · 总市值约 12,880 亿</p>
+    </div>
+    <div class="badges">
+      <span class="badge label">观察中</span>
+      <span class="badge crowding">拥挤正常</span>
+    </div>
+  </div>
+  
+<svg class="sparkline" viewBox="0 0 660 300" role="img" aria-label="close and ma250 chart">
+  <line class="grid" x1="0" y1="18" x2="620" y2="18" />
+  <line class="grid" x1="0" y1="113.0" x2="620" y2="113.0" />
+  <line class="grid" x1="0" y1="208" x2="620" y2="208" />
+  <g class="amount-bars"><rect x="0.0" y="259.3" width="2.4" height="8.7" /><rect x="2.4" y="257.8" width="2.4" height="10.2" /><rect x="4.8" y="257.1" width="2.4" height="10.9" /><rect x="7.2" y="252.0" width="2.4" height="16.0" /><rect x="9.6" y="255.1" width="2.4" height="12.9" /><rect x="12.0" y="256.7" width="2.4" height="11.3" /><rect x="14.4" y="255.2" width="2.4" height="12.8" /><rect x="16.8" y="252.4" width="2.4" height="15.6" /><rect x="19.2" y="253.9" width="2.4" height="14.1" /><rect x="21.5" y="254.9" width="2.4" height="13.1" /><rect x="23.9" y="252.6" width="2.4" height="15.4" /><rect x="26.3" y="250.0" width="2.4" height="18.0" /><rect x="28.7" y="251.4" width="2.4" height="16.6" /><rect x="31.1" y="250.8" width="2.4" height="17.2" /><rect x="33.5" y="251.4" width="2.4" height="16.6" /><rect x="35.9" y="250.1" width="2.4" height="17.9" /><rect x="38.3" y="250.9" width="2.4" height="17.1" /><rect x="40.7" y="252.1" width="2.4" height="15.9" /><rect x="43.1" y="254.6" width="2.4" height="13.4" /><rect x="45.5" y="252.6" width="2.4" height="15.4" /><rect x="47.9" y="248.3" width="2.4" height="19.7" /><rect x="50.3" y="244.0" width="2.4" height="24.0" /><rect x="52.7" y="241.7" width="2.4" height="26.3" /><rect x="55.1" y="248.2" width="2.4" height="19.8" /><rect x="57.5" y="249.5" width="2.4" height="18.5" /><rect x="59.8" y="251.3" width="2.4" height="16.7" /><rect x="62.2" y="253.3" width="2.4" height="14.7" /><rect x="64.6" y="254.1" width="2.4" height="13.9" /><rect x="67.0" y="252.5" width="2.4" height="15.5" /><rect x="69.4" y="254.0" width="2.4" height="14.0" /><rect x="71.8" y="250.9" width="2.4" height="17.1" /><rect x="74.2" y="252.8" width="2.4" height="15.2" /><rect x="76.6" y="252.2" width="2.4" height="15.8" /><rect x="79.0" y="250.9" width="2.4" height="17.1" /><rect x="81.4" y="254.2" width="2.4" height="13.8" /><rect x="83.8" y="248.5" width="2.4" height="19.5" /><rect x="86.2" y="253.1" width="2.4" height="14.9" /><rect x="88.6" y="253.5" width="2.4" height="14.5" /><rect x="91.0" y="251.0" width="2.4" height="17.0" /><rect x="93.4" y="252.8" width="2.4" height="15.2" /><rect x="95.8" y="253.2" width="2.4" height="14.8" /><rect x="98.1" y="254.1" width="2.4" height="13.9" /><rect x="100.5" y="254.4" width="2.4" height="13.6" /><rect x="102.9" y="252.6" width="2.4" height="15.4" /><rect x="105.3" y="252.9" width="2.4" height="15.1" /><rect x="107.7" y="252.0" width="2.4" height="16.0" /><rect x="110.1" y="252.9" width="2.4" height="15.1" /><rect x="112.5" y="249.8" width="2.4" height="18.2" /><rect x="114.9" y="251.4" width="2.4" height="16.6" /><rect x="117.3" y="253.8" width="2.4" height="14.2" /><rect x="119.7" y="252.6" width="2.4" height="15.4" /><rect x="122.1" y="251.1" width="2.4" height="16.9" /><rect x="124.5" y="250.2" width="2.4" height="17.8" /><rect x="126.9" y="249.2" width="2.4" height="18.8" /><rect x="129.3" y="251.0" width="2.4" height="17.0" /><rect x="131.7" y="244.6" width="2.4" height="23.4" /><rect x="134.1" y="241.4" width="2.4" height="26.6" /><rect x="136.4" y="232.4" width="2.4" height="35.6" /><rect x="138.8" y="240.8" width="2.4" height="27.2" /><rect x="141.2" y="233.2" width="2.4" height="34.8" /><rect x="143.6" y="236.9" width="2.4" height="31.1" /><rect x="146.0" y="238.1" width="2.4" height="29.9" /><rect x="148.4" y="233.8" width="2.4" height="34.2" /><rect x="150.8" y="230.5" width="2.4" height="37.5" /><rect x="153.2" y="231.6" width="2.4" height="36.4" /><rect x="155.6" y="226.4" width="2.4" height="41.6" /><rect x="158.0" y="226.0" width="2.4" height="42.0" /><rect x="160.4" y="232.3" width="2.4" height="35.7" /><rect x="162.8" y="238.4" width="2.4" height="29.6" /><rect x="165.2" y="234.6" width="2.4" height="33.4" /><rect x="167.6" y="235.1" width="2.4" height="32.9" /><rect x="170.0" y="245.9" width="2.4" height="22.1" /><rect x="172.4" y="243.5" width="2.4" height="24.5" /><rect x="174.7" y="250.3" width="2.4" height="17.7" /><rect x="177.1" y="251.1" width="2.4" height="16.9" /><rect x="179.5" y="253.4" width="2.4" height="14.6" /><rect x="181.9" y="251.3" width="2.4" height="16.7" /><rect x="184.3" y="244.0" width="2.4" height="24.0" /><rect x="186.7" y="239.6" width="2.4" height="28.4" /><rect x="189.1" y="244.6" width="2.4" height="23.4" /><rect x="191.5" y="242.3" width="2.4" height="25.7" /><rect x="193.9" y="241.7" width="2.4" height="26.3" /><rect x="196.3" y="230.5" width="2.4" height="37.5" /><rect x="198.7" y="245.1" width="2.4" height="22.9" /><rect x="201.1" y="242.2" width="2.4" height="25.8" /><rect x="203.5" y="241.0" width="2.4" height="27.0" /><rect x="205.9" y="242.3" width="2.4" height="25.7" /><rect x="208.3" y="237.8" width="2.4" height="30.2" /><rect x="210.7" y="240.7" width="2.4" height="27.3" /><rect x="213.1" y="245.0" width="2.4" height="23.0" /><rect x="215.4" y="245.2" width="2.4" height="22.8" /><rect x="217.8" y="233.1" width="2.4" height="34.9" /><rect x="220.2" y="238.6" width="2.4" height="29.4" /><rect x="222.6" y="243.8" width="2.4" height="24.2" /><rect x="225.0" y="241.5" width="2.4" height="26.5" /><rect x="227.4" y="248.9" width="2.4" height="19.1" /><rect x="229.8" y="251.1" width="2.4" height="16.9" /><rect x="232.2" y="249.8" width="2.4" height="18.2" /><rect x="234.6" y="251.7" width="2.4" height="16.3" /><rect x="237.0" y="250.7" width="2.4" height="17.3" /><rect x="239.4" y="253.0" width="2.4" height="15.0" /><rect x="241.8" y="254.1" width="2.4" height="13.9" /><rect x="244.2" y="249.0" width="2.4" height="19.0" /><rect x="246.6" y="243.6" width="2.4" height="24.4" /><rect x="249.0" y="247.4" width="2.4" height="20.6" /><rect x="251.4" y="246.2" width="2.4" height="21.8" /><rect x="253.7" y="243.8" width="2.4" height="24.2" /><rect x="256.1" y="247.1" width="2.4" height="20.9" /><rect x="258.5" y="249.8" width="2.4" height="18.2" /><rect x="260.9" y="250.2" width="2.4" height="17.8" /><rect x="263.3" y="251.2" width="2.4" height="16.8" /><rect x="265.7" y="249.0" width="2.4" height="19.0" /><rect x="268.1" y="250.9" width="2.4" height="17.1" /><rect x="270.5" y="252.2" width="2.4" height="15.8" /><rect x="272.9" y="251.8" width="2.4" height="16.2" /><rect x="275.3" y="252.7" width="2.4" height="15.3" /><rect x="277.7" y="251.8" width="2.4" height="16.2" /><rect x="280.1" y="253.6" width="2.4" height="14.4" /><rect x="282.5" y="252.5" width="2.4" height="15.5" /><rect x="284.9" y="251.9" width="2.4" height="16.1" /><rect x="287.3" y="253.7" width="2.4" height="14.3" /><rect x="289.7" y="255.4" width="2.4" height="12.6" /><rect x="292.0" y="252.9" width="2.4" height="15.1" /><rect x="294.4" y="253.0" width="2.4" height="15.0" /><rect x="296.8" y="251.5" width="2.4" height="16.5" /><rect x="299.2" y="250.0" width="2.4" height="18.0" /><rect x="301.6" y="251.2" width="2.4" height="16.8" /><rect x="304.0" y="255.1" width="2.4" height="12.9" /><rect x="306.4" y="252.0" width="2.4" height="16.0" /><rect x="308.8" y="254.2" width="2.4" height="13.8" /><rect x="311.2" y="254.5" width="2.4" height="13.5" /><rect x="313.6" y="255.2" width="2.4" height="12.8" /><rect x="316.0" y="252.5" width="2.4" height="15.5" /><rect x="318.4" y="249.7" width="2.4" height="18.3" /><rect x="320.8" y="250.2" width="2.4" height="17.8" /><rect x="323.2" y="250.8" width="2.4" height="17.2" /><rect x="325.6" y="250.3" width="2.4" height="17.7" /><rect x="328.0" y="249.0" width="2.4" height="19.0" /><rect x="330.3" y="252.3" width="2.4" height="15.7" /><rect x="332.7" y="251.5" width="2.4" height="16.5" /><rect x="335.1" y="251.2" width="2.4" height="16.8" /><rect x="337.5" y="254.4" width="2.4" height="13.6" /><rect x="339.9" y="253.4" width="2.4" height="14.6" /><rect x="342.3" y="251.8" width="2.4" height="16.2" /><rect x="344.7" y="253.3" width="2.4" height="14.7" /><rect x="347.1" y="253.0" width="2.4" height="15.0" /><rect x="349.5" y="252.5" width="2.4" height="15.5" /><rect x="351.9" y="249.3" width="2.4" height="18.7" /><rect x="354.3" y="249.8" width="2.4" height="18.2" /><rect x="356.7" y="249.1" width="2.4" height="18.9" /><rect x="359.1" y="248.6" width="2.4" height="19.4" /><rect x="361.5" y="245.4" width="2.4" height="22.6" /><rect x="363.9" y="241.6" width="2.4" height="26.4" /><rect x="366.3" y="244.7" width="2.4" height="23.3" /><rect x="368.6" y="242.0" width="2.4" height="26.0" /><rect x="371.0" y="240.9" width="2.4" height="27.1" /><rect x="373.4" y="232.1" width="2.4" height="35.9" /><rect x="375.8" y="231.9" width="2.4" height="36.1" /><rect x="378.2" y="227.4" width="2.4" height="40.6" /><rect x="380.6" y="241.7" width="2.4" height="26.3" /><rect x="383.0" y="243.5" width="2.4" height="24.5" /><rect x="385.4" y="248.5" width="2.4" height="19.5" /><rect x="387.8" y="248.1" width="2.4" height="19.9" /><rect x="390.2" y="242.7" width="2.4" height="25.3" /><rect x="392.6" y="240.8" width="2.4" height="27.2" /><rect x="395.0" y="242.4" width="2.4" height="25.6" /><rect x="397.4" y="242.5" width="2.4" height="25.5" /><rect x="399.8" y="249.0" width="2.4" height="19.0" /><rect x="402.2" y="249.1" width="2.4" height="18.9" /><rect x="404.6" y="247.5" width="2.4" height="20.5" /><rect x="406.9" y="250.2" width="2.4" height="17.8" /><rect x="409.3" y="253.3" width="2.4" height="14.7" /><rect x="411.7" y="253.3" width="2.4" height="14.7" /><rect x="414.1" y="254.9" width="2.4" height="13.1" /><rect x="416.5" y="256.5" width="2.4" height="11.5" /><rect x="418.9" y="255.5" width="2.4" height="12.5" /><rect x="421.3" y="253.4" width="2.4" height="14.6" /><rect x="423.7" y="253.6" width="2.4" height="14.4" /><rect x="426.1" y="256.2" width="2.4" height="11.8" /><rect x="428.5" y="251.9" width="2.4" height="16.1" /><rect x="430.9" y="252.2" width="2.4" height="15.8" /><rect x="433.3" y="253.0" width="2.4" height="15.0" /><rect x="435.7" y="253.1" width="2.4" height="14.9" /><rect x="438.1" y="251.9" width="2.4" height="16.1" /><rect x="440.5" y="251.0" width="2.4" height="17.0" /><rect x="442.9" y="247.9" width="2.4" height="20.1" /><rect x="445.3" y="246.5" width="2.4" height="21.5" /><rect x="447.6" y="255.3" width="2.4" height="12.7" /><rect x="450.0" y="253.5" width="2.4" height="14.5" /><rect x="452.4" y="256.6" width="2.4" height="11.4" /><rect x="454.8" y="250.9" width="2.4" height="17.1" /><rect x="457.2" y="249.9" width="2.4" height="18.1" /><rect x="459.6" y="252.0" width="2.4" height="16.0" /><rect x="462.0" y="249.7" width="2.4" height="18.3" /><rect x="464.4" y="252.1" width="2.4" height="15.9" /><rect x="466.8" y="253.6" width="2.4" height="14.4" /><rect x="469.2" y="253.9" width="2.4" height="14.1" /><rect x="471.6" y="252.7" width="2.4" height="15.3" /><rect x="474.0" y="252.3" width="2.4" height="15.7" /><rect x="476.4" y="252.4" width="2.4" height="15.6" /><rect x="478.8" y="251.9" width="2.4" height="16.1" /><rect x="481.2" y="254.5" width="2.4" height="13.5" /><rect x="483.6" y="254.4" width="2.4" height="13.6" /><rect x="485.9" y="256.2" width="2.4" height="11.8" /><rect x="488.3" y="258.4" width="2.4" height="9.6" /><rect x="490.7" y="258.3" width="2.4" height="9.7" /><rect x="493.1" y="258.1" width="2.4" height="9.9" /><rect x="495.5" y="257.2" width="2.4" height="10.8" /><rect x="497.9" y="258.1" width="2.4" height="9.9" /><rect x="500.3" y="259.0" width="2.4" height="9.0" /><rect x="502.7" y="257.8" width="2.4" height="10.2" /><rect x="505.1" y="251.5" width="2.4" height="16.5" /><rect x="507.5" y="251.6" width="2.4" height="16.4" /><rect x="509.9" y="248.8" width="2.4" height="19.2" /><rect x="512.3" y="249.3" width="2.4" height="18.7" /><rect x="514.7" y="249.5" width="2.4" height="18.5" /><rect x="517.1" y="249.7" width="2.4" height="18.3" /><rect x="519.5" y="252.0" width="2.4" height="16.0" /><rect x="521.9" y="250.7" width="2.4" height="17.3" /><rect x="524.2" y="243.8" width="2.4" height="24.2" /><rect x="526.6" y="250.3" width="2.4" height="17.7" /><rect x="529.0" y="250.0" width="2.4" height="18.0" /><rect x="531.4" y="248.2" width="2.4" height="19.8" /><rect x="533.8" y="246.2" width="2.4" height="21.8" /><rect x="536.2" y="247.1" width="2.4" height="20.9" /><rect x="538.6" y="244.7" width="2.4" height="23.3" /><rect x="541.0" y="248.1" width="2.4" height="19.9" /><rect x="543.4" y="241.6" width="2.4" height="26.4" /><rect x="545.8" y="238.8" width="2.4" height="29.2" /><rect x="548.2" y="237.7" width="2.4" height="30.3" /><rect x="550.6" y="234.5" width="2.4" height="33.5" /><rect x="553.0" y="231.5" width="2.4" height="36.5" /><rect x="555.4" y="232.8" width="2.4" height="35.2" /><rect x="557.8" y="233.7" width="2.4" height="34.3" /><rect x="560.2" y="231.8" width="2.4" height="36.2" /><rect x="562.5" y="237.9" width="2.4" height="30.1" /><rect x="564.9" y="241.1" width="2.4" height="26.9" /><rect x="567.3" y="239.9" width="2.4" height="28.1" /><rect x="569.7" y="242.0" width="2.4" height="26.0" /><rect x="572.1" y="237.7" width="2.4" height="30.3" /><rect x="574.5" y="245.5" width="2.4" height="22.5" /><rect x="576.9" y="244.1" width="2.4" height="23.9" /><rect x="579.3" y="245.3" width="2.4" height="22.7" /><rect x="581.7" y="246.6" width="2.4" height="21.4" /><rect x="584.1" y="248.4" width="2.4" height="19.6" /><rect x="586.5" y="245.9" width="2.4" height="22.1" /><rect x="588.9" y="248.2" width="2.4" height="19.8" /><rect x="591.3" y="250.5" width="2.4" height="17.5" /><rect x="593.7" y="247.9" width="2.4" height="20.1" /><rect x="596.1" y="251.3" width="2.4" height="16.7" /><rect x="598.5" y="248.7" width="2.4" height="19.3" /><rect x="600.8" y="249.1" width="2.4" height="18.9" /><rect x="603.2" y="253.9" width="2.4" height="14.1" /><rect x="605.6" y="251.1" width="2.4" height="16.9" /><rect x="608.0" y="254.2" width="2.4" height="13.8" /><rect x="610.4" y="253.4" width="2.4" height="14.6" /><rect x="612.8" y="251.7" width="2.4" height="16.3" /><rect x="615.2" y="250.5" width="2.4" height="17.5" /><rect x="617.6" y="245.8" width="2.4" height="22.2" /><rect x="620.0" y="245.5" width="2.4" height="22.5" /></g>
+  <polyline class="line ma" points="0.0,194.9 2.4,194.7 4.8,194.6 7.2,194.4 9.6,194.3 12.0,194.2 14.4,194.0 16.8,193.8 19.2,193.5 21.5,193.3 23.9,193.0 26.3,192.7 28.7,192.5 31.1,192.2 33.5,192.0 35.9,191.7 38.3,191.4 40.7,191.1 43.1,190.9 45.5,190.6 47.9,190.3 50.3,190.0 52.7,189.7 55.1,189.3 57.5,189.0 59.8,188.7 62.2,188.4 64.6,188.1 67.0,187.7 69.4,187.3 71.8,187.0 74.2,186.6 76.6,186.2 79.0,185.9 81.4,185.5 83.8,185.1 86.2,184.6 88.6,184.2 91.0,183.7 93.4,183.3 95.8,182.8 98.1,182.4 100.5,182.0 102.9,181.5 105.3,181.1 107.7,180.6 110.1,180.2 112.5,179.8 114.9,179.3 117.3,178.9 119.7,178.4 122.1,177.9 124.5,177.4 126.9,176.9 129.3,176.4 131.7,175.9 134.1,175.3 136.4,174.8 138.8,174.1 141.2,173.5 143.6,172.8 146.0,172.1 148.4,171.4 150.8,170.6 153.2,169.7 155.6,168.9 158.0,168.1 160.4,167.3 162.8,166.6 165.2,165.7 167.6,165.0 170.0,164.2 172.4,163.6 174.7,162.9 177.1,162.1 179.5,161.4 181.9,160.7 184.3,159.9 186.7,159.1 189.1,158.3 191.5,157.5 193.9,156.6 196.3,155.7 198.7,154.9 201.1,154.0 203.5,153.1 205.9,152.2 208.3,151.2 210.7,150.2 213.1,149.3 215.4,148.4 217.8,147.4 220.2,146.5 222.6,145.7 225.0,144.9 227.4,144.2 229.8,143.7 232.2,143.4 234.6,143.0 237.0,142.5 239.4,141.9 241.8,141.4 244.2,140.8 246.6,140.1 249.0,139.5 251.4,138.9 253.7,138.4 256.1,137.9 258.5,137.5 260.9,137.0 263.3,136.5 265.7,136.0 268.1,135.5 270.5,135.1 272.9,134.7 275.3,134.2 277.7,133.8 280.1,133.5 282.5,133.2 284.9,133.0 287.3,132.8 289.7,132.7 292.0,132.6 294.4,132.5 296.8,132.3 299.2,132.1 301.6,131.8 304.0,131.5 306.4,131.3 308.8,131.0 311.2,130.8 313.6,130.5 316.0,130.1 318.4,129.8 320.8,129.5 323.2,129.3 325.6,129.1 328.0,128.9 330.3,128.7 332.7,128.5 335.1,128.3 337.5,128.2 339.9,128.0 342.3,127.8 344.7,127.6 347.1,127.4 349.5,127.1 351.9,126.8 354.3,126.5 356.7,126.3 359.1,126.0 361.5,125.7 363.9,125.4 366.3,125.0 368.6,124.7 371.0,124.4 373.4,123.9 375.8,123.4 378.2,122.9 380.6,122.3 383.0,121.7 385.4,121.1 387.8,120.6 390.2,120.1 392.6,119.5 395.0,118.8 397.4,118.3 399.8,117.8 402.2,117.4 404.6,116.9 406.9,116.5 409.3,116.1 411.7,115.7 414.1,115.3 416.5,115.0 418.9,114.6 421.3,114.2 423.7,113.9 426.1,113.7 428.5,113.4 430.9,113.1 433.3,112.9 435.7,112.6 438.1,112.4 440.5,112.2 442.9,112.0 445.3,111.9 447.6,111.8 450.0,111.7 452.4,111.6 454.8,111.5 457.2,111.4 459.6,111.2 462.0,111.0 464.4,110.8 466.8,110.6 469.2,110.5 471.6,110.4 474.0,110.4 476.4,110.3 478.8,110.4 481.2,110.4 483.6,110.4 485.9,110.5 488.3,110.5 490.7,110.6 493.1,110.6 495.5,110.6 497.9,110.6 500.3,110.6 502.7,110.5 505.1,110.3 507.5,110.2 509.9,109.9 512.3,109.7 514.7,109.4 517.1,109.2 519.5,108.9 521.9,108.4 524.2,107.8 526.6,107.4 529.0,107.0 531.4,106.6 533.8,106.2 536.2,105.7 538.6,105.3 541.0,104.9 543.4,104.4 545.8,103.9 548.2,103.4 550.6,102.8 553.0,102.2 555.4,101.7 557.8,101.0 560.2,100.5 562.5,100.0 564.9,99.6 567.3,99.1 569.7,98.6 572.1,98.2 574.5,97.8 576.9,97.4 579.3,97.0 581.7,96.7 584.1,96.3 586.5,96.1 588.9,95.8 591.3,95.6 593.7,95.3 596.1,95.0 598.5,94.7 600.8,94.5 603.2,94.3 605.6,94.1 608.0,93.9 610.4,93.8 612.8,93.5 615.2,93.3 617.6,93.1 620.0,92.8" />
+  <polyline class="line close" points="0.0,177.5 2.4,178.9 4.8,179.5 7.2,168.6 9.6,174.5 12.0,174.9 14.4,171.6 16.8,164.7 19.2,164.7 21.5,162.9 23.9,163.6 26.3,161.1 28.7,159.7 31.1,167.3 33.5,162.5 35.9,161.9 38.3,161.0 40.7,167.0 43.1,172.0 45.5,165.8 47.9,157.3 50.3,149.2 52.7,149.2 55.1,150.9 57.5,146.6 59.8,150.7 62.2,156.0 64.6,151.7 67.0,153.9 69.4,153.1 71.8,146.9 74.2,149.4 76.6,150.4 79.0,146.7 81.4,147.5 83.8,142.9 86.2,144.3 88.6,140.9 91.0,139.6 93.4,139.5 95.8,140.7 98.1,142.8 100.5,138.0 102.9,135.4 105.3,135.7 107.7,134.2 110.1,139.8 112.5,141.8 114.9,139.7 117.3,137.9 119.7,132.5 122.1,128.6 124.5,128.6 126.9,132.7 129.3,128.0 131.7,122.8 134.1,116.2 136.4,114.5 138.8,109.8 141.2,99.0 143.6,102.2 146.0,92.9 148.4,92.4 150.8,75.8 153.2,66.9 155.6,67.4 158.0,78.3 160.4,67.4 162.8,75.6 165.2,67.2 167.6,85.7 170.0,98.8 172.4,116.8 174.7,106.4 177.1,101.6 179.5,109.9 181.9,104.1 184.3,84.2 186.7,78.1 189.1,78.2 191.5,63.1 193.9,61.6 196.3,62.3 198.7,68.3 201.1,55.9 203.5,64.4 205.9,51.9 208.3,37.0 210.7,53.0 213.1,48.4 215.4,44.6 217.8,31.1 220.2,49.9 222.6,49.4 225.0,67.1 227.4,60.5 229.8,66.9 232.2,80.3 234.6,78.8 237.0,69.0 239.4,67.2 241.8,69.0 244.2,57.1 246.6,49.6 249.0,53.5 251.4,48.3 253.7,54.4 256.1,62.2 258.5,59.6 260.9,64.8 263.3,65.2 265.7,53.9 268.1,60.9 270.5,65.1 272.9,70.3 275.3,73.5 277.7,67.8 280.1,78.1 282.5,76.5 284.9,76.1 287.3,80.4 289.7,84.2 292.0,102.1 294.4,96.4 296.8,90.7 299.2,87.9 301.6,88.2 304.0,85.3 306.4,80.7 308.8,85.5 311.2,92.9 313.6,91.0 316.0,87.3 318.4,78.9 320.8,80.3 323.2,90.3 325.6,98.4 328.0,96.0 330.3,102.9 332.7,109.1 335.1,100.3 337.5,103.9 339.9,99.0 342.3,94.0 344.7,96.2 347.1,89.7 349.5,86.4 351.9,84.7 354.3,85.4 356.7,82.1 359.1,80.0 361.5,73.2 363.9,65.2 366.3,66.8 368.6,63.2 371.0,56.3 373.4,32.9 375.8,48.3 378.2,37.2 380.6,45.9 383.0,48.5 385.4,52.2 387.8,62.3 390.2,47.7 392.6,47.6 395.0,45.6 397.4,57.6 399.8,63.1 402.2,66.7 404.6,73.2 406.9,79.1 409.3,88.8 411.7,79.0 414.1,81.9 416.5,83.4 418.9,83.1 421.3,74.2 423.7,72.3 426.1,76.0 428.5,69.1 430.9,69.3 433.3,70.3 435.7,71.0 438.1,68.9 440.5,66.5 442.9,76.4 445.3,100.6 447.6,104.5 450.0,95.1 452.4,92.6 454.8,87.5 457.2,80.3 459.6,80.2 462.0,79.1 464.4,86.7 466.8,86.8 469.2,97.0 471.6,85.1 474.0,95.9 476.4,106.9 478.8,132.9 481.2,121.7 483.6,113.4 485.9,121.4 488.3,121.4 490.7,122.8 493.1,128.1 495.5,119.5 497.9,130.2 500.3,132.8 502.7,130.3 505.1,108.0 507.5,108.4 509.9,99.2 512.3,93.4 514.7,88.5 517.1,89.4 519.5,83.9 521.9,82.8 524.2,72.8 526.6,81.5 529.0,74.6 531.4,78.7 533.8,77.2 536.2,73.7 538.6,78.7 541.0,73.5 543.4,66.8 545.8,51.6 548.2,43.7 550.6,42.9 553.0,34.7 555.4,41.1 557.8,32.9 560.2,50.9 562.5,60.8 564.9,52.8 567.3,44.2 569.7,48.5 572.1,70.0 574.5,60.9 576.9,60.2 579.3,73.0 581.7,87.2 584.1,87.5 586.5,104.7 588.9,106.4 591.3,106.3 593.7,104.5 596.1,107.3 598.5,108.9 600.8,126.8 603.2,121.8 605.6,126.1 608.0,134.4 610.4,132.9 612.8,117.2 615.2,109.8 617.6,101.2 620.0,97.6" />
+  <text class="axis-text" x="0" y="292">20250526</text>
+  <text class="axis-text right" x="620" y="292">20260618</text>
+  <text class="axis-text right" x="650" y="36">收盘 3,000.38</text>
+  <text class="axis-text right" x="650" y="56">MA250 3,030.94</text>
+</svg>
+
+  <div class="metric-groups">
+    <div class="metric-group primary">
+      <h3>主指标</h3>
+      <div class="metrics">
+        <span>连续低于 MA250：<strong>15 天</strong></span>
+        <span>偏离度σ：<strong>-0.16σ</strong></span>
+        <span>龙头：<strong>海康威视</strong></span>
+        <span>龙头当日涨幅：<strong>-0.19%</strong></span>
+      </div>
+    </div>
+    <div class="metric-group auxiliary">
+      <h3>辅助指标</h3>
+      <div class="metrics">
+    <span>吸筹率分位：<strong>19.92%</strong></span>
+        <span>波动率σ：<strong>0.82σ</strong></span>
+      </div>
+    </div>
+  </div>
+  <p class="summary">观察中（偏弱），已有局部转强线索，但条件不完整。</p>
+</article>
+
+  </section>
+</main>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ETF 主题观察总览</title>
+  <title>ETF 标的观察总览</title>
   <style>
     :root {
       --bg: #f3ead9;
@@ -28,6 +28,15 @@
     header { margin-bottom: 28px; }
     header h1 { margin: 0 0 10px; font-size: clamp(30px, 4vw, 52px); letter-spacing: -0.05em; }
     header p { margin: 0; color: var(--muted); line-height: 1.8; }
+    .nav { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .nav a {
+      color: var(--accent-2);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: rgba(255, 250, 241, 0.72);
+    }
     section { margin-top: 30px; }
     section > h1 { margin: 0 0 14px; font-size: 22px; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
@@ -36,68 +45,126 @@
       border: 1px solid var(--line);
       border-radius: 22px;
       background: rgba(255, 250, 241, 0.9);
-      box-shadow: 0 16px 38px rgba(70, 52, 27, 0.10);
-      backdrop-filter: blur(8px);
+      box-shadow: 0 18px 42px rgba(77, 54, 22, 0.10);
     }
-    .card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .card-top { display: flex; justify-content: space-between; gap: 14px; align-items: center; }
     .group-tag {
-      display: inline-block;
-      padding: 6px 10px;
+      display: inline-flex;
       border-radius: 999px;
-      background: rgba(31, 111, 120, 0.13);
+      padding: 6px 10px;
+      background: rgba(31, 111, 120, 0.12);
       color: var(--accent-2);
       font-size: 12px;
     }
-    a { color: var(--accent); text-decoration: none; font-weight: 700; }
-    .theme-card h2 { margin: 14px 0 4px; font-size: 23px; }
-    .etfs { margin: 0 0 14px; color: var(--muted); font-weight: 700; }
-    dl { margin: 0; display: grid; grid-template-columns: 88px 1fr; gap: 9px 12px; }
+    .card-top a { color: var(--accent); text-decoration: none; font-weight: 700; }
+    .code { margin: 16px 0 4px; color: var(--accent-2); font-weight: 800; letter-spacing: 0.02em; }
+    h2 { margin: 0 0 12px; font-size: 24px; }
+    dl { margin: 0; display: grid; grid-template-columns: 100px 1fr; gap: 8px 12px; }
     dt { color: var(--muted); }
     dd { margin: 0; line-height: 1.55; }
-    footer { margin-top: 30px; color: var(--muted); line-height: 1.7; }
+    .support { margin-top: 44px; padding-top: 10px; border-top: 1px solid var(--line); }
     @media (max-width: 860px) {
       .grid { grid-template-columns: 1fr; }
       dl { grid-template-columns: 1fr; }
-      dt { font-weight: 700; }
     }
   </style>
 </head>
 <body>
 <main>
   <header>
-    <h1>ETF 主题观察总览</h1>
-    <p>生成时间：2026-06-15 11:16:03</p>
-    <p>这个页面是入口页：先从这里选择主题，再进入对应专题图形页看年线、收敛路径、拥挤度和龙头状态。</p>
+    <h1>ETF 标的观察总览</h1>
+    <p>首页按实际观察标的组织：先看 ETF / 指数本身，再进入它映射到的申万二级行业图形页。生成时间：2026-06-21 12:05:25</p>
+    <div class="nav">
+      <a href="theme_watch_sop.md">SOP</a>
+      <a href="daily_update_runbook.md">每日更新手册</a>
+      <a href="theme_to_sw_watchlist.md">映射清单</a>
+    </div>
   </header>
   
 <section>
-  <h1>电力设备</h1>
+  <h1>科技成长与高端制造</h1>
   <div class="grid">
 <article class="theme-card">
   <div class="card-top">
-    <span class="group-tag">电力设备</span>
-    <a href="pages/theme_931994_sw_l2_watch_report.html">打开专题页</a>
+    <span class="group-tag">科技成长与高端制造</span>
+    <a href="pages/theme_512480_sw_l2_watch_report.html">打开观察页</a>
   </div>
-  <h2>电网设备主题</h2>
-  <p class="etfs">931994.CSI</p>
+  <p class="code">512480.SH</p>
+  <h2>半导体 ETF</h2>
   <dl>
-    <dt>核心申万二级</dt><dd>801738.SI 电网设备</dd>
-    <dt>当前状态</dt><dd>趋势延续型偏强</dd>
-    <dt>备注</dt><dd>电网设备映射非常纯，和光伏同属电力设备但不合并。</dd>
+    <dt>映射申万二级</dt><dd>801081.SI 半导体</dd>
+    <dt>当前状态</dt><dd>趋势延续 / 拥挤偏高</dd>
+    <dt>备注</dt><dd>趋势已展开，更适合观察回踩和拥挤度，不应误判为刚启动。</dd>
   </dl>
 </article>
 
 <article class="theme-card">
   <div class="card-top">
-    <span class="group-tag">电力设备</span>
-    <a href="pages/theme_515790_sw_l2_watch_report.html">打开专题页</a>
+    <span class="group-tag">科技成长与高端制造</span>
+    <a href="pages/theme_515790_sw_l2_watch_report.html">打开观察页</a>
   </div>
-  <h2>光伏主题</h2>
-  <p class="etfs">515790.SH</p>
+  <p class="code">515790.SH</p>
+  <h2>光伏 ETF</h2>
   <dl>
-    <dt>核心申万二级</dt><dd>801735.SI 光伏设备</dd>
-    <dt>当前状态</dt><dd>趋势延续型偏强</dd>
-    <dt>备注</dt><dd>光伏设备相关性 0.9761，单独观察。</dd>
+    <dt>映射申万二级</dt><dd>801735.SI 光伏设备</dd>
+    <dt>当前状态</dt><dd>趋势延续</dd>
+    <dt>备注</dt><dd>和电网设备同属电力设备大链条，但单独观察。</dd>
+  </dl>
+</article>
+
+<article class="theme-card">
+  <div class="card-top">
+    <span class="group-tag">科技成长与高端制造</span>
+    <a href="pages/theme_515230_software_watch_report.html">打开观察页</a>
+  </div>
+  <p class="code">515230.SH</p>
+  <h2>软件 ETF</h2>
+  <dl>
+    <dt>映射申万二级</dt><dd>801104.SI 软件开发、801103.SI IT服务Ⅱ</dd>
+    <dt>当前状态</dt><dd>未启动 / 拥挤正常</dd>
+    <dt>备注</dt><dd>软件开发和 IT 服务为核心，不再和计算机设备混成一个大组。</dd>
+  </dl>
+</article>
+
+<article class="theme-card">
+  <div class="card-top">
+    <span class="group-tag">科技成长与高端制造</span>
+    <a href="pages/theme_159998_computer_watch_report.html">打开观察页</a>
+  </div>
+  <p class="code">159998.SZ</p>
+  <h2>计算机 ETF</h2>
+  <dl>
+    <dt>映射申万二级</dt><dd>801101.SI 计算机设备</dd>
+    <dt>当前状态</dt><dd>未启动 / 拥挤正常</dd>
+    <dt>备注</dt><dd>单独观察设备链，通信链条只作为扩散对照。</dd>
+  </dl>
+</article>
+
+<article class="theme-card">
+  <div class="card-top">
+    <span class="group-tag">科技成长与高端制造</span>
+    <a href="pages/theme_931994_sw_l2_watch_report.html">打开观察页</a>
+  </div>
+  <p class="code">931994.CSI</p>
+  <h2>电网设备主题指数</h2>
+  <dl>
+    <dt>映射申万二级</dt><dd>801738.SI 电网设备</dd>
+    <dt>当前状态</dt><dd>趋势延续</dd>
+    <dt>备注</dt><dd>不是 ETF，但作为实际观察标的纳入首页。</dd>
+  </dl>
+</article>
+
+<article class="theme-card">
+  <div class="card-top">
+    <span class="group-tag">科技成长与高端制造</span>
+    <a href="pages/theme_communication_compare_report.html">打开观察页</a>
+  </div>
+  <p class="code">TMT-COMM</p>
+  <h2>通信链条对照组</h2>
+  <dl>
+    <dt>映射申万二级</dt><dd>801102.SI 通信设备、801223.SI 通信服务</dd>
+    <dt>当前状态</dt><dd>未启动 / 观察中</dd>
+    <dt>备注</dt><dd>归入科技成长板块，但仍作为软件/计算机的扩散对照，不作为独立 ETF 入口。</dd>
   </dl>
 </article>
 </div>
@@ -105,95 +172,103 @@
 
 
 <section>
-  <h1>科技成长</h1>
+  <h1>大消费与医药</h1>
   <div class="grid">
 <article class="theme-card">
   <div class="card-top">
-    <span class="group-tag">科技成长</span>
-    <a href="pages/theme_512480_sw_l2_watch_report.html">打开专题页</a>
+    <span class="group-tag">大消费与医药</span>
+    <a href="pages/theme_512980_sw_l2_watch_report.html">打开观察页</a>
   </div>
-  <h2>半导体主题</h2>
-  <p class="etfs">512480.SH</p>
+  <p class="code">512980.SH</p>
+  <h2>传媒 ETF</h2>
   <dl>
-    <dt>核心申万二级</dt><dd>801081.SI 半导体</dd>
-    <dt>当前状态</dt><dd>趋势延续型偏强 / 过热预警</dd>
-    <dt>备注</dt><dd>趋势已经展开，更多是跟踪和拥挤度观察。</dd>
-  </dl>
-</article>
-
-<article class="theme-card">
-  <div class="card-top">
-    <span class="group-tag">科技成长</span>
-    <a href="pages/theme_fintech_computer_compare_report.html">打开专题页</a>
-  </div>
-  <h2>软件计算机主题组</h2>
-  <p class="etfs">515230.SH / 159998.SZ</p>
-  <dl>
-    <dt>核心申万二级</dt><dd>801104.SI 软件开发、801103.SI IT服务Ⅱ、801101.SI 计算机设备</dd>
-    <dt>当前状态</dt><dd>未启动</dd>
-    <dt>备注</dt><dd>从证券扩散对象中拆出，独立观察计算机链条。</dd>
-  </dl>
-</article>
-
-<article class="theme-card">
-  <div class="card-top">
-    <span class="group-tag">科技成长</span>
-    <a href="pages/theme_512980_sw_l2_watch_report.html">打开专题页</a>
-  </div>
-  <h2>传媒主题</h2>
-  <p class="etfs">512980.SH</p>
-  <dl>
-    <dt>核心申万二级</dt><dd>801767.SI 数字媒体、801765.SI 广告营销、801764.SI 游戏Ⅱ</dd>
-    <dt>当前状态</dt><dd>未启动为主</dd>
+    <dt>映射申万二级</dt><dd>801767.SI 数字媒体、801765.SI 广告营销、801764.SI 游戏Ⅱ</dd>
+    <dt>当前状态</dt><dd>未启动 / 拥挤正常</dd>
     <dt>备注</dt><dd>传媒链条集中，部分二级未纳入主扫描池。</dd>
   </dl>
 </article>
-</div>
-</section>
 
-
-<section>
-  <h1>消费医药</h1>
-  <div class="grid">
 <article class="theme-card">
   <div class="card-top">
-    <span class="group-tag">消费医药</span>
-    <a href="pages/theme_consumption_liquor_sw_l2_watch_report.html">打开专题页</a>
+    <span class="group-tag">大消费与医药</span>
+    <a href="pages/theme_consumption_liquor_sw_l2_watch_report.html">打开观察页</a>
   </div>
-  <h2>消费酒主题组</h2>
-  <p class="etfs">159928.SZ / 512690.SH</p>
+  <p class="code">159928.SZ</p>
+  <h2>消费 ETF</h2>
   <dl>
-    <dt>核心申万二级</dt><dd>801125.SI 白酒Ⅱ、801129.SI 调味发酵品Ⅱ</dd>
-    <dt>当前状态</dt><dd>白酒未启动，调味发酵品观察中</dd>
-    <dt>备注</dt><dd>消费 ETF 和酒 ETF top5 完全重叠，已合并。</dd>
+    <dt>映射申万二级</dt><dd>801125.SI 白酒Ⅱ、801129.SI 调味发酵品Ⅱ、801127.SI 饮料乳品</dd>
+    <dt>当前状态</dt><dd>未启动 / 观察中</dd>
+    <dt>备注</dt><dd>和酒 ETF 高度重叠，入口单列，详情共用消费酒观察页。</dd>
   </dl>
 </article>
 
 <article class="theme-card">
   <div class="card-top">
-    <span class="group-tag">消费医药</span>
-    <a href="pages/theme_healthcare_sw_l2_watch_report.html">打开专题页</a>
+    <span class="group-tag">大消费与医药</span>
+    <a href="pages/theme_consumption_liquor_sw_l2_watch_report.html">打开观察页</a>
   </div>
-  <h2>医药医疗主题组</h2>
-  <p class="etfs">512010.SH / 512170.SH</p>
+  <p class="code">512690.SH</p>
+  <h2>酒 ETF</h2>
   <dl>
-    <dt>核心申万二级</dt><dd>801156.SI 医疗服务、801153.SI 医疗器械</dd>
+    <dt>映射申万二级</dt><dd>801125.SI 白酒Ⅱ、801128.SI 非白酒</dd>
     <dt>当前状态</dt><dd>未启动</dd>
-    <dt>备注</dt><dd>医药和医疗 top5 高度重叠，已合并。</dd>
+    <dt>备注</dt><dd>消费酒链条的窄基入口，详情共用消费酒观察页。</dd>
   </dl>
 </article>
 
 <article class="theme-card">
   <div class="card-top">
-    <span class="group-tag">消费医药</span>
-    <a href="pages/theme_159996_sw_l2_watch_report.html">打开专题页</a>
+    <span class="group-tag">大消费与医药</span>
+    <a href="pages/theme_512010_medicine_watch_report.html">打开观察页</a>
   </div>
-  <h2>家电主题</h2>
-  <p class="etfs">159996.SZ</p>
+  <p class="code">512010.SH</p>
+  <h2>医药 ETF</h2>
   <dl>
-    <dt>核心申万二级</dt><dd>801113.SI 小家电、801116.SI 家电零部件Ⅱ、801111.SI 白色家电</dd>
-    <dt>当前状态</dt><dd>白色家电观察中</dd>
-    <dt>备注</dt><dd>专题页按家电内部链条展示，不机械采用相关性前五。</dd>
+    <dt>映射申万二级</dt><dd>医疗服务、生物制品、化学制药、医疗器械、中药Ⅱ</dd>
+    <dt>当前状态</dt><dd>未启动 / 观察中</dd>
+    <dt>备注</dt><dd>宽基医药入口，适合看医药生物整体修复。</dd>
+  </dl>
+</article>
+
+<article class="theme-card">
+  <div class="card-top">
+    <span class="group-tag">大消费与医药</span>
+    <a href="pages/theme_512170_healthcare_watch_report.html">打开观察页</a>
+  </div>
+  <p class="code">512170.SH</p>
+  <h2>医疗 ETF</h2>
+  <dl>
+    <dt>映射申万二级</dt><dd>801156.SI 医疗服务、801153.SI 医疗器械</dd>
+    <dt>当前状态</dt><dd>未启动 / 观察中</dd>
+    <dt>备注</dt><dd>更偏医疗服务和医疗器械，和创新药链条分开观察。</dd>
+  </dl>
+</article>
+
+<article class="theme-card">
+  <div class="card-top">
+    <span class="group-tag">大消费与医药</span>
+    <a href="pages/theme_159992_innovative_drug_watch_report.html">打开观察页</a>
+  </div>
+  <p class="code">159992.SZ</p>
+  <h2>创新药 ETF</h2>
+  <dl>
+    <dt>映射申万二级</dt><dd>801151.SI 化学制药、801152.SI 生物制品、801156.SI 医疗服务</dd>
+    <dt>当前状态</dt><dd>未启动 / 观察中</dd>
+    <dt>备注</dt><dd>更偏创新药和 CXO 服务链。</dd>
+  </dl>
+</article>
+
+<article class="theme-card">
+  <div class="card-top">
+    <span class="group-tag">大消费与医药</span>
+    <a href="pages/theme_159996_sw_l2_watch_report.html">打开观察页</a>
+  </div>
+  <p class="code">159996.SZ</p>
+  <h2>家电 ETF</h2>
+  <dl>
+    <dt>映射申万二级</dt><dd>小家电、家电零部件Ⅱ、黑色家电、厨卫电器、白色家电</dd>
+    <dt>当前状态</dt><dd>观察中</dd>
+    <dt>备注</dt><dd>按家电内部链条展示，不机械采用相关性前五。</dd>
   </dl>
 </article>
 </div>
@@ -201,103 +276,128 @@
 
 
 <section>
-  <h1>周期红利</h1>
+  <h1>周期资源</h1>
   <div class="grid">
 <article class="theme-card">
   <div class="card-top">
-    <span class="group-tag">周期红利</span>
-    <a href="pages/theme_cycle_resources_sw_l2_watch_report.html">打开专题页</a>
+    <span class="group-tag">周期资源</span>
+    <a href="pages/theme_cycle_resources_sw_l2_watch_report.html">打开观察页</a>
   </div>
-  <h2>周期资源主题组</h2>
-  <p class="etfs">159930.SZ / 159697.SZ / 515220.SH</p>
+  <p class="code">159930.SZ</p>
+  <h2>能源 ETF</h2>
   <dl>
-    <dt>核心申万二级</dt><dd>801951.SI 煤炭开采、801963.SI 炼化及贸易、801962.SI 油服工程</dd>
-    <dt>当前状态</dt><dd>煤炭拥挤偏高，燃气观察中</dd>
-    <dt>备注</dt><dd>不含化工，化工已单独对照。</dd>
+    <dt>映射申万二级</dt><dd>煤炭开采、炼化及贸易、油服工程、燃气Ⅱ</dd>
+    <dt>当前状态</dt><dd>观察中 / 拥挤正常</dd>
+    <dt>备注</dt><dd>行业属性更强；和易方达红利在煤炭、炼化、交运等高股息资源资产上有重叠。</dd>
   </dl>
 </article>
 
 <article class="theme-card">
   <div class="card-top">
-    <span class="group-tag">周期红利</span>
-    <a href="pages/theme_159870_chemical_compare_report.html">打开专题页</a>
+    <span class="group-tag">周期资源</span>
+    <a href="pages/theme_cycle_resources_sw_l2_watch_report.html">打开观察页</a>
   </div>
-  <h2>化工对照组</h2>
-  <p class="etfs">159870.SZ</p>
+  <p class="code">159697.SZ</p>
+  <h2>石油 ETF</h2>
   <dl>
-    <dt>核心申万二级</dt><dd>801034.SI 化学制品、801038.SI 农化制品、801033.SI 化学原料</dd>
-    <dt>当前状态</dt><dd>观察中为主，部分拥挤偏高</dd>
-    <dt>备注</dt><dd>与能源/石油/煤炭 top5 重叠为 0，单独观察。</dd>
+    <dt>映射申万二级</dt><dd>炼化及贸易、油服工程、燃气Ⅱ</dd>
+    <dt>当前状态</dt><dd>观察中 / 拥挤正常</dd>
+    <dt>备注</dt><dd>纳入周期资源页，和煤炭/能源一起看资源链。</dd>
   </dl>
 </article>
 
 <article class="theme-card">
   <div class="card-top">
-    <span class="group-tag">周期红利</span>
-    <a href="pages/theme_515180_sw_l2_watch_report.html">打开专题页</a>
+    <span class="group-tag">周期资源</span>
+    <a href="pages/theme_cycle_resources_sw_l2_watch_report.html">打开观察页</a>
   </div>
+  <p class="code">515220.SH</p>
+  <h2>煤炭 ETF</h2>
+  <dl>
+    <dt>映射申万二级</dt><dd>801951.SI 煤炭开采、801952.SI 焦炭Ⅱ</dd>
+    <dt>当前状态</dt><dd>观察中 / 拥挤正常</dd>
+    <dt>备注</dt><dd>更像高股息/资源防御端，重点防止过热消退。</dd>
+  </dl>
+</article>
+
+<article class="theme-card">
+  <div class="card-top">
+    <span class="group-tag">周期资源</span>
+    <a href="pages/theme_159870_chemical_compare_report.html">打开观察页</a>
+  </div>
+  <p class="code">159870.SZ</p>
+  <h2>化工 ETF</h2>
+  <dl>
+    <dt>映射申万二级</dt><dd>化学制品、农化制品、化学原料、冶钢原料、化学纤维</dd>
+    <dt>当前状态</dt><dd>观察中 / 拥挤偏高</dd>
+    <dt>备注</dt><dd>和能源/煤炭拆开，作为基础化工对照。</dd>
+  </dl>
+</article>
+</div>
+</section>
+
+
+<section>
+  <h1>红利金融地产</h1>
+  <div class="grid">
+<article class="theme-card">
+  <div class="card-top">
+    <span class="group-tag">红利金融地产</span>
+    <a href="pages/theme_515180_sw_l2_watch_report.html">打开观察页</a>
+  </div>
+  <p class="code">515180.SH</p>
   <h2>易方达红利 ETF</h2>
-  <p class="etfs">515180.SH</p>
   <dl>
-    <dt>核心申万二级</dt><dd>801951.SI 煤炭开采、801963.SI 炼化及贸易、801179.SI 铁路公路</dd>
-    <dt>当前状态</dt><dd>未启动为主</dd>
-    <dt>备注</dt><dd>偏高股息资源/交运/基建组合。</dd>
+    <dt>映射申万二级</dt><dd>煤炭开采、炼化及贸易、铁路公路、航运港口、基础建设</dd>
+    <dt>当前状态</dt><dd>未启动 / 观察中</dd>
+    <dt>备注</dt><dd>偏高股息资源/交运/基建组合；和能源 ETF 有重叠，但这里主要作为红利风格观察。</dd>
   </dl>
 </article>
 
 <article class="theme-card">
   <div class="card-top">
-    <span class="group-tag">周期红利</span>
-    <a href="pages/theme_512890_sw_l2_watch_report.html">打开专题页</a>
+    <span class="group-tag">红利金融地产</span>
+    <a href="pages/theme_512890_sw_l2_watch_report.html">打开观察页</a>
   </div>
+  <p class="code">512890.SH</p>
   <h2>红利低波 ETF</h2>
-  <p class="etfs">512890.SH</p>
   <dl>
-    <dt>核心申万二级</dt><dd>801784.SI 城商行Ⅱ、801785.SI 农商行Ⅱ、801783.SI 股份制银行Ⅱ</dd>
-    <dt>当前状态</dt><dd>银行链条观察中</dd>
-    <dt>备注</dt><dd>和红利 ETF 风格相近但行业结构不同，不合并。</dd>
-  </dl>
-</article>
-</div>
-</section>
-
-
-<section>
-  <h1>金融地产</h1>
-  <div class="grid">
-<article class="theme-card">
-  <div class="card-top">
-    <span class="group-tag">金融地产</span>
-    <a href="pages/theme_512880_sw_l2_watch_report.html">打开专题页</a>
-  </div>
-  <h2>证券主题</h2>
-  <p class="etfs">512880.SH</p>
-  <dl>
-    <dt>核心申万二级</dt><dd>801193.SI 证券Ⅱ、801191.SI 多元金融、801194.SI 保险Ⅱ</dd>
-    <dt>当前状态</dt><dd>未启动</dd>
-    <dt>备注</dt><dd>软件/计算机已排除到独立对照组。</dd>
+    <dt>映射申万二级</dt><dd>城商行Ⅱ、农商行Ⅱ、股份制银行Ⅱ、国有大型银行Ⅱ</dd>
+    <dt>当前状态</dt><dd>观察中</dd>
+    <dt>备注</dt><dd>和红利 ETF 风格相近，但行业结构不同，不合并。</dd>
   </dl>
 </article>
 
 <article class="theme-card">
   <div class="card-top">
-    <span class="group-tag">金融地产</span>
-    <a href="pages/theme_512200_real_estate_check_report.html">打开专题页</a>
+    <span class="group-tag">红利金融地产</span>
+    <a href="pages/theme_512880_sw_l2_watch_report.html">打开观察页</a>
   </div>
-  <h2>房地产低相关校验</h2>
-  <p class="etfs">512200.SH</p>
+  <p class="code">512880.SH</p>
+  <h2>证券 ETF</h2>
   <dl>
-    <dt>核心申万二级</dt><dd>801181.SI 房地产开发、801183.SI 房地产服务</dd>
-    <dt>当前状态</dt><dd>低相关异常</dd>
-    <dt>备注</dt><dd>与房地产申万二级相关性偏低，需要核对跟踪指数/数据口径。</dd>
+    <dt>映射申万二级</dt><dd>801193.SI 证券Ⅱ、801191.SI 多元金融、801194.SI 保险Ⅱ</dd>
+    <dt>当前状态</dt><dd>观察中 / 拥挤正常</dd>
+    <dt>备注</dt><dd>软件/计算机已排除到独立观察页。</dd>
+  </dl>
+</article>
+
+<article class="theme-card">
+  <div class="card-top">
+    <span class="group-tag">红利金融地产</span>
+    <a href="pages/theme_512200_real_estate_watch_report.html">打开观察页</a>
+  </div>
+  <p class="code">512200.SH</p>
+  <h2>房地产 ETF</h2>
+  <dl>
+    <dt>映射申万二级</dt><dd>房地产开发、房地产服务、装修建材、房屋建设Ⅱ、装修装饰Ⅱ</dd>
+    <dt>当前状态</dt><dd>未启动 / 拥挤正常</dd>
+    <dt>备注</dt><dd>改用 Tushare 涨跌幅字段后，和房地产开发相关性约 0.98，已从低相关校验转为正式观察。</dd>
   </dl>
 </article>
 </div>
 </section>
 
-  <footer>
-    <p>规则：同一批申万二级高度重叠的 ETF 合并为主题组；行业归属不同但走势相关的对象放入对照组；相关性异常低的对象单独做校验页。</p>
-  </footer>
 </main>
 </body>
 </html>
