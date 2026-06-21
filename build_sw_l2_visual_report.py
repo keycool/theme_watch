@@ -179,8 +179,9 @@ def _ma250_convergence(history: pd.DataFrame) -> dict[str, object]:
     latest_gap = float(latest["ma250_gap"])
     min_gap_120 = float(last_120["ma250_gap"].min())
     repair_from_120_low = latest_gap - min_gap_120
+    gap_mean_120 = float(last_120["ma250_gap"].mean())
     gap_std_120 = float(last_120["ma250_gap"].std())
-    gap_sigma = None if pd.isna(gap_std_120) or gap_std_120 <= 0 else latest_gap / gap_std_120
+    gap_sigma = None if pd.isna(gap_std_120) or gap_std_120 <= 0 else (latest_gap - gap_mean_120) / gap_std_120
     repair_sigma = None if pd.isna(gap_std_120) or gap_std_120 <= 0 else repair_from_120_low / gap_std_120
 
     if latest_gap >= 0:
