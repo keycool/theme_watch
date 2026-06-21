@@ -5,12 +5,12 @@ Run this after the market data is likely available, preferably after 18:30 China
 ```powershell
 cd "D:\CC\Industry Insight"
 py .\daily_update_theme_watch.py
+```
 
 The updater now skips non-trading days by default. If you intentionally want to rebuild on a non-trading day, add:
 
 ```powershell
 py .\daily_update_theme_watch.py --allow-non-trade-day
-```
 ```
 
 The updater does four things:
