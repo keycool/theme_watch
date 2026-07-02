@@ -16,6 +16,10 @@ MASTER_HISTORY_PATH = ROOT / ".cache_scan_v2" / "sw_daily_full_history.csv"
 OUTPUT_MD = ROOT / "sw_l2_focus_leaderboard.md"
 OUTPUT_CSV = ROOT / "sw_l2_focus_scan.csv"
 
+MIN_LEADER_GROUP_SIZE = 3
+MAX_LEADER_GROUP_SIZE = 10
+LEADER_GROUP_COVERAGE = 0.60
+
 FOCUS_L1 = {
     "电子": "270000",
     "电力设备": "630000",
@@ -78,6 +82,27 @@ def get_members_by_index_code(pro, index_code: str, classify_df: pd.DataFrame) -
     return get_members_by_level(pro, index_code, level)
 
 
+def select_leader_group(members: pd.DataFrame) -> pd.DataFrame:
+    leaders = members.sort_values("total_mv", ascending=False).reset_index(drop=True).copy()
+    leaders["total_mv"] = pd.to_numeric(leaders["total_mv"], errors="coerce")
+    leaders = leaders[leaders["total_mv"].notna() & (leaders["total_mv"] > 0)].copy()
+    if leaders.empty:
+        return leaders
+
+    total_mv = float(leaders["total_mv"].sum())
+    leaders["coverage"] = leaders["total_mv"].cumsum() / total_mv if total_mv else 0
+    coverage_count = int((leaders["coverage"] < LEADER_GROUP_COVERAGE).sum()) + 1
+    target_count = max(MIN_LEADER_GROUP_SIZE, coverage_count)
+    target_count = min(MAX_LEADER_GROUP_SIZE, target_count, len(leaders))
+    return leaders.head(target_count).copy()
+
+
+def _format_leader_detail(name: str, pct_change: object) -> str:
+    if pct_change is None or pd.isna(pct_change):
+        return f"{name} -"
+    return f"{name} {float(pct_change):+.2f}%"
+
+
 def build_leader_snapshots_l2(pro, latest_date: str, classify_df: pd.DataFrame, industry_codes: List[str]) -> dict[str, dict]:
     latest_basic = get_daily_basic(pro, latest_date)
     latest_market = get_daily_market(pro, latest_date)
@@ -92,9 +117,8 @@ def build_leader_snapshots_l2(pro, latest_date: str, classify_df: pd.DataFrame, 
         members = members[members["is_new"] == "Y"][["ts_code", "name"]].drop_duplicates()
         leaders = (
             members.merge(latest_basic[["ts_code", "total_mv"]], on="ts_code", how="inner")
-            .sort_values("total_mv", ascending=False)
-            .head(3)
         )
+        leaders = select_leader_group(leaders)
         if leaders.empty:
             continue
 
@@ -102,37 +126,91 @@ def build_leader_snapshots_l2(pro, latest_date: str, classify_df: pd.DataFrame, 
         market_row = latest_market[latest_market["ts_code"] == leader_top1["ts_code"]]
         top1_pct = None if market_row.empty else float(market_row.iloc[0]["pct_chg"])
 
-        daily = get_stock_daily_with_cache(
-            pro,
-            ts_code=str(leader_top1["ts_code"]),
-            start_date="20240101",
-            end_date=latest_date,
-        )
+        leader_rows: List[dict] = []
         above_ma60 = None
         above_ma250 = None
         follow_ok = None
         leader_5d_rank_pct = None
-        if not daily.empty:
-            daily["ma60"] = daily["close"].rolling(60).mean()
-            daily["ma250"] = daily["close"].rolling(250).mean()
-            last = daily.iloc[-1]
-            if pd.notna(last["ma60"]):
-                above_ma60 = bool(last["close"] >= last["ma60"])
-            if pd.notna(last["ma250"]):
-                above_ma250 = bool(last["close"] >= last["ma250"])
-            if len(daily) >= 2:
-                follow_ok = bool(daily.iloc[-1]["close"] > daily.iloc[-2]["close"])
-            if len(daily) >= 6:
-                leader_5d_rank_pct = float(daily.iloc[-1]["close"] / daily.iloc[-6]["close"] - 1)
+        for _, leader in leaders.iterrows():
+            daily = get_stock_daily_with_cache(
+                pro,
+                ts_code=str(leader["ts_code"]),
+                start_date="20240101",
+                end_date=latest_date,
+            )
+            market_row = latest_market[latest_market["ts_code"] == leader["ts_code"]]
+            pct_change = None if market_row.empty else float(market_row.iloc[0]["pct_chg"])
+            row_above_ma60 = None
+            row_above_ma250 = None
+            row_follow_ok = None
+            row_ret_5d = None
+            if not daily.empty:
+                daily["ma60"] = daily["close"].rolling(60).mean()
+                daily["ma250"] = daily["close"].rolling(250).mean()
+                last = daily.iloc[-1]
+                if pct_change is None and "pct_chg" in daily.columns and pd.notna(last.get("pct_chg")):
+                    pct_change = float(last["pct_chg"])
+                if pct_change is None and "pct_change" in daily.columns and pd.notna(last.get("pct_change")):
+                    pct_change = float(last["pct_change"])
+                if pd.notna(last["ma60"]):
+                    row_above_ma60 = bool(last["close"] >= last["ma60"])
+                if pd.notna(last["ma250"]):
+                    row_above_ma250 = bool(last["close"] >= last["ma250"])
+                if len(daily) >= 2:
+                    row_follow_ok = bool(daily.iloc[-1]["close"] > daily.iloc[-2]["close"])
+                if len(daily) >= 6:
+                    row_ret_5d = float(daily.iloc[-1]["close"] / daily.iloc[-6]["close"] - 1)
+
+            row_active = bool(
+                (pct_change is not None and pct_change >= 5)
+                or (row_ret_5d is not None and row_ret_5d >= 0.05)
+            )
+            leader_rows.append(
+                {
+                    "name": str(leader["name"]),
+                    "pct_change": pct_change,
+                    "above_ma60": row_above_ma60,
+                    "above_ma250": row_above_ma250,
+                    "follow_ok": row_follow_ok,
+                    "ret_5d": row_ret_5d,
+                    "active": row_active,
+                }
+            )
+
+            if str(leader["ts_code"]) == str(leader_top1["ts_code"]):
+                top1_pct = pct_change
+                above_ma60 = row_above_ma60
+                above_ma250 = row_above_ma250
+                follow_ok = row_follow_ok
+                leader_5d_rank_pct = row_ret_5d
+
+        leader_count = len(leader_rows)
+        active_count = sum(1 for row in leader_rows if row["active"])
+        above_ma60_count = sum(1 for row in leader_rows if row["above_ma60"] is True)
+        above_ma250_count = sum(1 for row in leader_rows if row["above_ma250"] is True)
+        follow_count = sum(1 for row in leader_rows if row["follow_ok"] is True)
+        leader_group_names = "、".join(row["name"] for row in leader_rows)
+        leader_group_detail = "、".join(
+            _format_leader_detail(row["name"], row["pct_change"]) for row in leader_rows
+        )
 
         snapshots[code] = {
-            "leader_count": int(len(leaders)),
+            "leader_count": int(leader_count),
+            "leader_group_names": leader_group_names,
+            "leader_group_detail": leader_group_detail,
+            "leader_active_count": int(active_count),
             "leader_top1_name": str(leader_top1["name"]),
             "leader_top1_pct_change": top1_pct,
             "leader_top1_above_ma60": above_ma60,
             "leader_top1_above_ma250": above_ma250,
             "leader_follow_ok": follow_ok,
             "leader_5d_rank_pct": leader_5d_rank_pct,
+            "leaders_above_ma60_count": int(above_ma60_count),
+            "leaders_above_ma250_count": int(above_ma250_count),
+            "leaders_above_ma60_ratio": above_ma60_count / leader_count if leader_count else None,
+            "leaders_above_ma250_ratio": above_ma250_count / leader_count if leader_count else None,
+            "leaders_follow_count": int(follow_count),
+            "leaders_follow_ratio": follow_count / leader_count if leader_count else None,
         }
     return snapshots
 
@@ -170,10 +248,18 @@ def run_focus_scan() -> pd.DataFrame:
                 "prefilter_label": evaluation.prefilter_label,
                 "final_label": evaluation.final_label,
                 "summary_line": evaluation.summary_line,
+                "leader_count": inputs.leader_count,
+                "leader_group_names": inputs.leader_group_names,
+                "leader_group_detail": inputs.leader_group_detail,
+                "leader_active_count": inputs.leader_active_count,
                 "leader_top1_name": inputs.leader_top1_name,
                 "leader_top1_pct_change": inputs.leader_top1_pct_change,
                 "leader_top1_above_ma60": inputs.leader_top1_above_ma60,
                 "leader_top1_above_ma250": inputs.leader_top1_above_ma250,
+                "leaders_above_ma60_count": inputs.leaders_above_ma60_count,
+                "leaders_above_ma250_count": inputs.leaders_above_ma250_count,
+                "leaders_above_ma60_ratio": inputs.leaders_above_ma60_ratio,
+                "leaders_above_ma250_ratio": inputs.leaders_above_ma250_ratio,
             }
         )
     df = pd.DataFrame(rows).sort_values(
@@ -204,11 +290,17 @@ def build_markdown(df: pd.DataFrame) -> str:
         for _, row in group.iterrows():
             leader = row["leader_top1_name"] if pd.notna(row["leader_top1_name"]) else "-"
             pct = "-" if pd.isna(row["leader_top1_pct_change"]) else f"{float(row['leader_top1_pct_change']):.2f}%"
+            leader_count = 0 if pd.isna(row["leader_count"]) else int(row["leader_count"])
+            active_count = 0 if pd.isna(row["leader_active_count"]) else int(row["leader_active_count"])
+            ma60_count = 0 if pd.isna(row["leaders_above_ma60_count"]) else int(row["leaders_above_ma60_count"])
+            leader_detail = row.get("leader_group_detail", "")
             alias_lines.append(
                 f"- `{row['industry_name']}` `{row['industry_code']}`"
                 f" | 标签：`{row['final_label']}`"
                 f" | 龙头：`{leader}`"
                 f" | 龙头涨跌：`{pct}`"
+                f" | 龙头群：`{active_count}/{leader_count}活跃，{ma60_count}/{leader_count}站上MA60`"
+                f" | 明细：{leader_detail}"
             )
         alias_lines.append("")
     return "\n".join(alias_lines)

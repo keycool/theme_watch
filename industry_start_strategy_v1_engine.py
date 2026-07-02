@@ -45,6 +45,9 @@ class StrategyInputs:
     recent_2d_above_ma250: Optional[bool] = None
     above_ma250_3pct_streak: Optional[int] = None
     leader_count: Optional[int] = None
+    leader_group_names: Optional[str] = None
+    leader_group_detail: Optional[str] = None
+    leader_active_count: Optional[int] = None
     leader_top1_name: Optional[str] = None
     leader_top1_pct_change: Optional[float] = None
     leader_top1_above_ma60: Optional[bool] = None
@@ -143,15 +146,22 @@ def compute_breakout(inputs: StrategyInputs) -> tuple[Optional[bool], Optional[b
 
 
 def compute_leader(inputs: StrategyInputs) -> tuple[Optional[bool], Optional[bool], Optional[bool], Optional[bool], bool, bool]:
-    c1 = None if inputs.leader_count is None else inputs.leader_count >= 1
+    c1 = None if inputs.leader_count is None else inputs.leader_count >= 3
     c2 = None
-    if inputs.leader_top1_pct_change is not None or inputs.leader_5d_rank_pct is not None:
+    if (
+        inputs.leader_active_count is not None
+        or inputs.leader_top1_pct_change is not None
+        or inputs.leader_5d_rank_pct is not None
+    ):
         c2 = bool(
-            (inputs.leader_top1_pct_change is not None and inputs.leader_top1_pct_change >= 7)
+            (inputs.leader_active_count is not None and inputs.leader_active_count >= 1)
+            or (inputs.leader_top1_pct_change is not None and inputs.leader_top1_pct_change >= 7)
             or (inputs.leader_5d_rank_pct is not None and inputs.leader_5d_rank_pct >= 0.80)
         )
     c3 = inputs.leader_follow_ok
     c4 = inputs.leader_top1_above_ma60
+    if inputs.leaders_above_ma60_ratio is not None:
+        c4 = inputs.leaders_above_ma60_ratio >= 0.5
 
     turning_strong = c1 is True and c2 is True
     confirmed = turning_strong and c3 is True and c4 is True

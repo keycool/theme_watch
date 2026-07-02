@@ -96,20 +96,34 @@ def build_strategy_input(
         local_activity_ok = bool(ret_5d > 0.02 or latest_amount >= amount_ma5 * 1.10)
 
     leader_count = None
+    leader_group_names = None
+    leader_group_detail = None
+    leader_active_count = None
     leader_top1_name = None
     leader_top1_pct_change = None
     leader_top1_above_ma60 = None
     leader_top1_above_ma250 = None
     leader_follow_ok = None
     leader_5d_rank_pct = None
+    leaders_above_ma60_count = None
+    leaders_above_ma250_count = None
+    leaders_above_ma60_ratio = None
+    leaders_above_ma250_ratio = None
     if leader_snapshot:
         leader_count = leader_snapshot.get("leader_count")
+        leader_group_names = leader_snapshot.get("leader_group_names")
+        leader_group_detail = leader_snapshot.get("leader_group_detail")
+        leader_active_count = leader_snapshot.get("leader_active_count")
         leader_top1_name = leader_snapshot.get("leader_top1_name")
         leader_top1_pct_change = leader_snapshot.get("leader_top1_pct_change")
         leader_top1_above_ma60 = leader_snapshot.get("leader_top1_above_ma60")
         leader_top1_above_ma250 = leader_snapshot.get("leader_top1_above_ma250")
         leader_follow_ok = leader_snapshot.get("leader_follow_ok")
         leader_5d_rank_pct = leader_snapshot.get("leader_5d_rank_pct")
+        leaders_above_ma60_count = leader_snapshot.get("leaders_above_ma60_count")
+        leaders_above_ma250_count = leader_snapshot.get("leaders_above_ma250_count")
+        leaders_above_ma60_ratio = leader_snapshot.get("leaders_above_ma60_ratio")
+        leaders_above_ma250_ratio = leader_snapshot.get("leaders_above_ma250_ratio")
 
     return StrategyInputs(
         industry_code=str(row["industry_code"]),
@@ -119,8 +133,8 @@ def build_strategy_input(
         ret_120d=ret_120d,
         ret_120d_rank_pct=ret_120d_rank_pct,
         close_to_120d_high_ratio=close_to_120d_high_ratio,
-        leaders_above_ma60_ratio=None,
-        leaders_above_ma250_ratio=None,
+        leaders_above_ma60_ratio=leaders_above_ma60_ratio,
+        leaders_above_ma250_ratio=leaders_above_ma250_ratio,
         close_120d_high=close_120d_high,
         close_120d_low=close_120d_low,
         close_40d_low=close_40d_low,
@@ -131,13 +145,16 @@ def build_strategy_input(
         recent_2d_above_ma250=_safe_bool(recent_2d_above_ma250),
         above_ma250_3pct_streak=above_ma250_3pct_streak,
         leader_count=leader_count,
+        leader_group_names=leader_group_names,
+        leader_group_detail=leader_group_detail,
+        leader_active_count=leader_active_count,
         leader_top1_name=leader_top1_name,
         leader_top1_pct_change=leader_top1_pct_change,
         leader_top1_above_ma60=_safe_bool(leader_top1_above_ma60),
         leader_top1_above_ma250=_safe_bool(leader_top1_above_ma250),
         leader_5d_rank_pct=leader_5d_rank_pct,
         leader_follow_ok=_safe_bool(leader_follow_ok),
-        leaders_above_ma60_count=None,
-        leaders_above_ma250_count=None,
+        leaders_above_ma60_count=leaders_above_ma60_count,
+        leaders_above_ma250_count=leaders_above_ma250_count,
         local_activity_ok=_safe_bool(local_activity_ok),
     )

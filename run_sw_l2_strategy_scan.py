@@ -100,11 +100,16 @@ def _build_crowding_snapshot(
     leader_follow_ok = None if not leader_snapshot else leader_snapshot.get("leader_follow_ok")
     leader_top1_pct_change = None if not leader_snapshot else leader_snapshot.get("leader_top1_pct_change")
     leader_top1_above_ma60 = None if not leader_snapshot else leader_snapshot.get("leader_top1_above_ma60")
+    leader_active_count = None if not leader_snapshot else leader_snapshot.get("leader_active_count")
+    leader_count = None if not leader_snapshot else leader_snapshot.get("leader_count")
+    leaders_above_ma60_ratio = None if not leader_snapshot else leader_snapshot.get("leaders_above_ma60_ratio")
 
     retreat_signals = [
         leader_follow_ok is False,
         leader_top1_pct_change is not None and leader_top1_pct_change <= 0,
         leader_top1_above_ma60 is False,
+        leader_count not in (None, 0) and leader_active_count == 0,
+        leaders_above_ma60_ratio is not None and leaders_above_ma60_ratio < 0.5,
         absorption_rate_5d_change is not None and absorption_rate_5d_change <= 0,
     ]
     retreat_signal_count = sum(bool(signal) for signal in retreat_signals)
@@ -189,12 +194,19 @@ def run_scan(end_date: str, min_total_mv_yi: float) -> pd.DataFrame:
                 "leader_turning_strong_ok": evaluation.leader_turning_strong_ok,
                 "leader_confirmed_ok": evaluation.leader_confirmed_ok,
                 "leader_count": inputs.leader_count,
+                "leader_group_names": inputs.leader_group_names,
+                "leader_group_detail": inputs.leader_group_detail,
+                "leader_active_count": inputs.leader_active_count,
                 "leader_top1_name": inputs.leader_top1_name,
                 "leader_top1_pct_change": inputs.leader_top1_pct_change,
                 "leader_top1_above_ma60": inputs.leader_top1_above_ma60,
                 "leader_top1_above_ma250": inputs.leader_top1_above_ma250,
                 "leader_follow_ok": inputs.leader_follow_ok,
                 "leader_5d_rank_pct": inputs.leader_5d_rank_pct,
+                "leaders_above_ma60_count": inputs.leaders_above_ma60_count,
+                "leaders_above_ma250_count": inputs.leaders_above_ma250_count,
+                "leaders_above_ma60_ratio": inputs.leaders_above_ma60_ratio,
+                "leaders_above_ma250_ratio": inputs.leaders_above_ma250_ratio,
                 "local_activity_ok": inputs.local_activity_ok,
                 "has_ma250": inputs.ma250 is not None,
                 "has_amount_ma20": inputs.amount_ma20 is not None,
@@ -261,11 +273,17 @@ def write_summary(df: pd.DataFrame, min_total_mv_yi: float) -> None:
             leader_pct = "-"
             if pd.notna(row["leader_top1_pct_change"]):
                 leader_pct = f"{float(row['leader_top1_pct_change']):.2f}%"
+            leader_count = 0 if pd.isna(row["leader_count"]) else int(row["leader_count"])
+            active_count = 0 if pd.isna(row["leader_active_count"]) else int(row["leader_active_count"])
+            ma60_count = 0 if pd.isna(row["leaders_above_ma60_count"]) else int(row["leaders_above_ma60_count"])
+            leader_detail = row.get("leader_group_detail", "")
             lines.append(
                 f"- `{row['industry_name']}` `{row['industry_code']}`"
                 f" | 一级：`{row['l1_name']}`"
                 f" | 龙头：`{row['leader_top1_name'] or '-'}`"
                 f" | 龙头涨跌：`{leader_pct}`"
+                f" | 龙头群：`{active_count}/{leader_count}活跃，{ma60_count}/{leader_count}站上MA60`"
+                f" | 明细：{leader_detail}"
                 f" | 拥挤：`{row['crowding_label']}`"
             )
 
@@ -306,11 +324,17 @@ def write_leaderboard(df: pd.DataFrame, min_total_mv_yi: float) -> None:
             absorption_rank = "-"
             if pd.notna(row["absorption_rate_rank_pct"]):
                 absorption_rank = f"{float(row['absorption_rate_rank_pct']):.1%}"
+            leader_count = 0 if pd.isna(row["leader_count"]) else int(row["leader_count"])
+            active_count = 0 if pd.isna(row["leader_active_count"]) else int(row["leader_active_count"])
+            ma60_count = 0 if pd.isna(row["leaders_above_ma60_count"]) else int(row["leaders_above_ma60_count"])
+            leader_detail = row.get("leader_group_detail", "")
             lines.append(
                 f"- `{row['industry_name']}` `{row['industry_code']}`"
                 f" | 一级：`{row['l1_name']}`"
                 f" | 龙头：`{row['leader_top1_name'] or '-'}`"
                 f" | 龙头涨跌：`{leader_pct}`"
+                f" | 龙头群：`{active_count}/{leader_count}活跃，{ma60_count}/{leader_count}站上MA60`"
+                f" | 明细：{leader_detail}"
                 f" | 拥挤：`{row['crowding_label']}`"
                 f" | 吸筹率分位：`{absorption_rank}`"
                 f" | 摘要：{row['summary_line']}"

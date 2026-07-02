@@ -15,7 +15,7 @@ ETF_CARDS = [
         "bucket": "科技成长与高端制造",
         "code": "512480.SH",
         "name": "半导体 ETF",
-        "map": "801081.SI 半导体",
+        "map": "趋势延续/拥挤：半导体",
         "status": "趋势延续 / 拥挤偏高",
         "note": "趋势已展开，辅助关注拥挤偏高后的回踩风险。",
         "href": "pages/theme_512480_sw_l2_watch_report.html",
@@ -24,7 +24,7 @@ ETF_CARDS = [
         "bucket": "科技成长与高端制造",
         "code": "515790.SH",
         "name": "光伏 ETF",
-        "map": "801735.SI 光伏设备",
+        "map": "趋势延续：光伏设备",
         "status": "趋势延续",
         "note": "当前更偏趋势延续，辅助关注是否继续扩散。",
         "href": "pages/theme_515790_sw_l2_watch_report.html",
@@ -33,7 +33,7 @@ ETF_CARDS = [
         "bucket": "科技成长与高端制造",
         "code": "515230.SH",
         "name": "软件 ETF",
-        "map": "801104.SI 软件开发、801103.SI IT服务Ⅱ",
+        "map": "等待：软件开发、IT服务Ⅱ",
         "status": "未启动 / 拥挤正常",
         "note": "当前未启动，辅助状态偏正常。",
         "href": "pages/theme_515230_software_watch_report.html",
@@ -42,7 +42,7 @@ ETF_CARDS = [
         "bucket": "科技成长与高端制造",
         "code": "159998.SZ",
         "name": "计算机 ETF",
-        "map": "801101.SI 计算机设备",
+        "map": "等待：计算机设备",
         "status": "未启动 / 拥挤正常",
         "note": "当前未启动，辅助状态偏正常。",
         "href": "pages/theme_159998_computer_watch_report.html",
@@ -51,7 +51,7 @@ ETF_CARDS = [
         "bucket": "大消费与医药",
         "code": "512980.SH",
         "name": "传媒 ETF",
-        "map": "801767.SI 数字媒体、801765.SI 广告营销、801764.SI 游戏Ⅱ",
+        "map": "等待：数字媒体、广告营销、游戏Ⅱ",
         "status": "未启动 / 拥挤正常",
         "note": "当前未启动，辅助状态偏正常。",
         "href": "pages/theme_512980_sw_l2_watch_report.html",
@@ -60,7 +60,7 @@ ETF_CARDS = [
         "bucket": "科技成长与高端制造",
         "code": "931994.CSI",
         "name": "电网设备主题指数",
-        "map": "801738.SI 电网设备",
+        "map": "趋势延续：电网设备",
         "status": "趋势延续",
         "note": "不是 ETF，但作为实际观察标的；当前更偏趋势延续。",
         "href": "pages/theme_931994_sw_l2_watch_report.html",
@@ -69,7 +69,7 @@ ETF_CARDS = [
         "bucket": "科技成长与高端制造",
         "code": "TMT-COMM",
         "name": "通信链条对照组",
-        "map": "801102.SI 通信设备、801223.SI 通信服务",
+        "map": "扩散观察：通信设备、通信服务",
         "status": "未启动 / 观察中",
         "note": "不是核心 ETF，主要作为软件/计算机的扩散对照；当前未启动到观察中。",
         "href": "pages/theme_communication_compare_report.html",
@@ -78,7 +78,7 @@ ETF_CARDS = [
         "bucket": "大消费与医药",
         "code": "159928.SZ",
         "name": "消费 ETF",
-        "map": "801125.SI 白酒Ⅱ、801129.SI 调味发酵品Ⅱ、801127.SI 饮料乳品",
+        "map": "等待：白酒Ⅱ、调味发酵品Ⅱ、饮料乳品",
         "status": "未启动 / 观察中",
         "note": "当前未启动到观察中。",
         "href": "pages/theme_consumption_liquor_sw_l2_watch_report.html",
@@ -87,7 +87,7 @@ ETF_CARDS = [
         "bucket": "大消费与医药",
         "code": "512690.SH",
         "name": "酒 ETF",
-        "map": "801125.SI 白酒Ⅱ、801128.SI 非白酒",
+        "map": "等待：白酒Ⅱ、非白酒",
         "status": "未启动",
         "note": "当前未启动，辅助等待结构修复。",
         "href": "pages/theme_consumption_liquor_sw_l2_watch_report.html",
@@ -96,34 +96,34 @@ ETF_CARDS = [
         "bucket": "大消费与医药",
         "code": "512010.SH",
         "name": "医药 ETF",
-        "map": "医疗服务、生物制品、化学制药、医疗器械、中药Ⅱ",
+        "map": "先行：医疗服务；跟进：生物制品、化学制药",
         "status": "未启动 / 观察中",
-        "note": "宽基医药入口，当前未启动到观察中，辅助关注修复质量。",
+        "note": "医疗服务已贴近年线，医药宽基进入重点观察窗口。",
         "href": "pages/theme_512010_medicine_watch_report.html",
     },
     {
         "bucket": "大消费与医药",
         "code": "512170.SH",
         "name": "医疗 ETF",
-        "map": "801156.SI 医疗服务、801153.SI 医疗器械",
+        "map": "先行：医疗服务；跟进：医疗器械、生物制品",
         "status": "未启动 / 观察中",
-        "note": "当前未启动到观察中。",
+        "note": "医疗服务先转入观察中，重点跟踪医疗器械能否跟上。",
         "href": "pages/theme_512170_healthcare_watch_report.html",
     },
     {
         "bucket": "大消费与医药",
         "code": "159992.SZ",
         "name": "创新药 ETF",
-        "map": "801151.SI 化学制药、801152.SI 生物制品、801156.SI 医疗服务",
+        "map": "跟进：化学制药、生物制品；先行参考：医疗服务",
         "status": "未启动 / 观察中",
-        "note": "当前未启动到观察中。",
+        "note": "药品链仍未启动但贴近低位修复，重点看化药/生物制品跟进。",
         "href": "pages/theme_159992_innovative_drug_watch_report.html",
     },
     {
         "bucket": "大消费与医药",
         "code": "159996.SZ",
         "name": "家电 ETF",
-        "map": "小家电、家电零部件Ⅱ、黑色家电、厨卫电器、白色家电",
+        "map": "观察：小家电、家电零部件Ⅱ、白色家电",
         "status": "观察中",
         "note": "当前观察中，辅助关注是否站稳修复。",
         "href": "pages/theme_159996_sw_l2_watch_report.html",
@@ -132,34 +132,34 @@ ETF_CARDS = [
         "bucket": "周期资源",
         "code": "159930.SZ",
         "name": "能源 ETF",
-        "map": "煤炭开采、炼化及贸易、油服工程、燃气Ⅱ",
+        "map": "核心：煤炭开采、炼化及贸易；跟进：油服工程、燃气Ⅱ",
         "status": "观察中 / 拥挤正常",
-        "note": "当前观察中，辅助状态偏正常。",
+        "note": "能源宽口径入口，煤炭与石油链共同影响，重点看两条主线是否同步转强。",
         "href": "pages/theme_cycle_resources_sw_l2_watch_report.html",
     },
     {
         "bucket": "周期资源",
         "code": "159697.SZ",
         "name": "石油 ETF",
-        "map": "炼化及贸易、油服工程、燃气Ⅱ",
+        "map": "核心：炼化及贸易、油服工程；跟进：燃气Ⅱ、煤炭开采",
         "status": "观察中 / 拥挤正常",
-        "note": "当前观察中，辅助状态偏正常。",
+        "note": "石油链更集中，优先观察炼化及贸易和油服工程，煤炭只作能源链共振参考。",
         "href": "pages/theme_cycle_resources_sw_l2_watch_report.html",
     },
     {
         "bucket": "周期资源",
         "code": "515220.SH",
         "name": "煤炭 ETF",
-        "map": "801951.SI 煤炭开采、801952.SI 焦炭Ⅱ",
+        "map": "核心：煤炭开采；跟进：焦炭Ⅱ、炼化及贸易",
         "status": "观察中 / 拥挤正常",
-        "note": "当前观察中，辅助关注过热消退。",
+        "note": "煤炭链更集中，重点看煤炭开采自身修复，炼化及贸易只作能源链共振参考。",
         "href": "pages/theme_cycle_resources_sw_l2_watch_report.html",
     },
     {
         "bucket": "周期资源",
         "code": "159870.SZ",
         "name": "化工 ETF",
-        "map": "化学制品、农化制品、化学原料、冶钢原料、化学纤维",
+        "map": "观察/拥挤偏高：化学制品、农化制品、化学原料",
         "status": "观察中 / 拥挤偏高",
         "note": "当前观察中但拥挤偏高，辅助关注分歧。",
         "href": "pages/theme_159870_chemical_compare_report.html",
@@ -168,7 +168,7 @@ ETF_CARDS = [
         "bucket": "红利金融地产",
         "code": "515180.SH",
         "name": "易方达红利 ETF",
-        "map": "煤炭开采、炼化及贸易、铁路公路、航运港口、基础建设",
+        "map": "风格观察：煤炭开采、炼化及贸易、铁路公路",
         "status": "未启动 / 观察中",
         "note": "红利风格标的，行业分布较宽；当前未启动到观察中。",
         "href": "pages/theme_515180_sw_l2_watch_report.html",
@@ -177,7 +177,7 @@ ETF_CARDS = [
         "bucket": "红利金融地产",
         "code": "512890.SH",
         "name": "红利低波 ETF",
-        "map": "城商行Ⅱ、农商行Ⅱ、股份制银行Ⅱ、国有大型银行Ⅱ",
+        "map": "稳定观察：城商行Ⅱ、农商行Ⅱ、股份制银行Ⅱ",
         "status": "观察中",
         "note": "红利低波风格标的；当前观察中，辅助关注稳定性。",
         "href": "pages/theme_512890_sw_l2_watch_report.html",
@@ -186,16 +186,16 @@ ETF_CARDS = [
         "bucket": "红利金融地产",
         "code": "512880.SH",
         "name": "证券 ETF",
-        "map": "801193.SI 证券Ⅱ、801191.SI 多元金融、801194.SI 保险Ⅱ",
-        "status": "观察中 / 拥挤正常",
-        "note": "当前观察中，辅助状态偏正常。",
+        "map": "先行：证券Ⅱ；跟进：多元金融",
+        "status": "未启动 / 拥挤正常",
+        "note": "证券Ⅱ高度相关且贴近年线，重点跟踪能否放量站上。",
         "href": "pages/theme_512880_sw_l2_watch_report.html",
     },
     {
         "bucket": "红利金融地产",
         "code": "512200.SH",
         "name": "房地产 ETF",
-        "map": "房地产开发、房地产服务、装修建材、房屋建设Ⅱ、装修装饰Ⅱ",
+        "map": "等待：房地产开发、房地产服务、装修建材",
         "status": "未启动 / 拥挤正常",
         "note": "当前未启动，辅助状态偏正常。",
         "href": "pages/theme_512200_real_estate_watch_report.html",
@@ -203,18 +203,104 @@ ETF_CARDS = [
 ]
 
 
+MAP_LABELS = (
+    "趋势延续/拥挤",
+    "观察/拥挤偏高",
+    "趋势延续",
+    "扩散观察",
+    "风格观察",
+    "稳定观察",
+    "先行参考",
+    "核心",
+    "跟进",
+    "先行",
+    "等待",
+    "观察",
+)
+
+
+DISPLAY_ORDER = {
+    # 分类内部顺序
+    "512010.SH": 10,
+    "512170.SH": 11,
+    "159992.SZ": 12,
+    "159928.SZ": 20,
+    "512690.SH": 21,
+    "515230.SH": 30,
+    "159998.SZ": 31,
+    "512980.SH": 32,
+    "512880.SH": 40,
+    "512200.SH": 41,
+    # 风格与周期观察
+    "159996.SZ": 50,
+    "515180.SH": 60,
+    "512890.SH": 61,
+    "159930.SZ": 70,
+    "159697.SZ": 71,
+    "515220.SH": 72,
+    "159870.SZ": 73,
+    # 趋势延续或扩散对照放后面
+    "931994.CSI": 80,
+    "515790.SH": 81,
+    "512480.SH": 82,
+    "TMT-COMM": 90,
+}
+
+
+BUCKET_ORDER = {
+    "科技成长与高端制造": 10,
+    "大消费与医药": 20,
+    "周期资源": 30,
+    "红利金融地产": 40,
+}
+
+
+def _split_map_and_note(card: dict[str, str]) -> tuple[str, str]:
+    parts = []
+    labels = []
+    for raw_part in card["map"].split("；"):
+        part = raw_part.strip()
+        matched_label = None
+        for label in MAP_LABELS:
+            prefix = f"{label}："
+            if part.startswith(prefix):
+                matched_label = label
+                part = part[len(prefix) :].strip()
+                break
+        if matched_label and matched_label not in labels:
+            labels.append(matched_label)
+        if part:
+            parts.append(part)
+
+    map_text = "；".join(parts)
+    label_text = " / ".join(labels)
+    note = card["note"]
+    if label_text and label_text not in note:
+        note = f"{label_text}。{note}"
+    return map_text, note
+
+
 def _overview_table(cards: list[dict[str, str]]) -> str:
     rows = []
-    for card in cards:
+    sorted_cards = sorted(
+        cards,
+        key=lambda card: (
+            BUCKET_ORDER.get(card["bucket"], 999),
+            DISPLAY_ORDER.get(card["code"], 999),
+            card["code"],
+        ),
+    )
+    for card in sorted_cards:
+        map_text, note = _split_map_and_note(card)
         rows.append(
             f"""
 <tr>
   <td><a class="target-link" href="{escape(card['href'])}">{escape(card['name'])}</a></td>
   <td class="mono">{escape(card['code'])}</td>
   <td><span class="status-pill">{escape(card['status'])}</span></td>
-  <td>{escape(card['map'])}</td>
+  <td>{escape(map_text)}</td>
   <td><span class="table-bucket">{escape(card['bucket'])}</span></td>
-  <td>{escape(card['note'])}</td>
+  <td>{escape(note)}</td>
 </tr>
 """
         )
@@ -223,7 +309,7 @@ def _overview_table(cards: list[dict[str, str]]) -> str:
 <section class="overview-table-section">
   <div class="section-title">
     <h1>观察标的一览表</h1>
-    <p>先用表格横向比较状态、映射行业和备注；需要看图形细节时再打开观察页。</p>
+    <p>先用表格横向比较策略状态、重点观察行业和观察要点；需要看图形细节时再打开观察页。</p>
   </div>
   <div class="table-wrap">
     <table class="overview-table">
@@ -231,10 +317,10 @@ def _overview_table(cards: list[dict[str, str]]) -> str:
         <tr>
           <th>标的</th>
           <th>代码</th>
-          <th>当前状态</th>
-          <th>映射申万二级</th>
+          <th>策略状态</th>
+          <th>申万二级窗口分层</th>
           <th>分类</th>
-          <th>备注</th>
+          <th>观察要点</th>
         </tr>
       </thead>
       <tbody>{''.join(rows)}</tbody>

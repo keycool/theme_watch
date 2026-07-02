@@ -98,7 +98,7 @@ TOPIC_PAGES = [
         "output": "theme_159996_sw_l2_watch_report.html",
     },
     {
-        "title": "周期资源主题组 - 申万二级关联观察",
+        "title": "能源链主题组 - 申万二级关联观察",
         "codes": ["801951.SI", "801963.SI", "801962.SI", "801163.SI", "801992.SI", "801952.SI"],
         "output": "theme_cycle_resources_sw_l2_watch_report.html",
     },
