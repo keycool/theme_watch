@@ -43,6 +43,11 @@ def _load_theme_daily(
     else:
         raise ValueError(f"Unsupported source: {source}")
 
+    if "ts_code" in df.columns:
+        df["ts_code"] = df["ts_code"].astype(str)
+    if "trade_date" in df.columns:
+        df["trade_date"] = df["trade_date"].astype(str)
+
     df.to_csv(cache_path, index=False, encoding="utf-8-sig")
     return df
 
@@ -110,6 +115,24 @@ def build_correlation(
                 "leader_top1_name": info.get("leader_top1_name", ""),
             }
         )
+
+    if not rows:
+        result = pd.DataFrame(
+            columns=[
+                "theme_code",
+                "sw_code",
+                "sw_name",
+                "l1_name",
+                "corr_daily_ret",
+                "common_days",
+                "final_label",
+                "crowding_label",
+                "total_mv_yi",
+                "leader_top1_name",
+            ]
+        )
+        result.to_csv(output, index=False, encoding="utf-8-sig")
+        return result
 
     result = pd.DataFrame(rows).sort_values("corr_daily_ret", ascending=False).reset_index(drop=True)
     result.to_csv(output, index=False, encoding="utf-8-sig")
