@@ -239,6 +239,19 @@ def _tail_lines(text: str, max_lines: int = 120) -> str:
     return "\n".join(lines[-max_lines:])
 
 
+def _classify_base_sync_failure(stdout: str, stderr: str) -> str:
+    text = f"{stdout}\n{stderr}".lower()
+    if any(token in text for token in ["permission", "forbidden", "unauthorized", "scope", "999916"]):
+        return "feishu_base_sync_failed=permission_or_scope"
+    if any(token in text for token in ["base token", "base_token", "invalid base", "param basetoken is invalid"]):
+        return "feishu_base_sync_failed=invalid_base_token"
+    if any(token in text for token in ["table-id", "table id", "tbl", "not found"]):
+        return "feishu_base_sync_failed=table_or_resource_not_found"
+    if any(token in text for token in ["record-search", "record-upsert", "field-list"]):
+        return "feishu_base_sync_failed=base_command_execution"
+    return "feishu_base_sync_failed=unknown"
+
+
 def _sync_base(args: argparse.Namespace, result: RunResult) -> None:
     command = [
         sys.executable,
@@ -280,11 +293,10 @@ def _sync_base(args: argparse.Namespace, result: RunResult) -> None:
         check=False,
     )
     if completed.returncode != 0:
+        diagnostic = _classify_base_sync_failure(completed.stdout, completed.stderr)
+        print(diagnostic)
         raise RuntimeError(
-            "Base sync failed:\n"
-            f"command={' '.join(command)}\n"
-            f"stdout={completed.stdout}\n"
-            f"stderr={completed.stderr}"
+            f"Base sync failed ({diagnostic})."
         )
 
 
