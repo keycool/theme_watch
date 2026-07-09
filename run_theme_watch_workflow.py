@@ -232,6 +232,13 @@ def _run_update(args: argparse.Namespace, run_id: str, stdout_path: Path) -> tup
     return completed.returncode, combined
 
 
+def _tail_lines(text: str, max_lines: int = 120) -> str:
+    lines = text.splitlines()
+    if len(lines) <= max_lines:
+        return text
+    return "\n".join(lines[-max_lines:])
+
+
 def _sync_base(args: argparse.Namespace, result: RunResult) -> None:
     command = [
         sys.executable,
@@ -318,6 +325,10 @@ def main() -> None:
     print(f"stdout_log={result.stdout_path}")
     for issue in result.issues:
         print(f"issue={issue}")
+    if result.returncode != 0 and result.stdout_path.exists():
+        print("daily_update_tail_start")
+        print(_tail_lines(result.stdout_path.read_text(encoding="utf-8"), max_lines=120))
+        print("daily_update_tail_end")
 
     if not args.skip_sync and os.getenv("THEME_WATCH_BASE_TOKEN"):
         _sync_base(args, result)

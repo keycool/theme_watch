@@ -85,6 +85,16 @@ jobs:
           fi
           "${args[@]}"
 
+      - name: Print workflow debug logs on failure
+        if: failure()
+        shell: bash
+        run: |
+          shopt -s nullglob
+          for f in logs/theme_watch_workflow/*.json logs/theme_watch_workflow/*.log; do
+            echo "===== $f ====="
+            cat "$f"
+          done
+
       - name: Upload workflow logs
         if: always()
         uses: actions/upload-artifact@v4
