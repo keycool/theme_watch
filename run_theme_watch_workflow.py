@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -44,10 +44,17 @@ def _now_stamp() -> str:
     return datetime.now().strftime("%Y%m%d-%H%M%S")
 
 
+def _default_end_date() -> str:
+    now = datetime.now()
+    if now.hour < 20:
+        return (now - timedelta(days=1)).strftime("%Y%m%d")
+    return now.strftime("%Y%m%d")
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run theme watch update with self-check and Base sync.")
     parser.add_argument("--run-id", default="")
-    parser.add_argument("--end-date", default=datetime.now().strftime("%Y%m%d"))
+    parser.add_argument("--end-date", default="")
     parser.add_argument("--trigger-type", default="manual")
     parser.add_argument("--allow-non-trade-day", action="store_true")
     parser.add_argument("--skip-sync", action="store_true")
@@ -276,6 +283,7 @@ def _sync_base(args: argparse.Namespace, result: RunResult) -> None:
 
 def main() -> None:
     args = _build_parser().parse_args()
+    args.end_date = args.end_date or _default_end_date()
     run_id = args.run_id or f"{args.trigger_type}-{_now_stamp()}"
     SUMMARY_DIR.mkdir(parents=True, exist_ok=True)
 
