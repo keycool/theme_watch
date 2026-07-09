@@ -13,6 +13,7 @@ from typing import Any
 import pandas as pd
 
 from theme_watch_config import CORRELATION_DIR, PAGE_DIR, THEME_DAILIES, TOPIC_PAGES
+from theme_watch_dashboard import BASE_CARDS
 
 
 ROOT = Path(__file__).resolve().parent
@@ -113,8 +114,8 @@ def _check_index_links() -> list[str]:
 
     html = INDEX_HTML.read_text(encoding="utf-8")
     issues: list[str] = []
-    for page in TOPIC_PAGES:
-        href = f"pages/{page['output']}"
+    expected_hrefs = sorted({str(card["href"]) for card in BASE_CARDS if card.get("href")})
+    for href in expected_hrefs:
         if href not in html:
             issues.append(f"首页缺少专题链接: {href}")
     return issues
