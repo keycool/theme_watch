@@ -13,7 +13,7 @@ from typing import Any
 import pandas as pd
 
 from theme_watch_config import CORRELATION_DIR, PAGE_DIR, THEME_DAILIES, TOPIC_PAGES
-from theme_watch_dashboard import BASE_CARDS
+from theme_watch_dashboard import _live_cards
 
 
 ROOT = Path(__file__).resolve().parent
@@ -116,7 +116,7 @@ def _check_index_links() -> list[str]:
 
     html = INDEX_HTML.read_text(encoding="utf-8")
     issues: list[str] = []
-    expected_hrefs = sorted({str(card["href"]) for card in BASE_CARDS if card.get("href")})
+    expected_hrefs = sorted({str(card["href"]) for card in _live_cards() if card.get("href")})
     for href in expected_hrefs:
         if href not in html:
             issues.append(f"首页缺少专题链接: {href}")
