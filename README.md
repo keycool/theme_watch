@@ -46,7 +46,8 @@ The workflow:
 Minimum:
 
 - `TUSHARE_TOKEN`
-- `FEISHU_WEBHOOK_URL` for Feishu notifications
+- `Theme_Watch_FEISHU_WEBHOOK_URL` for Feishu notifications
+- `Theme_Watch_FEISHU_WEBHOOK_SECRET` when webhook signature verification is enabled
 
 ## Related Docs
 

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
+import hmac
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -10,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_SUMMARY_DIR = ROOT / "logs" / "theme_watch_workflow"
+DEFAULT_KEYWORD = "theme_watch"
 
 
 def _latest_summary_path(summary_dir: Path) -> Path:
@@ -29,13 +34,14 @@ def _status_label(status: str) -> str:
     return mapping.get(status, status)
 
 
-def _build_text(payload: dict, pages_url: str, run_url: str) -> str:
+def _build_text(payload: dict, pages_url: str, run_url: str, keyword: str) -> str:
     issues = payload.get("issues", [])
     issues_text = "无"
     if issues:
         issues_text = "\n".join(f"{idx + 1}. {issue}" for idx, issue in enumerate(issues[:5]))
 
     lines = [
+        keyword,
         "行业主题观察每日更新",
         f"状态：{_status_label(str(payload.get('status', '')))}",
         f"交易日：{payload.get('end_date', '')}",
@@ -51,20 +57,38 @@ def _build_text(payload: dict, pages_url: str, run_url: str) -> str:
     return "\n".join(lines)
 
 
-def send_webhook(summary_dir: Path, webhook_url: str, pages_url: str, run_url: str) -> None:
+def _build_sign(secret: str) -> tuple[str, str]:
+    timestamp = str(int(time.time()))
+    string_to_sign = f"{timestamp}\n{secret}".encode("utf-8")
+    digest = hmac.new(string_to_sign, b"", digestmod=hashlib.sha256).digest()
+    sign = base64.b64encode(digest).decode("utf-8")
+    return timestamp, sign
+
+
+def send_webhook(
+    summary_dir: Path,
+    webhook_url: str,
+    pages_url: str,
+    run_url: str,
+    keyword: str,
+    secret: str,
+) -> None:
     summary_path = _latest_summary_path(summary_dir)
     payload = json.loads(summary_path.read_text(encoding="utf-8"))
-    text = _build_text(payload, pages_url=pages_url, run_url=run_url)
+    text = _build_text(payload, pages_url=pages_url, run_url=run_url, keyword=keyword)
 
-    body = json.dumps(
-        {
-            "msg_type": "text",
-            "content": {
-                "text": text,
-            },
+    message: dict[str, object] = {
+        "msg_type": "text",
+        "content": {
+            "text": text,
         },
-        ensure_ascii=False,
-    ).encode("utf-8")
+    }
+    if secret:
+        timestamp, sign = _build_sign(secret)
+        message["timestamp"] = timestamp
+        message["sign"] = sign
+
+    body = json.dumps(message, ensure_ascii=False).encode("utf-8")
     request = urllib.request.Request(
         webhook_url,
         data=body,
@@ -87,6 +111,8 @@ def main() -> None:
     parser.add_argument("--pages-url", default=os.getenv("THEME_WATCH_PAGES_URL", ""))
     parser.add_argument("--run-url", default=os.getenv("GITHUB_RUN_URL", ""))
     parser.add_argument("--webhook-url", default=os.getenv("FEISHU_WEBHOOK_URL", ""))
+    parser.add_argument("--webhook-secret", default=os.getenv("FEISHU_WEBHOOK_SECRET", ""))
+    parser.add_argument("--keyword", default=os.getenv("FEISHU_WEBHOOK_KEYWORD", DEFAULT_KEYWORD))
     args = parser.parse_args()
 
     if not args.webhook_url:
@@ -98,6 +124,8 @@ def main() -> None:
         webhook_url=args.webhook_url,
         pages_url=args.pages_url,
         run_url=args.run_url,
+        keyword=args.keyword,
+        secret=args.webhook_secret,
     )
 
 

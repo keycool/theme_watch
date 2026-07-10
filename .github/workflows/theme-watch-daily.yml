@@ -127,7 +127,9 @@ jobs:
     needs: [update, deploy]
     runs-on: ubuntu-latest
     env:
-      FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+      FEISHU_WEBHOOK_URL: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_URL }}
+      FEISHU_WEBHOOK_SECRET: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_SECRET }}
+      FEISHU_WEBHOOK_KEYWORD: theme_watch
       THEME_WATCH_PAGES_URL: ${{ needs.deploy.outputs.page_url }}
       GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
