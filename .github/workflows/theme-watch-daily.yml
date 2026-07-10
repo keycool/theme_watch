@@ -86,7 +86,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: theme-watch-workflow-logs
-          path: logs/theme_watch_workflow
+          path: |
+            logs/theme_watch_workflow
+            logs/theme_watch_archive
 
       - name: Upload static report artifact
         if: success()

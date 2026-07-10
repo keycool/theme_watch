@@ -20,10 +20,8 @@ ROOT = Path(__file__).resolve().parent
 LOG_DIR = ROOT / "logs"
 SUMMARY_DIR = LOG_DIR / "theme_watch_workflow"
 UPDATE_SCRIPT = ROOT / "daily_update_theme_watch.py"
-SYNC_SCRIPT = ROOT / "theme_watch_base_sync.py"
 SCAN_CSV = ROOT / "sw_l2_strategy_scan.csv"
 INDEX_HTML = ROOT / "reports" / "theme_watch" / "index.html"
-MASTER_HISTORY = ROOT / ".cache_scan_v2" / "sw_daily_full_history.csv"
 
 
 @dataclass
@@ -55,7 +53,7 @@ def _default_end_date() -> str:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run theme watch update with self-check and Base sync.")
+    parser = argparse.ArgumentParser(description="Run theme watch update with self-check.")
     parser.add_argument("--run-id", default="")
     parser.add_argument("--end-date", default="")
     parser.add_argument("--trigger-type", default="manual")
@@ -102,6 +100,15 @@ def _load_scan_latest_date() -> tuple[str | None, int]:
     return latest_date, len(df)
 
 
+def _day_gap(expected_date: str, actual_date: str) -> int | None:
+    try:
+        expected = datetime.strptime(expected_date, "%Y%m%d").date()
+        actual = datetime.strptime(actual_date, "%Y%m%d").date()
+    except ValueError:
+        return None
+    return (expected - actual).days
+
+
 def _infer_is_trade_day(metrics: dict[str, str], returncode: int) -> bool:
     if "skip_non_trade_day" in metrics:
         return False
@@ -143,9 +150,13 @@ def _build_issues(
     if not sw_daily_master_max_date:
         issues.append("缺少 sw_daily_master_max_date 输出，无法确认 Tushare 主缓存是否更新。")
     elif sw_daily_master_max_date != end_date:
-        issues.append(
-            f"Tushare 主缓存最新日期异常: 期望 {end_date}，实际 {sw_daily_master_max_date}。"
-        )
+        master_gap = _day_gap(end_date, sw_daily_master_max_date)
+        if master_gap is not None and master_gap <= 1:
+            metrics["sw_daily_master_lag_days"] = str(master_gap)
+        else:
+            issues.append(
+                f"Tushare 主缓存最新日期异常: 期望 {end_date}，实际 {sw_daily_master_max_date}。"
+            )
 
     scan_latest_date = metrics.get("scan_latest_date")
     scan_rows = metrics.get("scan_rows")
@@ -158,7 +169,11 @@ def _build_issues(
     if not scan_latest_date:
         issues.append("缺少 scan_latest_date，申万二级扫描结果未确认。")
     elif scan_latest_date != end_date:
-        issues.append(f"申万二级扫描最新日期异常: 期望 {end_date}，实际 {scan_latest_date}。")
+        scan_gap = _day_gap(end_date, scan_latest_date)
+        if scan_gap is not None and scan_gap <= 1:
+            metrics["scan_latest_lag_days"] = str(scan_gap)
+        else:
+            issues.append(f"申万二级扫描最新日期异常: 期望 {end_date}，实际 {scan_latest_date}。")
 
     if not scan_rows or int(float(scan_rows)) <= 0:
         issues.append("申万二级扫描结果为空。")
@@ -213,7 +228,7 @@ def _write_summary(result: RunResult) -> None:
     )
 
 
-def _run_update(args: argparse.Namespace, run_id: str, stdout_path: Path) -> tuple[int, str]:
+def _run_update(args: argparse.Namespace, stdout_path: Path) -> tuple[int, str]:
     command = [sys.executable, str(UPDATE_SCRIPT), "--end-date", args.end_date]
     if args.allow_non_trade_day:
         command.append("--allow-non-trade-day")
@@ -242,66 +257,6 @@ def _tail_lines(text: str, max_lines: int = 120) -> str:
     return "\n".join(lines[-max_lines:])
 
 
-def _classify_base_sync_failure(stdout: str, stderr: str) -> str:
-    text = f"{stdout}\n{stderr}".lower()
-    if any(token in text for token in ["permission", "forbidden", "unauthorized", "scope", "999916"]):
-        return "feishu_base_sync_failed=permission_or_scope"
-    if any(token in text for token in ["base token", "base_token", "invalid base", "param basetoken is invalid"]):
-        return "feishu_base_sync_failed=invalid_base_token"
-    if any(token in text for token in ["table-id", "table id", "tbl", "not found"]):
-        return "feishu_base_sync_failed=table_or_resource_not_found"
-    if any(token in text for token in ["record-search", "record-upsert", "field-list"]):
-        return "feishu_base_sync_failed=base_command_execution"
-    return "feishu_base_sync_failed=unknown"
-
-
-def _sync_base(args: argparse.Namespace, result: RunResult) -> str | None:
-    command = [
-        sys.executable,
-        str(SYNC_SCRIPT),
-        "--run-id",
-        result.run_id,
-        "--workflow-name",
-        "theme-watch-daily-update",
-        "--trigger-type",
-        args.trigger_type,
-        "--status",
-        result.status,
-        "--end-date",
-        result.end_date,
-        "--started-at",
-        result.started_at.isoformat(),
-        "--finished-at",
-        result.finished_at.isoformat(),
-        "--issues-count",
-        str(len(result.issues)),
-        "--issues-summary",
-        " | ".join(result.issues[:10]),
-        "--stdout-file",
-        str(result.stdout_path),
-    ]
-    if result.is_trade_day:
-        command.append("--is-trade-day")
-    if result.status == "failed":
-        command.append("--skip-scan")
-    if args.dry_run:
-        command.append("--dry-run")
-
-    completed = subprocess.run(
-        command,
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        check=False,
-    )
-    if completed.returncode != 0:
-        diagnostic = _classify_base_sync_failure(completed.stdout, completed.stderr)
-        print(diagnostic)
-        return f"飞书 Base 同步失败: {diagnostic}。"
-    return None
-
-
 def main() -> None:
     args = _build_parser().parse_args()
     args.end_date = args.end_date or _default_end_date()
@@ -312,7 +267,7 @@ def main() -> None:
     stdout_path = SUMMARY_DIR / f"{run_id}.log"
     summary_path = SUMMARY_DIR / f"{run_id}.json"
 
-    returncode, output = _run_update(args, run_id, stdout_path)
+    returncode, output = _run_update(args, stdout_path)
     metrics = _parse_key_value_output(output)
     finished_at = datetime.now()
     status, issues, is_trade_day = _build_issues(args.end_date, started_at, returncode, metrics)
@@ -330,18 +285,12 @@ def main() -> None:
         is_trade_day=is_trade_day,
         metrics=metrics,
     )
+
     print(f"run_id={result.run_id}")
     if result.returncode != 0 and result.stdout_path.exists():
         print("daily_update_tail_start")
         print(_tail_lines(result.stdout_path.read_text(encoding="utf-8"), max_lines=120))
         print("daily_update_tail_end")
-
-    if not args.skip_sync and os.getenv("THEME_WATCH_BASE_TOKEN"):
-        sync_issue = _sync_base(args, result)
-        if sync_issue:
-            result.issues.append(sync_issue)
-            if result.status != "failed":
-                result.status = "warning"
 
     _write_summary(result)
     print(f"status={result.status}")

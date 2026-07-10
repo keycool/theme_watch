@@ -27,6 +27,8 @@ Supporting output:
 
 - `reports/theme_watch/pages/`
 - `reports/theme_watch/correlations/`
+- `logs/theme_watch_workflow/`
+- `logs/theme_watch_archive/YYYYMM/`
 
 ## GitHub Actions
 
@@ -40,6 +42,8 @@ The workflow:
 4. uploads the static report artifact
 5. deploys `reports/theme_watch/` to GitHub Pages
 6. sends a Feishu webhook summary when the webhook secret is configured
+
+The workflow tolerates a one-day upstream data lag before flagging a date mismatch as a warning.
 
 ## Required Secrets
 
