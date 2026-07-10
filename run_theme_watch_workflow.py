@@ -46,6 +46,8 @@ def _now_stamp() -> str:
 
 
 def _default_end_date() -> str:
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        return (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
     now = datetime.now()
     if now.hour < 20:
         return (now - timedelta(days=1)).strftime("%Y%m%d")
@@ -253,7 +255,7 @@ def _classify_base_sync_failure(stdout: str, stderr: str) -> str:
     return "feishu_base_sync_failed=unknown"
 
 
-def _sync_base(args: argparse.Namespace, result: RunResult) -> None:
+def _sync_base(args: argparse.Namespace, result: RunResult) -> str | None:
     command = [
         sys.executable,
         str(SYNC_SCRIPT),
@@ -296,9 +298,8 @@ def _sync_base(args: argparse.Namespace, result: RunResult) -> None:
     if completed.returncode != 0:
         diagnostic = _classify_base_sync_failure(completed.stdout, completed.stderr)
         print(diagnostic)
-        raise RuntimeError(
-            f"Base sync failed ({diagnostic})."
-        )
+        return f"飞书 Base 同步失败: {diagnostic}。"
+    return None
 
 
 def main() -> None:
@@ -329,22 +330,26 @@ def main() -> None:
         is_trade_day=is_trade_day,
         metrics=metrics,
     )
-    _write_summary(result)
-
     print(f"run_id={result.run_id}")
-    print(f"status={result.status}")
-    print(f"issues_count={len(result.issues)}")
-    print(f"summary_json={result.summary_path}")
-    print(f"stdout_log={result.stdout_path}")
-    for issue in result.issues:
-        print(f"issue={issue}")
     if result.returncode != 0 and result.stdout_path.exists():
         print("daily_update_tail_start")
         print(_tail_lines(result.stdout_path.read_text(encoding="utf-8"), max_lines=120))
         print("daily_update_tail_end")
 
     if not args.skip_sync and os.getenv("THEME_WATCH_BASE_TOKEN"):
-        _sync_base(args, result)
+        sync_issue = _sync_base(args, result)
+        if sync_issue:
+            result.issues.append(sync_issue)
+            if result.status != "failed":
+                result.status = "warning"
+
+    _write_summary(result)
+    print(f"status={result.status}")
+    print(f"issues_count={len(result.issues)}")
+    print(f"summary_json={result.summary_path}")
+    print(f"stdout_log={result.stdout_path}")
+    for issue in result.issues:
+        print(f"issue={issue}")
 
     if result.status == "failed":
         raise SystemExit(1)
