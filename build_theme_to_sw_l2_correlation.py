@@ -59,6 +59,7 @@ def build_correlation(
     end_date: str,
     output: Path,
     force_refresh: bool = False,
+    min_common_days: int = 120,
 ) -> pd.DataFrame:
     theme = _load_theme_daily(
         ts_code,
@@ -86,6 +87,7 @@ def build_correlation(
     scan_map = scan.set_index("industry_code").to_dict("index")
 
     rows: list[dict] = []
+    max_common_days = 0
     for code, group in sw.groupby("ts_code"):
         merged = pd.merge(
             theme[["trade_date", "theme_ret"]],
@@ -93,7 +95,8 @@ def build_correlation(
             on="trade_date",
             how="inner",
         ).dropna()
-        if len(merged) < 120:
+        max_common_days = max(max_common_days, len(merged))
+        if len(merged) < min_common_days:
             continue
 
         info = scan_map.get(code, {})
@@ -116,22 +119,34 @@ def build_correlation(
             }
         )
 
+    columns = [
+        "theme_code",
+        "sw_code",
+        "sw_name",
+        "l1_name",
+        "corr_daily_ret",
+        "common_days",
+        "final_label",
+        "crowding_label",
+        "total_mv_yi",
+        "leader_top1_name",
+    ]
     if not rows:
-        result = pd.DataFrame(
-            columns=[
-                "theme_code",
-                "sw_code",
-                "sw_name",
-                "l1_name",
-                "corr_daily_ret",
-                "common_days",
-                "final_label",
-                "crowding_label",
-                "total_mv_yi",
-                "leader_top1_name",
-            ]
-        )
+        if output.exists():
+            existing = pd.read_csv(output, dtype=str)
+            if not existing.empty:
+                existing.to_csv(output, index=False, encoding="utf-8-sig")
+                print(
+                    f"correlation_fallback={ts_code} preserved_existing_rows={len(existing)} "
+                    f"max_common_days={max_common_days} min_common_days={min_common_days}"
+                )
+                return existing
+        result = pd.DataFrame(columns=columns)
         result.to_csv(output, index=False, encoding="utf-8-sig")
+        print(
+            f"correlation_empty={ts_code} theme_rows={len(theme)} sw_l2_count={sw['ts_code'].nunique()} "
+            f"max_common_days={max_common_days} min_common_days={min_common_days}"
+        )
         return result
 
     result = pd.DataFrame(rows).sort_values("corr_daily_ret", ascending=False).reset_index(drop=True)

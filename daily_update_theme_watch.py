@@ -16,7 +16,6 @@ from run_sw_l2_strategy_scan import (
     write_leaderboard,
     write_summary,
 )
-from sw_data_utils import DEFAULT_END_DATE
 from build_sw_l2_sample_pool import DEFAULT_THRESHOLD_YI
 from theme_watch_config import CORRELATION_DIR, PAGE_DIR, THEME_DAILIES, TOPIC_PAGES
 from theme_watch_dashboard import OUTPUT_HTML, build_dashboard
@@ -63,6 +62,7 @@ def _refresh_correlations(start_date: str, end_date: str, force_refresh: bool) -
             end_date=end_date,
             output=output,
             force_refresh=force_refresh,
+            min_common_days=60,
         )
         top = result.iloc[0] if not result.empty else None
         top_text = "-" if top is None else f"{top['sw_code']} {top['corr_daily_ret']:.4f}"
@@ -81,7 +81,7 @@ def main() -> None:
     parser.add_argument("--end-date", default=_default_end_date(), help="YYYYMMDD, default: today")
     parser.add_argument("--lookback-days", type=int, default=14)
     parser.add_argument("--correlation-start-date", default="20240101")
-    parser.add_argument("--correlation-end-date", default=DEFAULT_END_DATE)
+    parser.add_argument("--correlation-end-date", default="")
     parser.add_argument("--min-total-mv-yi", type=float, default=DEFAULT_THRESHOLD_YI)
     parser.add_argument("--skip-fetch", action="store_true")
     parser.add_argument("--skip-scan", action="store_true")
@@ -95,6 +95,7 @@ def main() -> None:
     )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    args.correlation_end_date = args.correlation_end_date or args.end_date
 
     start_date = _lookback_start(args.end_date, args.lookback_days)
     print(f"update_window={start_date}-{args.end_date}")
