@@ -35,6 +35,21 @@ def _fmt_sigma(value: object, digits: int = 2, default: str = "-") -> str:
     return f"{float(value):.{digits}f}σ"
 
 
+def _fmt_ratio(numerator: object, denominator: object) -> str:
+    if denominator is None or pd.isna(denominator) or int(float(denominator)) <= 0:
+        return "-"
+    if numerator is None or pd.isna(numerator):
+        return "-"
+    return f"{int(float(numerator))}/{int(float(denominator))}"
+
+
+def _display_signal(value: object) -> str:
+    if value is None or pd.isna(value):
+        return "未触发"
+    text = str(value).strip()
+    return text or "未触发"
+
+
 def _priority(row: pd.Series) -> tuple[int, float]:
     label = str(row.get("final_label", ""))
     crowding = str(row.get("crowding_label", ""))
@@ -57,7 +72,14 @@ def _polyline(points: list[tuple[float, float]]) -> str:
     return " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
 
 
-def _line_points(values: pd.Series, min_value: float, max_value: float, width: int, top: int, height: int) -> list[tuple[float, float]]:
+def _line_points(
+    values: pd.Series,
+    min_value: float,
+    max_value: float,
+    width: int,
+    top: int,
+    height: int,
+) -> list[tuple[float, float]]:
     points: list[tuple[float, float]] = []
     span = max(max_value - min_value, 1e-9)
     values = values.reset_index(drop=True)
@@ -71,6 +93,12 @@ def _line_points(values: pd.Series, min_value: float, max_value: float, width: i
     return points
 
 
+def _line_hint(label: str, available_points: int, required_points: int) -> str:
+    if available_points > 0:
+        return f"{label} 已绘制"
+    return f"{label} 样本不足（至少 {required_points} 个交易日）"
+
+
 def _build_svg(history: pd.DataFrame) -> str:
     full_history = history.copy()
     full_history["close"] = pd.to_numeric(full_history["close"], errors="coerce")
@@ -81,7 +109,7 @@ def _build_svg(history: pd.DataFrame) -> str:
 
     plot_values = pd.concat([chart["close"], chart["ma60"], chart["ma250"]]).dropna()
     if plot_values.empty:
-        return '<div class="empty-chart">历史数据不足，暂无法画图</div>'
+        return '<div class="empty-chart">历史数据不足，暂时无法绘图</div>'
 
     width = 620
     top = 18
@@ -96,7 +124,7 @@ def _build_svg(history: pd.DataFrame) -> str:
 
     close_points = _line_points(chart["close"], min_value, max_value, width, top, price_height)
     ma60_points = _line_points(chart["ma60"], min_value, max_value, width, top, price_height)
-    ma_points = _line_points(chart["ma250"], min_value, max_value, width, top, price_height)
+    ma250_points = _line_points(chart["ma250"], min_value, max_value, width, top, price_height)
 
     amount_max = float(chart["amount"].max()) if chart["amount"].notna().any() else 0
     bar_count = len(chart)
@@ -113,45 +141,29 @@ def _build_svg(history: pd.DataFrame) -> str:
 
     latest = chart.iloc[-1]
     close_text = _fmt_num(latest.get("close"))
-    ma60_text = _fmt_num(latest.get("ma60"))
-    ma_text = _fmt_num(latest.get("ma250"))
+    ma60_text = _fmt_num(latest.get("ma60"), default="样本不足")
+    ma250_text = _fmt_num(latest.get("ma250"), default="样本不足")
     start_date = str(chart.iloc[0]["trade_date"])
     end_date = str(chart.iloc[-1]["trade_date"])
+    ma_hint = f"{_line_hint('MA60', len(ma60_points), 60)}；{_line_hint('MA250', len(ma250_points), 250)}"
 
     return f"""
-<svg class="sparkline" viewBox="0 0 660 300" role="img" aria-label="close ma60 and ma250 chart">
+<svg class="sparkline" viewBox="0 0 660 320" role="img" aria-label="close ma60 and ma250 chart">
   <line class="grid" x1="0" y1="{top}" x2="{width}" y2="{top}" />
   <line class="grid" x1="0" y1="{top + price_height / 2}" x2="{width}" y2="{top + price_height / 2}" />
   <line class="grid" x1="0" y1="{top + price_height}" x2="{width}" y2="{top + price_height}" />
   <g class="amount-bars">{''.join(bars)}</g>
-  <polyline class="line ma" points="{_polyline(ma_points)}" />
+  <polyline class="line ma" points="{_polyline(ma250_points)}" />
   <polyline class="line ma60" points="{_polyline(ma60_points)}" />
   <polyline class="line close" points="{_polyline(close_points)}" />
   <text class="axis-text" x="0" y="292">{escape(start_date)}</text>
   <text class="axis-text right" x="{width}" y="292">{escape(end_date)}</text>
   <text class="axis-text right" x="650" y="36">收盘 {close_text}</text>
   <text class="axis-text right" x="650" y="56">MA60 {ma60_text}</text>
-  <text class="axis-text right" x="650" y="76">MA250 {ma_text}</text>
+  <text class="axis-text right" x="650" y="76">MA250 {ma250_text}</text>
+  <text class="axis-text" x="0" y="312">{escape(ma_hint)}</text>
 </svg>
 """
-
-
-def _below_ma250_streak(history: pd.DataFrame) -> int | None:
-    full_history = history.copy()
-    full_history["close"] = pd.to_numeric(full_history["close"], errors="coerce")
-    full_history["ma250"] = full_history["close"].rolling(250).mean()
-
-    valid = full_history.dropna(subset=["close", "ma250"])
-    if valid.empty:
-        return None
-
-    streak = 0
-    for _, row in valid.iloc[::-1].iterrows():
-        if float(row["close"]) < float(row["ma250"]):
-            streak += 1
-            continue
-        break
-    return streak
 
 
 def _ma250_convergence(history: pd.DataFrame) -> dict[str, object]:
@@ -164,15 +176,9 @@ def _ma250_convergence(history: pd.DataFrame) -> dict[str, object]:
     if valid.empty:
         return {
             "below_streak": None,
-            "latest_gap": None,
             "gap_sigma": None,
-            "min_gap_120": None,
-            "repair_from_120_low": None,
-            "repair_sigma": None,
-            "stage": "数据不足",
         }
 
-    latest = valid.iloc[-1]
     below_streak = 0
     for _, row in valid.iloc[::-1].iterrows():
         if float(row["ma250_gap"]) < 0:
@@ -181,33 +187,13 @@ def _ma250_convergence(history: pd.DataFrame) -> dict[str, object]:
         break
 
     last_120 = valid.tail(120)
-    latest_gap = float(latest["ma250_gap"])
-    min_gap_120 = float(last_120["ma250_gap"].min())
-    repair_from_120_low = latest_gap - min_gap_120
+    latest_gap = float(valid.iloc[-1]["ma250_gap"])
     gap_mean_120 = float(last_120["ma250_gap"].mean())
     gap_std_120 = float(last_120["ma250_gap"].std())
     gap_sigma = None if pd.isna(gap_std_120) or gap_std_120 <= 0 else (latest_gap - gap_mean_120) / gap_std_120
-    repair_sigma = None if pd.isna(gap_std_120) or gap_std_120 <= 0 else repair_from_120_low / gap_std_120
-
-    if latest_gap >= 0:
-        stage = "已越过年线"
-    elif latest_gap >= -0.03:
-        stage = "贴近年线"
-    elif repair_from_120_low >= 0.05:
-        stage = "远离后修复"
-    elif below_streak >= 60:
-        stage = "长期年线下方"
-    else:
-        stage = "年线下方"
-
     return {
         "below_streak": below_streak,
-        "latest_gap": latest_gap,
         "gap_sigma": gap_sigma,
-        "min_gap_120": min_gap_120,
-        "repair_from_120_low": repair_from_120_low,
-        "repair_sigma": repair_sigma,
-        "stage": stage,
     }
 
 
@@ -226,9 +212,7 @@ def _spot_volatility(history: pd.DataFrame) -> dict[str, object]:
     vol_mean_120 = float(last_120["spot_volatility"].mean())
     vol_std_120 = float(last_120["spot_volatility"].std())
     return {
-        "vol_sigma": None
-        if pd.isna(vol_std_120) or vol_std_120 <= 0
-        else (latest_vol - vol_mean_120) / vol_std_120,
+        "vol_sigma": None if pd.isna(vol_std_120) or vol_std_120 <= 0 else (latest_vol - vol_mean_120) / vol_std_120,
     }
 
 
@@ -237,21 +221,20 @@ def _card(row: pd.Series, history: pd.DataFrame) -> str:
     crowding = escape(str(row.get("crowding_label", "-")))
     industry_name = escape(str(row.get("industry_name", "-")))
     industry_code = escape(str(row.get("industry_code", "-")))
-    leader_count = int(row.get("leader_count", 0)) if pd.notna(row.get("leader_count")) else 0
-    leader_active_count = int(row.get("leader_active_count", 0)) if pd.notna(row.get("leader_active_count")) else 0
-    leaders_above_ma60_count = int(row.get("leaders_above_ma60_count", 0)) if pd.notna(row.get("leaders_above_ma60_count")) else 0
-    leaders_above_ma250_count = int(row.get("leaders_above_ma250_count", 0)) if pd.notna(row.get("leaders_above_ma250_count")) else 0
+    leader_count = row.get("leader_count")
+    leader_active_count = row.get("leader_active_count")
+    leaders_above_ma60_count = row.get("leaders_above_ma60_count")
+    leaders_above_ma250_count = row.get("leaders_above_ma250_count")
     leader_group_detail = escape(str(row.get("leader_group_detail", "") or row.get("leader_group_names", "") or "-"))
     mv = _fmt_num(row.get("total_mv_yi"), 0)
     absorption_rank = _fmt_pct(row.get("absorption_rate_rank_pct"))
-    ma60_signal_value = row.get("ma60_early_signal")
-    ma60_signal = "-" if pd.isna(ma60_signal_value) else escape(str(ma60_signal_value))
+    ma60_signal = escape(_display_signal(row.get("ma60_early_signal")))
     ma250_convergence = _ma250_convergence(history)
     below_ma250_streak = ma250_convergence["below_streak"]
-    below_ma250_text = "-" if below_ma250_streak is None else f"{below_ma250_streak} 天"
-    gap_sigma_text = _fmt_sigma(ma250_convergence["gap_sigma"])
+    below_ma250_text = "样本不足" if below_ma250_streak is None else f"{below_ma250_streak} 天"
+    gap_sigma_text = _fmt_sigma(ma250_convergence["gap_sigma"], default="样本不足")
     spot_volatility = _spot_volatility(history)
-    vol_sigma_text = _fmt_sigma(spot_volatility["vol_sigma"])
+    vol_sigma_text = _fmt_sigma(spot_volatility["vol_sigma"], default="样本不足")
     summary = escape(str(row.get("summary_line", "")))
 
     return f"""
@@ -274,15 +257,15 @@ def _card(row: pd.Series, history: pd.DataFrame) -> str:
         <span>连续低于 MA250：<strong>{below_ma250_text}</strong></span>
         <span>偏离度σ：<strong>{gap_sigma_text}</strong></span>
         <span>MA60信号：<strong>{ma60_signal}</strong></span>
-        <span>强势龙头：<strong>{leader_active_count}/{leader_count}</strong></span>
-        <span>MA60：<strong>{leaders_above_ma60_count}/{leader_count}</strong></span>
-        <span>MA250：<strong>{leaders_above_ma250_count}/{leader_count}</strong></span>
+        <span>强势龙头：<strong>{_fmt_ratio(leader_active_count, leader_count)}</strong></span>
+        <span>MA60：<strong>{_fmt_ratio(leaders_above_ma60_count, leader_count)}</strong></span>
+        <span>MA250：<strong>{_fmt_ratio(leaders_above_ma250_count, leader_count)}</strong></span>
       </div>
     </div>
     <div class="metric-group auxiliary">
       <h3>辅助指标</h3>
       <div class="metrics">
-    <span>吸筹率分位：<strong>{absorption_rank}</strong></span>
+        <span>吸筹率分位：<strong>{absorption_rank}</strong></span>
         <span>波动率σ：<strong>{vol_sigma_text}</strong></span>
       </div>
     </div>
@@ -358,50 +341,41 @@ def build_report() -> None:
       --line: #d8c7ac;
       --accent: #bb4d2d;
       --accent-2: #1f6f78;
-      --card: #fffaf1;
     }}
     * {{ box-sizing: border-box; }}
     body {{
       margin: 0;
-      background:
-        radial-gradient(circle at 15% 10%, rgba(187, 77, 45, 0.18), transparent 28rem),
-        linear-gradient(135deg, #fbf5ea 0%, var(--paper) 48%, #eadac1 100%);
       color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(187, 77, 45, 0.22), transparent 30rem),
+        radial-gradient(circle at 88% 16%, rgba(31, 111, 120, 0.18), transparent 24rem),
+        linear-gradient(135deg, #fbf6ed 0%, var(--paper) 50%, #e9d8bf 100%);
       font-family: "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
     }}
-    main {{ max-width: 1180px; margin: 0 auto; padding: 40px 20px 56px; }}
-    header {{ margin-bottom: 26px; }}
-    h1 {{ margin: 0 0 10px; font-size: clamp(28px, 4vw, 48px); letter-spacing: -0.04em; }}
+    main {{ max-width: 1440px; margin: 0 auto; padding: 32px 20px 48px; }}
+    header {{ margin-bottom: 18px; }}
+    h1 {{ margin: 0 0 10px; font-size: clamp(32px, 4vw, 48px); letter-spacing: -0.04em; }}
     header p {{ margin: 0; color: var(--muted); line-height: 1.7; }}
-    .overview {{
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-      margin: 26px 0;
+    .overview {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 22px 0 24px; }}
+    .overview > div {{
+      border-radius: 20px;
+      padding: 18px 20px;
+      background: rgba(255, 250, 241, 0.78);
+      border: 1px solid rgba(69, 52, 28, 0.12);
+      box-shadow: 0 14px 32px rgba(77, 54, 22, 0.08);
     }}
-    .overview > div, .card {{
+    .pill-row {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+    .pill {{ border-radius: 999px; padding: 6px 10px; background: rgba(31, 111, 120, 0.1); color: var(--accent-2); }}
+    .grid-cards {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }}
+    .card {{
       border: 1px solid rgba(69, 52, 28, 0.16);
-      background: rgba(255, 250, 241, 0.86);
+      background: rgba(255, 250, 241, 0.88);
       box-shadow: 0 18px 42px rgba(77, 54, 22, 0.10);
       backdrop-filter: blur(8px);
       border-radius: 22px;
+      padding: 18px;
+      overflow: hidden;
     }}
-    .overview > div {{ padding: 18px; }}
-    .overview h2 {{ margin: 0 0 12px; font-size: 17px; }}
-    .pill-row {{ display: flex; flex-wrap: wrap; gap: 10px; }}
-    .pill {{
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-      border-radius: 999px;
-      padding: 8px 12px;
-      background: #efe0c7;
-      color: #4f3b1f;
-      font-size: 13px;
-    }}
-    .pill b {{ color: var(--ink); }}
-    .grid-cards {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }}
-    .card {{ padding: 18px; overflow: hidden; }}
     .card-head {{ display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }}
     .card h2 {{ margin: 0 0 4px; font-size: 22px; }}
     .card p {{ margin: 0; color: var(--muted); }}
@@ -430,12 +404,8 @@ def build_report() -> None:
     .leader-details p {{ margin-top: 8px !important; font-size: 12px; line-height: 1.7; color: var(--muted); }}
     .summary {{ margin-top: 12px !important; line-height: 1.6; font-size: 13px; }}
     .empty-chart {{ padding: 80px 0; text-align: center; color: var(--muted); }}
-    footer {{ margin-top: 26px; color: var(--muted); font-size: 13px; line-height: 1.7; }}
-    @media (max-width: 860px) {{
-      .overview, .grid-cards {{ grid-template-columns: 1fr; }}
-      .card-head {{ display: block; }}
-      .badges {{ justify-content: flex-start; margin-top: 10px; }}
-      .metric-groups {{ grid-template-columns: 1fr; }}
+    @media (max-width: 1080px) {{
+      .overview, .grid-cards, .metric-groups {{ grid-template-columns: 1fr; }}
     }}
   </style>
 </head>
@@ -443,16 +413,13 @@ def build_report() -> None:
 <main>
   <header>
     <h1>申万二级行业启动策略图形报告</h1>
-    <p>数据主线：Tushare · 最新扫描日：{latest_date} · 生成时间：{escape(generated_at)}</p>
+    <p>数据主线：Tushare 申万二级行业 · 最新扫描日：{latest_date} · 生成时间：{escape(generated_at)}</p>
     <p>图中红线为收盘价，琥珀线为 MA60，蓝线为 MA250，底部浅蓝柱为成交额强弱。“强势龙头”指龙头群中当日涨幅达到 5% 或近 5 日涨幅达到 5% 的数量。</p>
   </header>
   {_overview(scan)}
   <section class="grid-cards">
     {''.join(cards)}
   </section>
-  <footer>
-    <p>说明：本报告只做展示，不改变策略判定；候选来自 `sw_l2_strategy_scan.csv`，历史行情来自 `.cache_scan_v2/sw_daily_full_history.csv`。</p>
-  </footer>
 </main>
 </body>
 </html>
