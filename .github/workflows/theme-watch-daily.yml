@@ -149,6 +149,10 @@ jobs:
           name: theme-watch-workflow-logs
           path: logs/theme_watch_workflow
 
+      - name: Inspect downloaded workflow logs
+        run: |
+          find logs/theme_watch_workflow -maxdepth 4 -type f | sort
+
       - name: Send Feishu webhook
         if: env.FEISHU_WEBHOOK_URL != ''
         continue-on-error: true

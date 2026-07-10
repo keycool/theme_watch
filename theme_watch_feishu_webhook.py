@@ -18,7 +18,7 @@ DEFAULT_KEYWORD = "theme_watch"
 
 
 def _latest_summary_path(summary_dir: Path) -> Path:
-    candidates = sorted(summary_dir.glob("*.json"), key=lambda path: path.stat().st_mtime, reverse=True)
+    candidates = sorted(summary_dir.rglob("*.json"), key=lambda path: path.stat().st_mtime, reverse=True)
     if not candidates:
         raise FileNotFoundError(f"No workflow summary JSON found in {summary_dir}")
     return candidates[0]
