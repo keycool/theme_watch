@@ -158,3 +158,28 @@ jobs:
         continue-on-error: true
         run: |
           python theme_watch_feishu_webhook.py --summary-dir logs/theme_watch_workflow
+
+  verify-pages:
+    if: github.event_name != 'pull_request'
+    needs: deploy
+    runs-on: ubuntu-latest
+    env:
+      THEME_WATCH_PAGES_URL: ${{ needs.deploy.outputs.page_url }}
+    steps:
+      - name: Verify published software page
+        run: |
+          python - <<'PY'
+          import os
+          import time
+          import urllib.request
+
+          base_url = os.environ["THEME_WATCH_PAGES_URL"].rstrip("/")
+          url = f"{base_url}/pages/theme_515230_software_watch_report.html?v={int(time.time())}"
+          html = urllib.request.urlopen(url, timeout=20).read().decode("utf-8", errors="replace")
+          expected_tokens = ["801104.SI", "801103.SI", "4/10", "2/10"]
+          missing = [token for token in expected_tokens if token not in html]
+          print(f"verify_url={url}")
+          if missing:
+            raise SystemExit(f"Published page verification failed, missing tokens: {missing}")
+          print("published_page_verified=1")
+          PY
