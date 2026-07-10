@@ -8,7 +8,8 @@ It is responsible for:
 - refreshing the SW L2 scan
 - rebuilding `reports/theme_watch/`
 - publishing the report via GitHub Pages
-- syncing workflow state to Feishu Base
+- notifying Feishu via webhook
+- archiving workflow output as workbook artifacts
 
 ## Main Entry Points
 
@@ -38,19 +39,14 @@ The workflow:
 3. uploads workflow logs
 4. uploads the static report artifact
 5. deploys `reports/theme_watch/` to GitHub Pages
-6. syncs run state to Feishu Base when Feishu secrets are configured
+6. sends a Feishu webhook summary when the webhook secret is configured
 
 ## Required Secrets
 
 Minimum:
 
 - `TUSHARE_TOKEN`
-
-For Feishu sync:
-
-- `THEME_WATCH_BASE_TOKEN`
-- `FEISHU_APP_ID`
-- `FEISHU_APP_SECRET`
+- `FEISHU_WEBHOOK_URL` for Feishu notifications
 
 ## Related Docs
 

@@ -26,14 +26,8 @@ jobs:
     env:
       TZ: Asia/Shanghai
       TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
-      THEME_WATCH_BASE_TOKEN: ${{ secrets.THEME_WATCH_BASE_TOKEN }}
-      THEME_WATCH_BASE_IDENTITY: bot
-      THEME_WATCH_RUNS_TABLE: tblyVEBVpnLy50k4
-      THEME_WATCH_SCAN_TABLE: tblp78QebGDZbot7
       WORKFLOW_END_DATE: ${{ github.event.inputs.end_date || '' }}
       WORKFLOW_ALLOW_NON_TRADE_DAY: ${{ github.event.inputs.allow_non_trade_day || 'false' }}
-      FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
-      FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,11 +36,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
 
       - name: Restore cache
         uses: actions/cache/restore@v4
@@ -60,16 +49,6 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -r requirements-theme-watch.txt
 
-      - name: Install lark-cli
-        run: npm install -g @larksuite/cli@latest
-
-      - name: Configure lark-cli bot profile
-        if: env.FEISHU_APP_ID != '' && env.FEISHU_APP_SECRET != '' && env.THEME_WATCH_BASE_TOKEN != ''
-        shell: bash
-        run: |
-          printf '%s' "$FEISHU_APP_SECRET" | lark-cli config init --app-id "$FEISHU_APP_ID" --app-secret-stdin --brand feishu
-          lark-cli config default-as bot
-
       - name: Run theme watch workflow
         shell: bash
         run: |
@@ -80,10 +59,17 @@ jobs:
           if [[ "$WORKFLOW_ALLOW_NON_TRADE_DAY" == "true" ]]; then
             args+=(--allow-non-trade-day)
           fi
-          if [[ -z "$THEME_WATCH_BASE_TOKEN" || -z "$FEISHU_APP_ID" || -z "$FEISHU_APP_SECRET" ]]; then
-            args+=(--skip-sync)
-          fi
+          args+=(--skip-sync)
           "${args[@]}"
+
+      - name: Build workbook artifact
+        if: always()
+        shell: bash
+        run: |
+          python theme_watch_publish_artifacts.py \
+            --summary-dir logs/theme_watch_workflow \
+            --scan-csv sw_l2_strategy_scan.csv \
+            --output-xlsx logs/theme_watch_workflow/theme_watch_snapshot.xlsx
 
       - name: Print workflow debug logs on failure
         if: failure()
@@ -126,6 +112,8 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: update
     runs-on: ubuntu-latest
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -133,3 +121,32 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  notify:
+    if: github.event_name != 'pull_request'
+    needs: [update, deploy]
+    runs-on: ubuntu-latest
+    env:
+      FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+      THEME_WATCH_PAGES_URL: ${{ needs.deploy.outputs.page_url }}
+      GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download workflow logs
+        uses: actions/download-artifact@v4
+        with:
+          name: theme-watch-workflow-logs
+          path: logs/theme_watch_workflow
+
+      - name: Send Feishu webhook
+        if: env.FEISHU_WEBHOOK_URL != ''
+        continue-on-error: true
+        run: |
+          python theme_watch_feishu_webhook.py --summary-dir logs/theme_watch_workflow
