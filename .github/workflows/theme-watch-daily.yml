@@ -71,6 +71,22 @@ jobs:
             --scan-csv sw_l2_strategy_scan.csv \
             --output-xlsx logs/theme_watch_workflow/theme_watch_snapshot.xlsx
 
+      - name: Verify local software page content
+        if: success()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          page = Path("reports/theme_watch/pages/theme_515230_software_watch_report.html")
+          html = page.read_text(encoding="utf-8", errors="replace")
+          expected_tokens = ["75 \u5929", "31 \u5929", "4/10", "2/10"]
+          missing = [token for token in expected_tokens if token not in html]
+          print(f"verify_local_page={page}")
+          if missing:
+            raise SystemExit(f"Local page verification failed, missing tokens: {missing}")
+          print("local_page_verified=1")
+          PY
+
       - name: Print workflow debug logs on failure
         if: failure()
         shell: bash
@@ -176,7 +192,7 @@ jobs:
           base_url = os.environ["THEME_WATCH_PAGES_URL"].rstrip("/")
           url = f"{base_url}/pages/theme_515230_software_watch_report.html?v={int(time.time())}"
           html = urllib.request.urlopen(url, timeout=20).read().decode("utf-8", errors="replace")
-          expected_tokens = ["801104.SI", "801103.SI", "4/10", "2/10"]
+          expected_tokens = ["75 \u5929", "31 \u5929", "4/10", "2/10"]
           missing = [token for token in expected_tokens if token not in html]
           print(f"verify_url={url}")
           if missing:
