@@ -65,7 +65,11 @@ def _refresh_correlations(start_date: str, end_date: str, force_refresh: bool) -
             min_common_days=60,
         )
         top = result.iloc[0] if not result.empty else None
-        top_text = "-" if top is None else f"{top['sw_code']} {top['corr_daily_ret']:.4f}"
+        if top is None:
+            top_text = "-"
+        else:
+            top_corr = float(top["corr_daily_ret"])
+            top_text = f"{top['sw_code']} {top_corr:.4f}"
         print(f"correlation {item['ts_code']} rows={len(result)} top={top_text}")
 
 
