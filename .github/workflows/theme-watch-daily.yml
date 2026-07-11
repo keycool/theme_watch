@@ -71,29 +71,10 @@ jobs:
             --scan-csv sw_l2_strategy_scan.csv \
             --output-xlsx logs/theme_watch_workflow/theme_watch_snapshot.xlsx
 
-      - name: Verify local software page content
+      - name: Validate generated reports
         if: success()
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          page = Path("reports/theme_watch/pages/theme_515230_software_watch_report.html")
-          html = page.read_text(encoding="utf-8", errors="replace")
-          software_dev_ok = all(
-              token in html
-              for token in ["801104.SI", "连续低于 MA250", "强势龙头", "MA60", "MA250"]
-          )
-          it_service_ok = "801103.SI" in html
-          day_matches = re.findall(r"连续低于 MA250：\s*<strong>(\d+)\s*天</strong>", html)
-          ratio_matches = re.findall(r"(?:强势龙头|MA60|MA250)：\s*<strong>(\d+)/10</strong>", html)
-          print(f"verify_local_page={page}")
-          print(f"day_matches={day_matches[:10]}")
-          print(f"ratio_matches={ratio_matches[:10]}")
-          if not software_dev_ok or not it_service_ok or len(day_matches) < 2 or len(ratio_matches) < 6:
-            raise SystemExit("Local page verification failed for software topic page content.")
-          print("local_page_verified=1")
-          PY
+          python theme_watch_validate_reports.py
 
       - name: Print workflow debug logs on failure
         if: failure()
@@ -190,28 +171,28 @@ jobs:
     env:
       THEME_WATCH_PAGES_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
-      - name: Verify published software page
+      - name: Verify published site pages
         run: |
           python - <<'PY'
-          import os
-          import re
           import time
           import urllib.request
+          import os
+          from theme_watch_config import TOPIC_PAGES
 
           base_url = os.environ["THEME_WATCH_PAGES_URL"].rstrip("/")
-          url = f"{base_url}/pages/theme_515230_software_watch_report.html?v={int(time.time())}"
-          html = urllib.request.urlopen(url, timeout=20).read().decode("utf-8", errors="replace")
-          software_dev_ok = all(
-              token in html
-              for token in ["801104.SI", "连续低于 MA250", "强势龙头", "MA60", "MA250"]
-          )
-          it_service_ok = "801103.SI" in html
-          day_matches = re.findall(r"连续低于 MA250：\s*<strong>(\d+)\s*天</strong>", html)
-          ratio_matches = re.findall(r"(?:强势龙头|MA60|MA250)：\s*<strong>(\d+)/10</strong>", html)
-          print(f"verify_url={url}")
-          print(f"day_matches={day_matches[:10]}")
-          print(f"ratio_matches={ratio_matches[:10]}")
-          if not software_dev_ok or not it_service_ok or len(day_matches) < 2 or len(ratio_matches) < 6:
-            raise SystemExit("Published page verification failed for software topic page content.")
-          print("published_page_verified=1")
+          homepage_url = f"{base_url}/?v={int(time.time())}"
+          homepage = urllib.request.urlopen(homepage_url, timeout=20).read().decode("utf-8", errors="strict")
+          if "ETF 标的观察总览" not in homepage:
+              raise SystemExit("Published homepage verification failed.")
+          print(f"verify_homepage={homepage_url}")
+
+          checked = 0
+          for page in TOPIC_PAGES:
+              url = f"{base_url}/pages/{page['output']}?v={int(time.time())}"
+              html = urllib.request.urlopen(url, timeout=20).read().decode("utf-8", errors="strict")
+              if "<article class=\"card\">" not in html or "class=\"sparkline\"" not in html:
+                  raise SystemExit(f"Published topic page verification failed: {page['output']}")
+              checked += 1
+
+          print(f"published_topic_pages_verified={checked}")
           PY
