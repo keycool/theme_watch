@@ -85,8 +85,8 @@ jobs:
               for token in ["801104.SI", "连续低于 MA250", "强势龙头", "MA60", "MA250"]
           )
           it_service_ok = "801103.SI" in html
-          day_matches = re.findall(r"连续低于 MA250：<strong>(\d+)\s*[^<]{0,4}</strong>", html)
-          ratio_matches = re.findall(r"(?:强势龙头|MA60|MA250)：<strong>(\d+)/10</strong>", html)
+          day_matches = re.findall(r"连续低于 MA250：\s*<strong>(\d+)\s*天</strong>", html)
+          ratio_matches = re.findall(r"(?:强势龙头|MA60|MA250)：\s*<strong>(\d+)/10</strong>", html)
           print(f"verify_local_page={page}")
           print(f"day_matches={day_matches[:10]}")
           print(f"ratio_matches={ratio_matches[:10]}")
@@ -206,8 +206,8 @@ jobs:
               for token in ["801104.SI", "连续低于 MA250", "强势龙头", "MA60", "MA250"]
           )
           it_service_ok = "801103.SI" in html
-          day_matches = re.findall(r"连续低于 MA250：<strong>(\d+)\s*[^<]{0,4}</strong>", html)
-          ratio_matches = re.findall(r"(?:强势龙头|MA60|MA250)：<strong>(\d+)/10</strong>", html)
+          day_matches = re.findall(r"连续低于 MA250：\s*<strong>(\d+)\s*天</strong>", html)
+          ratio_matches = re.findall(r"(?:强势龙头|MA60|MA250)：\s*<strong>(\d+)/10</strong>", html)
           print(f"verify_url={url}")
           print(f"day_matches={day_matches[:10]}")
           print(f"ratio_matches={ratio_matches[:10]}")
