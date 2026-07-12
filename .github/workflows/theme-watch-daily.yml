@@ -1,0 +1,199 @@
+name: Theme Watch Daily Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      end_date:
+        description: "Trade date in YYYYMMDD. Leave blank to use runner local date."
+        required: false
+        type: string
+      allow_non_trade_day:
+        description: "Run even on a non-trading day."
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "0 12 * * 1-5"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai
+      TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+      WORKFLOW_END_DATE: ${{ github.event.inputs.end_date || '' }}
+      WORKFLOW_ALLOW_NON_TRADE_DAY: ${{ github.event.inputs.allow_non_trade_day || 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache_scan_v2
+          key: theme-watch-cache-v1-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            theme-watch-cache-v1-${{ runner.os }}-${{ github.ref_name }}-
+            theme-watch-cache-v1-${{ runner.os }}-
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements-theme-watch.txt
+
+      - name: Run theme watch workflow
+        shell: bash
+        run: |
+          args=(python run_theme_watch_workflow.py --trigger-type github_actions)
+          if [[ -n "$WORKFLOW_END_DATE" ]]; then
+            args+=(--end-date "$WORKFLOW_END_DATE")
+          fi
+          if [[ "$WORKFLOW_ALLOW_NON_TRADE_DAY" == "true" ]]; then
+            args+=(--allow-non-trade-day)
+          fi
+          "${args[@]}"
+
+      - name: Validate generated reports
+        run: python theme_watch_validate_reports.py
+
+      - name: Upload workflow logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theme-watch-workflow-logs
+          path: logs/theme_watch_workflow
+
+      - name: Upload static report artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theme-watch-report
+          path: reports/theme_watch
+
+      - name: Upload Pages artifact
+        if: success()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports/theme_watch
+
+      - name: Save cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache_scan_v2
+          key: theme-watch-cache-v1-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: update
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  verify-pages:
+    if: github.event_name != 'pull_request'
+    needs: deploy
+    runs-on: ubuntu-latest
+    env:
+      THEME_WATCH_PAGES_URL: https://keycool.github.io/theme_watch/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Wait for Pages propagation
+        run: sleep 25
+
+      - name: Verify published site pages
+        shell: bash
+        run: |
+          python - <<'PY'
+          import time
+          import urllib.request
+          from theme_watch_config import TOPIC_PAGES
+
+          base_url = "https://keycool.github.io/theme_watch".rstrip("/")
+
+          def fetch(url: str) -> str:
+              with urllib.request.urlopen(url, timeout=20) as response:
+                  return response.read().decode("utf-8", errors="replace")
+
+          homepage_ok = False
+          homepage_url = f"{base_url}/?v={int(time.time())}"
+          for _ in range(6):
+              html = fetch(homepage_url)
+              if '<table class="overview-table">' in html:
+                  homepage_ok = True
+                  break
+              time.sleep(10)
+          if not homepage_ok:
+              raise SystemExit(f"Published homepage verification failed: {homepage_url}")
+
+          for page in TOPIC_PAGES:
+              page_ok = False
+              url = f"{base_url}/pages/{page['output']}?v={int(time.time())}"
+              for _ in range(6):
+                  html = fetch(url)
+                  if '<article class="card">' in html and 'class="sparkline"' in html:
+                      page_ok = True
+                      break
+                  time.sleep(10)
+              print(f"verify_url={url}")
+              if not page_ok:
+                  raise SystemExit(f"Published page verification failed: {url}")
+          print("published_page_verified=1")
+          PY
+
+  notify:
+    if: always() && github.event_name != 'pull_request'
+    needs:
+      - update
+      - deploy
+      - verify-pages
+    runs-on: ubuntu-latest
+    env:
+      FEISHU_WEBHOOK_URL: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_URL }}
+      FEISHU_WEBHOOK_SECRET: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_SECRET }}
+      FEISHU_WEBHOOK_KEYWORD: theme_watch
+      THEME_WATCH_PAGES_URL: https://keycool.github.io/theme_watch/
+      GITHUB_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download workflow logs
+        uses: actions/download-artifact@v4
+        with:
+          name: theme-watch-workflow-logs
+          path: logs/theme_watch_workflow
+
+      - name: Send Feishu webhook
+        if: env.FEISHU_WEBHOOK_URL != ''
+        run: python theme_watch_feishu_webhook.py --summary-dir logs/theme_watch_workflow

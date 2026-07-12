@@ -1,5 +1,9 @@
 # Industry Insight
 
+## AI Entry
+
+- First-read SOP: [AI_PROJECT_SOP.md](/D:/CC/Industry%20Insight/AI_PROJECT_SOP.md)
+
 本项目用于把关注中的 ETF / 主题指数映射到申万二级行业，并用 Tushare 数据生成行业启动观察页。
 
 ## 主要入口
