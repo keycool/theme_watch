@@ -174,15 +174,16 @@ jobs:
       - name: Verify published site pages
         run: |
           python - <<'PY'
+          import os
           import time
           import urllib.request
-          import os
+
           from theme_watch_config import TOPIC_PAGES
 
           base_url = os.environ["THEME_WATCH_PAGES_URL"].rstrip("/")
           homepage_url = f"{base_url}/?v={int(time.time())}"
           homepage = urllib.request.urlopen(homepage_url, timeout=20).read().decode("utf-8", errors="strict")
-          if "ETF 标的观察总览" not in homepage:
+          if '<table class="overview-table">' not in homepage:
               raise SystemExit("Published homepage verification failed.")
           print(f"verify_homepage={homepage_url}")
 
@@ -190,7 +191,7 @@ jobs:
           for page in TOPIC_PAGES:
               url = f"{base_url}/pages/{page['output']}?v={int(time.time())}"
               html = urllib.request.urlopen(url, timeout=20).read().decode("utf-8", errors="strict")
-              if "<article class=\"card\">" not in html or "class=\"sparkline\"" not in html:
+              if '<article class="card">' not in html or 'class="sparkline"' not in html:
                   raise SystemExit(f"Published topic page verification failed: {page['output']}")
               checked += 1
 
