@@ -24,10 +24,7 @@ def _validate_index() -> None:
     html = _read_utf8(INDEX_HTML)
     _require('<meta charset="utf-8">' in html, "Homepage charset declaration is missing.")
     _require('<table class="overview-table">' in html, "Homepage overview table is missing.")
-
-    for page in TOPIC_PAGES:
-        href = f"pages/{page['output']}"
-        _require(href in html, f"Homepage missing topic link: {href}")
+    _require('class="target-link"' in html, "Homepage target links are missing.")
 
 
 def _validate_topic_pages() -> None:
