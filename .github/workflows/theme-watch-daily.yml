@@ -171,6 +171,9 @@ jobs:
     env:
       THEME_WATCH_PAGES_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Verify published site pages
         run: |
           python - <<'PY'
