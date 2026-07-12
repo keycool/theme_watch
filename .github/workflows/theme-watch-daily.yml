@@ -175,24 +175,42 @@ jobs:
         run: |
           python - <<'PY'
           import os
+          import sys
           import time
           import urllib.request
 
           from theme_watch_config import TOPIC_PAGES
 
+          def fetch_text(url: str) -> str:
+              return urllib.request.urlopen(url, timeout=20).read().decode("utf-8", errors="strict")
+
+          def wait_until_ok(label: str, url: str, checker, attempts: int = 12, sleep_seconds: int = 10) -> None:
+              last_error = None
+              for attempt in range(1, attempts + 1):
+                  try:
+                      text = fetch_text(url)
+                      if checker(text):
+                          print(f"{label}_verified={url}")
+                          return
+                      last_error = f"{label} content not ready"
+                  except Exception as exc:
+                      last_error = repr(exc)
+                  print(f"{label}_retry={attempt}/{attempts} reason={last_error}")
+                  time.sleep(sleep_seconds)
+              raise SystemExit(f"{label} verification failed after retries: {last_error}")
+
           base_url = os.environ["THEME_WATCH_PAGES_URL"].rstrip("/")
           homepage_url = f"{base_url}/?v={int(time.time())}"
-          homepage = urllib.request.urlopen(homepage_url, timeout=20).read().decode("utf-8", errors="strict")
-          if '<table class="overview-table">' not in homepage:
-              raise SystemExit("Published homepage verification failed.")
-          print(f"verify_homepage={homepage_url}")
+          wait_until_ok("homepage", homepage_url, lambda html: '<table class="overview-table">' in html)
 
           checked = 0
           for page in TOPIC_PAGES:
               url = f"{base_url}/pages/{page['output']}?v={int(time.time())}"
-              html = urllib.request.urlopen(url, timeout=20).read().decode("utf-8", errors="strict")
-              if '<article class="card">' not in html or 'class="sparkline"' not in html:
-                  raise SystemExit(f"Published topic page verification failed: {page['output']}")
+              wait_until_ok(
+                  page["output"],
+                  url,
+                  lambda html: '<article class="card">' in html and 'class="sparkline"' in html,
+              )
               checked += 1
 
           print(f"published_topic_pages_verified={checked}")
