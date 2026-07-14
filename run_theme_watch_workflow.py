@@ -44,8 +44,6 @@ def _now_stamp() -> str:
 
 
 def _default_end_date() -> str:
-    if os.getenv("GITHUB_ACTIONS") == "true":
-        return (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
     now = datetime.now()
     if now.hour < 20:
         return (now - timedelta(days=1)).strftime("%Y%m%d")
@@ -55,7 +53,7 @@ def _default_end_date() -> str:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run theme watch update with self-check.")
     parser.add_argument("--run-id", default="")
-    parser.add_argument("--end-date", default="")
+    parser.add_argument("--end-date", default=_default_end_date())
     parser.add_argument("--trigger-type", default="manual")
     parser.add_argument("--allow-non-trade-day", action="store_true")
     parser.add_argument("--skip-sync", action="store_true")

@@ -23,6 +23,8 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    outputs:
+      run_status: ${{ steps.capture-status.outputs.run_status }}
     env:
       TZ: Asia/Shanghai
       TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
@@ -76,6 +78,22 @@ jobs:
         run: |
           python theme_watch_validate_reports.py
 
+      - name: Capture workflow status
+        if: always()
+        id: capture-status
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+
+          summary_dir = Path("logs/theme_watch_workflow")
+          latest = sorted(summary_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[0]
+          payload = json.loads(latest.read_text(encoding="utf-8"))
+          print(f"run_status={payload.get('status', 'unknown')}")
+          print(f"summary_path={latest}")
+          PY
+
       - name: Print workflow debug logs on failure
         if: failure()
         shell: bash
@@ -116,7 +134,7 @@ jobs:
           key: theme-watch-cache-v1-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}
 
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.update.outputs.run_status != 'skipped'
     needs: update
     runs-on: ubuntu-latest
     outputs:
@@ -165,8 +183,8 @@ jobs:
           python theme_watch_feishu_webhook.py --summary-dir logs/theme_watch_workflow
 
   verify-pages:
-    if: github.event_name != 'pull_request'
-    needs: deploy
+    if: github.event_name != 'pull_request' && needs.update.outputs.run_status != 'skipped'
+    needs: [update, deploy]
     runs-on: ubuntu-latest
     env:
       THEME_WATCH_PAGES_URL: ${{ needs.deploy.outputs.page_url }}
