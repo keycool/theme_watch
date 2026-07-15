@@ -88,6 +88,36 @@ def _recent_file_count(paths: list[Path], started_at: datetime) -> int:
     return count
 
 
+def _check_correlation_freshness(paths: list[Path], end_date: str) -> list[str]:
+    issues: list[str] = []
+    missing_field: list[str] = []
+    stale: list[str] = []
+    for path in paths:
+        if not path.exists():
+            continue
+        df = pd.read_csv(path, dtype={"latest_common_date": str})
+        if "latest_common_date" not in df.columns:
+            missing_field.append(path.name)
+            continue
+        latest = df["latest_common_date"].dropna().astype(str).max()
+        if latest != end_date:
+            gap = _day_gap(end_date, latest) if latest else None
+            if gap is None or gap > 1:
+                stale.append(f"{path.name}:{latest or '-'}")
+
+    if missing_field:
+        issues.append(
+            "Correlation CSV missing latest_common_date field: "
+            + ", ".join(missing_field[:5])
+        )
+    if stale:
+        issues.append(
+            f"Correlation CSV data date mismatch, expected {end_date}: "
+            + ", ".join(stale[:5])
+        )
+    return issues
+
+
 def _load_scan_latest_date() -> tuple[str | None, int]:
     if not SCAN_CSV.exists():
         return None, 0
@@ -185,6 +215,8 @@ def _build_issues(
         issues.append(
             f"相关性 CSV 未全部重算: 期望 {len(correlation_paths)} 个，最近更新 {recent_correlation_count} 个。"
         )
+    else:
+        issues.extend(_check_correlation_freshness(correlation_paths, end_date))
 
     page_paths = _expected_page_paths()
     recent_page_count = _recent_file_count(page_paths, started_at)

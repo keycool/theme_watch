@@ -98,6 +98,8 @@ def build_correlation(
         max_common_days = max(max_common_days, len(merged))
         if len(merged) < min_common_days:
             continue
+        latest_common_date = str(merged["trade_date"].max())
+        first_common_date = str(merged["trade_date"].min())
 
         info = scan_map.get(code, {})
         fallback_name = ""
@@ -112,6 +114,8 @@ def build_correlation(
                 "l1_name": info.get("l1_name", ""),
                 "corr_daily_ret": float(merged["theme_ret"].corr(merged["sw_ret"])),
                 "common_days": len(merged),
+                "first_common_date": first_common_date,
+                "latest_common_date": latest_common_date,
                 "final_label": info.get("final_label", ""),
                 "crowding_label": info.get("crowding_label", ""),
                 "total_mv_yi": info.get("total_mv_yi", None),
@@ -126,6 +130,8 @@ def build_correlation(
         "l1_name",
         "corr_daily_ret",
         "common_days",
+        "first_common_date",
+        "latest_common_date",
         "final_label",
         "crowding_label",
         "total_mv_yi",

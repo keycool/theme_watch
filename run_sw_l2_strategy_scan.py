@@ -14,6 +14,7 @@ from sw_data_utils import DEFAULT_END_DATE, get_daily_market, get_pro
 
 ROOT = Path(__file__).resolve().parent
 MASTER_HISTORY_PATH = ROOT / ".cache_scan_v2" / "sw_daily_full_history.csv"
+MARKET_AMOUNT_HISTORY_PATH = ROOT / ".cache_scan_v2" / "daily_market_amount_history.csv"
 GENERATED_INPUT_DIR = ROOT / "generated_strategy_inputs_l2"
 GENERATED_INPUT_DIR.mkdir(exist_ok=True)
 OUTPUT_CSV = ROOT / "sw_l2_strategy_scan.csv"
@@ -40,9 +41,32 @@ def _load_history() -> pd.DataFrame:
     return pd.read_csv(MASTER_HISTORY_PATH, dtype={"ts_code": str, "trade_date": str})
 
 
+def _load_market_amount_seed() -> dict[str, float]:
+    if not MARKET_AMOUNT_HISTORY_PATH.exists():
+        return {}
+    df = pd.read_csv(MARKET_AMOUNT_HISTORY_PATH, dtype={"trade_date": str})
+    if df.empty or "market_amount" not in df.columns:
+        return {}
+    df["market_amount"] = pd.to_numeric(df["market_amount"], errors="coerce")
+    df = df.dropna(subset=["trade_date", "market_amount"])
+    return {str(row["trade_date"]): float(row["market_amount"]) for _, row in df.iterrows()}
+
+
+def _save_market_amount_seed(market_amount_history: dict[str, float]) -> None:
+    MARKET_AMOUNT_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {"trade_date": trade_date, "market_amount": market_amount}
+        for trade_date, market_amount in sorted(market_amount_history.items())
+    ]
+    pd.DataFrame(rows).to_csv(MARKET_AMOUNT_HISTORY_PATH, index=False, encoding="utf-8-sig")
+
+
 def _build_market_amount_history(pro, trade_dates: List[str]) -> dict[str, float]:
-    market_amount_history: dict[str, float] = {}
+    market_amount_history = _load_market_amount_seed()
+    seed_changed = False
     for trade_date in trade_dates:
+        if trade_date in market_amount_history:
+            continue
         try:
             market_df = get_daily_market(pro, trade_date)
         except Exception:
@@ -52,6 +76,9 @@ def _build_market_amount_history(pro, trade_dates: List[str]) -> dict[str, float
         market_amount = pd.to_numeric(market_df["amount"], errors="coerce").sum()
         if pd.notna(market_amount) and market_amount > 0:
             market_amount_history[str(trade_date)] = float(market_amount)
+            seed_changed = True
+    if seed_changed:
+        _save_market_amount_seed(market_amount_history)
     return market_amount_history
 
 
