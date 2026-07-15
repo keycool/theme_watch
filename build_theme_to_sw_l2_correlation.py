@@ -90,6 +90,8 @@ def build_correlation(
         ).dropna()
         if len(merged) < 120:
             continue
+        latest_common_date = str(merged["trade_date"].max())
+        first_common_date = str(merged["trade_date"].min())
 
         info = scan_map.get(code, {})
         fallback_name = ""
@@ -104,6 +106,8 @@ def build_correlation(
                 "l1_name": info.get("l1_name", ""),
                 "corr_daily_ret": float(merged["theme_ret"].corr(merged["sw_ret"])),
                 "common_days": len(merged),
+                "first_common_date": first_common_date,
+                "latest_common_date": latest_common_date,
                 "final_label": info.get("final_label", ""),
                 "crowding_label": info.get("crowding_label", ""),
                 "total_mv_yi": info.get("total_mv_yi", None),
@@ -121,7 +125,7 @@ def main() -> None:
     parser.add_argument("--ts-code", required=True)
     parser.add_argument("--source", choices=["fund", "index"], default="fund")
     parser.add_argument("--start-date", default="20240101")
-    parser.add_argument("--end-date", default="20260630")
+    parser.add_argument("--end-date", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--force-refresh", action="store_true")
     args = parser.parse_args()

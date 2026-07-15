@@ -29,6 +29,8 @@ class StrategyInputs:
     industry_code: str
     industry_name: str
     latest_close: Optional[float] = None
+    ma60: Optional[float] = None
+    ma120: Optional[float] = None
     ma250: Optional[float] = None
     ret_120d: Optional[float] = None
     ret_120d_rank_pct: Optional[float] = None
@@ -42,6 +44,10 @@ class StrategyInputs:
     range_last_40: Optional[float] = None
     amount_latest: Optional[float] = None
     amount_ma20: Optional[float] = None
+    ma60_below_ma120_min_gap: Optional[float] = None
+    ma60_current_gap_to_ma120: Optional[float] = None
+    ma60_slope_20d: Optional[float] = None
+    close_to_ma60_gap: Optional[float] = None
     recent_2d_above_ma250: Optional[bool] = None
     above_ma250_3pct_streak: Optional[int] = None
     leader_count: Optional[int] = None
@@ -86,6 +92,11 @@ class StrategyEvaluation:
     c4_leader_trend_ok: Optional[bool]
     leader_turning_strong_ok: bool
     leader_confirmed_ok: bool
+    ma60_deep_below_ma120_ok: Optional[bool]
+    ma60_turning_up_ok: Optional[bool]
+    close_near_ma60_ok: Optional[bool]
+    close_above_ma60_ok: Optional[bool]
+    ma60_early_signal: Optional[str]
     summary_line: str
     structure_comment: str
     breakout_comment: str
@@ -143,6 +154,37 @@ def compute_breakout(inputs: StrategyInputs) -> tuple[Optional[bool], Optional[b
     emerged = b1 is True and b2 is True and b4 is True
     confirmed = emerged and b3 is True
     return b1, b2, b3, b4, emerged, confirmed
+
+
+def compute_ma60_early_signal(
+    inputs: StrategyInputs,
+    structure_score: int,
+) -> tuple[Optional[bool], Optional[bool], Optional[bool], Optional[bool], Optional[str]]:
+    deep_below = None
+    if inputs.ma60_below_ma120_min_gap is not None:
+        deep_below = inputs.ma60_below_ma120_min_gap <= -0.05
+
+    turning_up = None
+    if inputs.ma60_slope_20d is not None:
+        turning_up = inputs.ma60_slope_20d >= 0
+
+    close_near = None
+    close_above = None
+    if inputs.close_to_ma60_gap is not None:
+        close_near = inputs.close_to_ma60_gap >= -0.02
+        close_above = inputs.close_to_ma60_gap >= 0
+
+    low_convergence = structure_score >= 1
+    if deep_below is True and low_convergence and turning_up is True and close_above is True:
+        signal = "MA60早期启动"
+    elif deep_below is True and low_convergence and close_above is True:
+        signal = "MA60突破观察"
+    elif deep_below is True and low_convergence and close_near is True:
+        signal = "MA60冲击观察"
+    else:
+        signal = None
+
+    return deep_below, turning_up, close_near, close_above, signal
 
 
 def compute_leader(inputs: StrategyInputs) -> tuple[Optional[bool], Optional[bool], Optional[bool], Optional[bool], bool, bool]:
@@ -234,6 +276,9 @@ def evaluate_strategy(inputs: StrategyInputs) -> StrategyEvaluation:
     prefilter_label, hit_count, trend_extension_strength = compute_prefilter(inputs)
     structure_score, a1, a2, a3, a4, structure_ok = compute_structure(inputs)
     b1, b2, b3, b4, breakout_emerged, breakout_confirmed = compute_breakout(inputs)
+    ma60_deep, ma60_turning_up, close_near_ma60, close_above_ma60, ma60_early_signal = compute_ma60_early_signal(
+        inputs, structure_score
+    )
     c1, c2, c3, c4, leader_turning_strong_ok, leader_confirmed_ok = compute_leader(inputs)
     observation_strength = compute_observation_strength(inputs, leader_turning_strong_ok)
 
@@ -243,6 +288,8 @@ def evaluate_strategy(inputs: StrategyInputs) -> StrategyEvaluation:
         final_label = "启动确认"
     elif structure_ok and breakout_emerged and leader_turning_strong_ok:
         final_label = "接近启动"
+    elif ma60_early_signal in {"MA60早期启动", "MA60突破观察"}:
+        final_label = "早期启动"
     elif structure_ok or breakout_emerged or leader_turning_strong_ok or inputs.local_activity_ok is True:
         final_label = "观察中"
     else:
@@ -259,6 +306,8 @@ def evaluate_strategy(inputs: StrategyInputs) -> StrategyEvaluation:
         observation_strength=observation_strength,
         trend_extension_strength=trend_extension_strength,
     )
+    if final_label == "早期启动" and ma60_early_signal:
+        summary = f"{ma60_early_signal}，启动观察信号前移到 MA60；年线突破尚待确认。"
 
     return StrategyEvaluation(
         industry_code=inputs.industry_code,
@@ -286,6 +335,11 @@ def evaluate_strategy(inputs: StrategyInputs) -> StrategyEvaluation:
         c4_leader_trend_ok=c4,
         leader_turning_strong_ok=leader_turning_strong_ok,
         leader_confirmed_ok=leader_confirmed_ok,
+        ma60_deep_below_ma120_ok=ma60_deep,
+        ma60_turning_up_ok=ma60_turning_up,
+        close_near_ma60_ok=close_near_ma60,
+        close_above_ma60_ok=close_above_ma60,
+        ma60_early_signal=ma60_early_signal,
         summary_line=summary,
         structure_comment=structure_comment,
         breakout_comment=breakout_comment,

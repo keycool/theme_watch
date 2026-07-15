@@ -49,7 +49,6 @@ def build_topic_report(codes: list[str], title: str, output_path: Path) -> None:
     history = pd.read_csv(HISTORY_CSV, dtype={"ts_code": str, "trade_date": str})
     history = history.sort_values(["ts_code", "trade_date"]).reset_index(drop=True)
 
-    code_order = {code: index for index, code in enumerate(codes)}
     history_map = {code: group.copy() for code, group in history.groupby("ts_code")}
     scan_map = {str(row["industry_code"]): row for _, row in scan.iterrows()}
 

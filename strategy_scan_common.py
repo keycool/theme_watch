@@ -21,6 +21,8 @@ def build_histories(sw_daily: pd.DataFrame) -> dict[str, pd.DataFrame]:
         hist["high"] = pd.to_numeric(hist["high"], errors="coerce")
         hist["low"] = pd.to_numeric(hist["low"], errors="coerce")
         hist["amount"] = pd.to_numeric(hist["amount"], errors="coerce")
+        hist["ma60"] = hist["close"].rolling(60).mean()
+        hist["ma120"] = hist["close"].rolling(120).mean()
         hist["ma250"] = hist["close"].rolling(250).mean()
         hist["amount_ma20"] = hist["amount"].rolling(20).mean()
         histories[code] = hist
@@ -49,6 +51,8 @@ def build_strategy_input(
     latest_amount = float(latest["amount"])
 
     ma250 = float(latest["ma250"]) if pd.notna(latest["ma250"]) else None
+    ma60 = float(latest["ma60"]) if pd.notna(latest["ma60"]) else None
+    ma120 = float(latest["ma120"]) if pd.notna(latest["ma120"]) else None
     amount_ma20 = float(latest["amount_ma20"]) if pd.notna(latest["amount_ma20"]) else None
 
     ret_120d = None
@@ -95,6 +99,24 @@ def build_strategy_input(
         ret_5d = recent_5.iloc[-1]["close"] / recent_5.iloc[0]["close"] - 1
         local_activity_ok = bool(ret_5d > 0.02 or latest_amount >= amount_ma5 * 1.10)
 
+    ma60_below_ma120_min_gap = None
+    ma60_current_gap_to_ma120 = None
+    ma60_slope_20d = None
+    close_to_ma60_gap = None
+    if ma60 not in (None, 0):
+        close_to_ma60_gap = latest_close / ma60 - 1
+    valid_ma60_ma120 = history.dropna(subset=["ma60", "ma120"]).copy()
+    if not valid_ma60_ma120.empty:
+        valid_ma60_ma120["ma60_to_ma120_gap"] = valid_ma60_ma120["ma60"] / valid_ma60_ma120["ma120"] - 1
+        last_120_ma = valid_ma60_ma120.tail(120)
+        ma60_below_ma120_min_gap = float(last_120_ma["ma60_to_ma120_gap"].min())
+        ma60_current_gap_to_ma120 = float(valid_ma60_ma120.iloc[-1]["ma60_to_ma120_gap"])
+    if history["ma60"].notna().sum() >= 21:
+        ma60_now = history["ma60"].dropna().iloc[-1]
+        ma60_20d_ago = history["ma60"].dropna().iloc[-21]
+        if ma60_20d_ago:
+            ma60_slope_20d = float(ma60_now / ma60_20d_ago - 1)
+
     leader_count = None
     leader_group_names = None
     leader_group_detail = None
@@ -129,6 +151,8 @@ def build_strategy_input(
         industry_code=str(row["industry_code"]),
         industry_name=str(row["industry_name"]),
         latest_close=latest_close,
+        ma60=ma60,
+        ma120=ma120,
         ma250=ma250,
         ret_120d=ret_120d,
         ret_120d_rank_pct=ret_120d_rank_pct,
@@ -142,6 +166,10 @@ def build_strategy_input(
         range_last_40=range_last_40,
         amount_latest=latest_amount,
         amount_ma20=amount_ma20,
+        ma60_below_ma120_min_gap=ma60_below_ma120_min_gap,
+        ma60_current_gap_to_ma120=ma60_current_gap_to_ma120,
+        ma60_slope_20d=ma60_slope_20d,
+        close_to_ma60_gap=close_to_ma60_gap,
         recent_2d_above_ma250=_safe_bool(recent_2d_above_ma250),
         above_ma250_3pct_streak=above_ma250_3pct_streak,
         leader_count=leader_count,

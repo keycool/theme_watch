@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import csv
 from datetime import datetime
 from html import escape
 from pathlib import Path
+
+from theme_watch_config import CORRELATION_DIR, TOPIC_PAGES
 
 
 ROOT = Path(__file__).resolve().parent
@@ -10,217 +13,40 @@ REPORT_DIR = ROOT / "reports" / "theme_watch"
 OUTPUT_HTML = REPORT_DIR / "index.html"
 
 
-ETF_CARDS = [
-    {
-        "bucket": "科技成长与高端制造",
-        "code": "512480.SH",
-        "name": "半导体 ETF",
-        "map": "趋势延续/拥挤：半导体",
-        "status": "趋势延续 / 拥挤偏高",
-        "note": "趋势已展开，辅助关注拥挤偏高后的回踩风险。",
-        "href": "pages/theme_512480_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "科技成长与高端制造",
-        "code": "515790.SH",
-        "name": "光伏 ETF",
-        "map": "趋势延续：光伏设备",
-        "status": "趋势延续",
-        "note": "当前更偏趋势延续，辅助关注是否继续扩散。",
-        "href": "pages/theme_515790_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "科技成长与高端制造",
-        "code": "515230.SH",
-        "name": "软件 ETF",
-        "map": "等待：软件开发、IT服务Ⅱ",
-        "status": "未启动 / 拥挤正常",
-        "note": "当前未启动，辅助状态偏正常。",
-        "href": "pages/theme_515230_software_watch_report.html",
-    },
-    {
-        "bucket": "科技成长与高端制造",
-        "code": "159998.SZ",
-        "name": "计算机 ETF",
-        "map": "等待：计算机设备",
-        "status": "未启动 / 拥挤正常",
-        "note": "当前未启动，辅助状态偏正常。",
-        "href": "pages/theme_159998_computer_watch_report.html",
-    },
-    {
-        "bucket": "大消费与医药",
-        "code": "512980.SH",
-        "name": "传媒 ETF",
-        "map": "等待：数字媒体、广告营销、游戏Ⅱ",
-        "status": "未启动 / 拥挤正常",
-        "note": "当前未启动，辅助状态偏正常。",
-        "href": "pages/theme_512980_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "科技成长与高端制造",
-        "code": "931994.CSI",
-        "name": "电网设备主题指数",
-        "map": "趋势延续：电网设备",
-        "status": "趋势延续",
-        "note": "不是 ETF，但作为实际观察标的；当前更偏趋势延续。",
-        "href": "pages/theme_931994_sw_l2_watch_report.html",
-    },
+BASE_CARDS = [
+    {"bucket": "科技成长与高端制造", "code": "512480.SH", "name": "半导体 ETF", "href": "pages/theme_512480_sw_l2_watch_report.html"},
+    {"bucket": "科技成长与高端制造", "code": "515790.SH", "name": "光伏 ETF", "href": "pages/theme_515790_sw_l2_watch_report.html"},
+    {"bucket": "科技成长与高端制造", "code": "515230.SH", "name": "软件 ETF", "href": "pages/theme_515230_software_watch_report.html"},
+    {"bucket": "科技成长与高端制造", "code": "159998.SZ", "name": "计算机 ETF", "href": "pages/theme_159998_computer_watch_report.html"},
+    {"bucket": "大消费与医药", "code": "512980.SH", "name": "传媒 ETF", "href": "pages/theme_512980_sw_l2_watch_report.html"},
+    {"bucket": "科技成长与高端制造", "code": "931994.CSI", "name": "电网设备主题指数", "href": "pages/theme_931994_sw_l2_watch_report.html"},
     {
         "bucket": "科技成长与高端制造",
         "code": "TMT-COMM",
         "name": "通信链条对照组",
-        "map": "扩散观察：通信设备、通信服务",
-        "status": "未启动 / 观察中",
-        "note": "不是核心 ETF，主要作为软件/计算机的扩散对照；当前未启动到观察中。",
         "href": "pages/theme_communication_compare_report.html",
+        "status": "对照观察",
+        "map": "通信设备、通信服务",
+        "note": "对照页不走 ETF 相关性 CSV，保留人工定义入口。",
     },
-    {
-        "bucket": "大消费与医药",
-        "code": "159928.SZ",
-        "name": "消费 ETF",
-        "map": "等待：白酒Ⅱ、调味发酵品Ⅱ、饮料乳品",
-        "status": "未启动 / 观察中",
-        "note": "当前未启动到观察中。",
-        "href": "pages/theme_consumption_liquor_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "大消费与医药",
-        "code": "512690.SH",
-        "name": "酒 ETF",
-        "map": "等待：白酒Ⅱ、非白酒",
-        "status": "未启动",
-        "note": "当前未启动，辅助等待结构修复。",
-        "href": "pages/theme_consumption_liquor_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "大消费与医药",
-        "code": "512010.SH",
-        "name": "医药 ETF",
-        "map": "先行：医疗服务；跟进：生物制品、化学制药",
-        "status": "未启动 / 观察中",
-        "note": "医疗服务已贴近年线，医药宽基进入重点观察窗口。",
-        "href": "pages/theme_512010_medicine_watch_report.html",
-    },
-    {
-        "bucket": "大消费与医药",
-        "code": "512170.SH",
-        "name": "医疗 ETF",
-        "map": "先行：医疗服务；跟进：医疗器械、生物制品",
-        "status": "未启动 / 观察中",
-        "note": "医疗服务先转入观察中，重点跟踪医疗器械能否跟上。",
-        "href": "pages/theme_512170_healthcare_watch_report.html",
-    },
-    {
-        "bucket": "大消费与医药",
-        "code": "159992.SZ",
-        "name": "创新药 ETF",
-        "map": "跟进：化学制药、生物制品；先行参考：医疗服务",
-        "status": "未启动 / 观察中",
-        "note": "药品链仍未启动但贴近低位修复，重点看化药/生物制品跟进。",
-        "href": "pages/theme_159992_innovative_drug_watch_report.html",
-    },
-    {
-        "bucket": "大消费与医药",
-        "code": "159996.SZ",
-        "name": "家电 ETF",
-        "map": "观察：小家电、家电零部件Ⅱ、白色家电",
-        "status": "观察中",
-        "note": "当前观察中，辅助关注是否站稳修复。",
-        "href": "pages/theme_159996_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "周期资源",
-        "code": "159930.SZ",
-        "name": "能源 ETF",
-        "map": "核心：煤炭开采、炼化及贸易；跟进：油服工程、燃气Ⅱ",
-        "status": "观察中 / 拥挤正常",
-        "note": "能源宽口径入口，煤炭与石油链共同影响，重点看两条主线是否同步转强。",
-        "href": "pages/theme_cycle_resources_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "周期资源",
-        "code": "159697.SZ",
-        "name": "石油 ETF",
-        "map": "核心：炼化及贸易、油服工程；跟进：燃气Ⅱ、煤炭开采",
-        "status": "观察中 / 拥挤正常",
-        "note": "石油链更集中，优先观察炼化及贸易和油服工程，煤炭只作能源链共振参考。",
-        "href": "pages/theme_cycle_resources_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "周期资源",
-        "code": "515220.SH",
-        "name": "煤炭 ETF",
-        "map": "核心：煤炭开采；跟进：焦炭Ⅱ、炼化及贸易",
-        "status": "观察中 / 拥挤正常",
-        "note": "煤炭链更集中，重点看煤炭开采自身修复，炼化及贸易只作能源链共振参考。",
-        "href": "pages/theme_cycle_resources_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "周期资源",
-        "code": "159870.SZ",
-        "name": "化工 ETF",
-        "map": "观察/拥挤偏高：化学制品、农化制品、化学原料",
-        "status": "观察中 / 拥挤偏高",
-        "note": "当前观察中但拥挤偏高，辅助关注分歧。",
-        "href": "pages/theme_159870_chemical_compare_report.html",
-    },
-    {
-        "bucket": "红利金融地产",
-        "code": "515180.SH",
-        "name": "易方达红利 ETF",
-        "map": "风格观察：煤炭开采、炼化及贸易、铁路公路",
-        "status": "未启动 / 观察中",
-        "note": "红利风格标的，行业分布较宽；当前未启动到观察中。",
-        "href": "pages/theme_515180_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "红利金融地产",
-        "code": "512890.SH",
-        "name": "红利低波 ETF",
-        "map": "稳定观察：城商行Ⅱ、农商行Ⅱ、股份制银行Ⅱ",
-        "status": "观察中",
-        "note": "红利低波风格标的；当前观察中，辅助关注稳定性。",
-        "href": "pages/theme_512890_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "红利金融地产",
-        "code": "512880.SH",
-        "name": "证券 ETF",
-        "map": "先行：证券Ⅱ；跟进：多元金融",
-        "status": "未启动 / 拥挤正常",
-        "note": "证券Ⅱ高度相关且贴近年线，重点跟踪能否放量站上。",
-        "href": "pages/theme_512880_sw_l2_watch_report.html",
-    },
-    {
-        "bucket": "红利金融地产",
-        "code": "512200.SH",
-        "name": "房地产 ETF",
-        "map": "等待：房地产开发、房地产服务、装修建材",
-        "status": "未启动 / 拥挤正常",
-        "note": "当前未启动，辅助状态偏正常。",
-        "href": "pages/theme_512200_real_estate_watch_report.html",
-    },
+    {"bucket": "大消费与医药", "code": "159928.SZ", "name": "消费 ETF", "href": "pages/theme_consumption_liquor_sw_l2_watch_report.html"},
+    {"bucket": "大消费与医药", "code": "512690.SH", "name": "酒 ETF", "href": "pages/theme_consumption_liquor_sw_l2_watch_report.html"},
+    {"bucket": "大消费与医药", "code": "512010.SH", "name": "医药 ETF", "href": "pages/theme_512010_medicine_watch_report.html"},
+    {"bucket": "大消费与医药", "code": "512170.SH", "name": "医疗 ETF", "href": "pages/theme_512170_healthcare_watch_report.html"},
+    {"bucket": "大消费与医药", "code": "159992.SZ", "name": "创新药 ETF", "href": "pages/theme_159992_innovative_drug_watch_report.html"},
+    {"bucket": "大消费与医药", "code": "159996.SZ", "name": "家电 ETF", "href": "pages/theme_159996_sw_l2_watch_report.html"},
+    {"bucket": "周期资源", "code": "159930.SZ", "name": "能源 ETF", "href": "pages/theme_cycle_resources_sw_l2_watch_report.html"},
+    {"bucket": "周期资源", "code": "159697.SZ", "name": "石油 ETF", "href": "pages/theme_cycle_resources_sw_l2_watch_report.html"},
+    {"bucket": "周期资源", "code": "515220.SH", "name": "煤炭 ETF", "href": "pages/theme_cycle_resources_sw_l2_watch_report.html"},
+    {"bucket": "周期资源", "code": "159870.SZ", "name": "化工 ETF", "href": "pages/theme_159870_chemical_compare_report.html"},
+    {"bucket": "红利金融地产", "code": "515180.SH", "name": "易方达红利 ETF", "href": "pages/theme_515180_sw_l2_watch_report.html"},
+    {"bucket": "红利金融地产", "code": "512890.SH", "name": "红利低波 ETF", "href": "pages/theme_512890_sw_l2_watch_report.html"},
+    {"bucket": "红利金融地产", "code": "512880.SH", "name": "证券 ETF", "href": "pages/theme_512880_sw_l2_watch_report.html"},
+    {"bucket": "红利金融地产", "code": "512200.SH", "name": "房地产 ETF", "href": "pages/theme_512200_real_estate_watch_report.html"},
 ]
 
 
-MAP_LABELS = (
-    "趋势延续/拥挤",
-    "观察/拥挤偏高",
-    "趋势延续",
-    "扩散观察",
-    "风格观察",
-    "稳定观察",
-    "先行参考",
-    "核心",
-    "跟进",
-    "先行",
-    "等待",
-    "观察",
-)
-
-
 DISPLAY_ORDER = {
-    # 分类内部顺序
     "512010.SH": 10,
     "512170.SH": 11,
     "159992.SZ": 12,
@@ -231,7 +57,6 @@ DISPLAY_ORDER = {
     "512980.SH": 32,
     "512880.SH": 40,
     "512200.SH": 41,
-    # 风格与周期观察
     "159996.SZ": 50,
     "515180.SH": 60,
     "512890.SH": 61,
@@ -239,7 +64,6 @@ DISPLAY_ORDER = {
     "159697.SZ": 71,
     "515220.SH": 72,
     "159870.SZ": 73,
-    # 趋势延续或扩散对照放后面
     "931994.CSI": 80,
     "515790.SH": 81,
     "512480.SH": 82,
@@ -255,29 +79,111 @@ BUCKET_ORDER = {
 }
 
 
-def _split_map_and_note(card: dict[str, str]) -> tuple[str, str]:
-    parts = []
-    labels = []
-    for raw_part in card["map"].split("；"):
-        part = raw_part.strip()
-        matched_label = None
-        for label in MAP_LABELS:
-            prefix = f"{label}："
-            if part.startswith(prefix):
-                matched_label = label
-                part = part[len(prefix) :].strip()
-                break
-        if matched_label and matched_label not in labels:
-            labels.append(matched_label)
-        if part:
-            parts.append(part)
+def _topic_page_codes() -> dict[str, set[str]]:
+    return {page["output"]: set(page["codes"]) for page in TOPIC_PAGES}
 
-    map_text = "；".join(parts)
-    label_text = " / ".join(labels)
-    note = card["note"]
-    if label_text and label_text not in note:
-        note = f"{label_text}。{note}"
-    return map_text, note
+
+def _page_candidates_by_code() -> dict[str, list[str]]:
+    candidates: dict[str, list[str]] = {}
+    for page in TOPIC_PAGES:
+        href = f"pages/{page['output']}"
+        for code in page["codes"]:
+            candidates.setdefault(code, []).append(href)
+    return candidates
+
+
+def _load_correlation_rows(theme_code: str) -> list[dict[str, str]]:
+    csv_path = CORRELATION_DIR / f"theme_{theme_code.split('.')[0]}_to_sw_l2_correlation.csv"
+    if not csv_path.exists():
+        return []
+
+    with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def _fmt_corr(value: str | None) -> str:
+    try:
+        return f"{float(value):.4f}"
+    except (TypeError, ValueError):
+        return "-"
+
+
+def _derive_map(rows: list[dict[str, str]]) -> str:
+    if not rows:
+        return "相关性结果缺失"
+
+    top_names = [row["sw_name"] for row in rows[:3] if row.get("sw_name")]
+    if not top_names:
+        return "相关性结果缺失"
+    if len(top_names) == 1:
+        return top_names[0]
+    return f"{top_names[0]}；关注 {', '.join(top_names[1:])}"
+
+
+def _derive_note(rows: list[dict[str, str]], preferred_href: str, resolved_href: str) -> str:
+    if not rows:
+        return "相关性 CSV 缺失，需先重跑 daily update。"
+
+    top = rows[0]
+    note = (
+        f"Top1 {top.get('sw_name', '-')}"
+        f"（相关性 {_fmt_corr(top.get('corr_daily_ret'))}，龙头 {top.get('leader_top1_name') or '-'}）"
+    )
+    if len(rows) > 1:
+        follow_names = [row["sw_name"] for row in rows[1:3] if row.get("sw_name")]
+        if follow_names:
+            note += f"；次级关注 {', '.join(follow_names)}"
+    if resolved_href != preferred_href:
+        note += "；首页链接已切换到覆盖当前 top1 行业的专题页"
+    return note + "。"
+
+
+def _derive_status(top: dict[str, str]) -> str:
+    parts = [part for part in [top.get("final_label", "").strip(), top.get("crowding_label", "").strip()] if part]
+    if parts:
+        return " / ".join(parts)
+    return "未纳入主扫描池 / 未计算"
+
+
+def _resolve_href(preferred_href: str, rows: list[dict[str, str]], page_codes: dict[str, set[str]], page_candidates: dict[str, list[str]]) -> str:
+    if not rows:
+        return preferred_href
+
+    top_sw_code = rows[0].get("sw_code", "")
+    if not top_sw_code:
+        return preferred_href
+
+    if top_sw_code in page_codes.get(Path(preferred_href).name, set()):
+        return preferred_href
+
+    candidates = page_candidates.get(top_sw_code, [])
+    return candidates[0] if candidates else preferred_href
+
+
+def _card_with_live_data(card: dict[str, str], page_codes: dict[str, set[str]], page_candidates: dict[str, list[str]]) -> dict[str, str]:
+    if "." not in card["code"]:
+        return card.copy()
+
+    rows = _load_correlation_rows(card["code"])
+    resolved_href = _resolve_href(card["href"], rows, page_codes, page_candidates)
+    live = card.copy()
+    if rows:
+        top = rows[0]
+        live["status"] = _derive_status(top)
+        live["map"] = _derive_map(rows)
+        live["note"] = _derive_note(rows, card["href"], resolved_href)
+    else:
+        live["status"] = "相关性缺失"
+        live["map"] = "相关性结果缺失"
+        live["note"] = "未找到对应相关性 CSV，请检查 daily update 是否完整执行。"
+    live["href"] = resolved_href
+    return live
+
+
+def _live_cards() -> list[dict[str, str]]:
+    page_codes = _topic_page_codes()
+    page_candidates = _page_candidates_by_code()
+    return [_card_with_live_data(card, page_codes, page_candidates) for card in BASE_CARDS]
 
 
 def _overview_table(cards: list[dict[str, str]]) -> str:
@@ -291,16 +197,15 @@ def _overview_table(cards: list[dict[str, str]]) -> str:
         ),
     )
     for card in sorted_cards:
-        map_text, note = _split_map_and_note(card)
         rows.append(
             f"""
 <tr>
   <td><a class="target-link" href="{escape(card['href'])}">{escape(card['name'])}</a></td>
   <td class="mono">{escape(card['code'])}</td>
   <td><span class="status-pill">{escape(card['status'])}</span></td>
-  <td>{escape(map_text)}</td>
+  <td>{escape(card['map'])}</td>
   <td><span class="table-bucket">{escape(card['bucket'])}</span></td>
-  <td>{escape(note)}</td>
+  <td>{escape(card['note'])}</td>
 </tr>
 """
         )
@@ -309,7 +214,7 @@ def _overview_table(cards: list[dict[str, str]]) -> str:
 <section class="overview-table-section">
   <div class="section-title">
     <h1>观察标的一览表</h1>
-    <p>先用表格横向比较策略状态、重点观察行业和观察要点；需要看图形细节时再打开观察页。</p>
+    <p>首页状态、相关行业映射和备注直接读取最新相关性结果，避免静态文案与专题页脱节。</p>
   </div>
   <div class="table-wrap">
     <table class="overview-table">
@@ -318,7 +223,7 @@ def _overview_table(cards: list[dict[str, str]]) -> str:
           <th>标的</th>
           <th>代码</th>
           <th>策略状态</th>
-          <th>申万二级窗口分层</th>
+          <th>申万二级映射</th>
           <th>分类</th>
           <th>观察要点</th>
         </tr>
@@ -333,6 +238,7 @@ def _overview_table(cards: list[dict[str, str]]) -> str:
 def build_dashboard() -> None:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cards = _live_cards()
     html = f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -446,9 +352,9 @@ def build_dashboard() -> None:
 <main>
   <header>
     <h1>ETF 标的观察总览</h1>
-    <p>首页按实际观察标的组织：先看 ETF / 指数本身，再进入它映射到的申万二级行业图形页。生成时间：{escape(generated_at)}</p>
+    <p>首页按实际观察标的组织，状态和映射直接读取最新相关性结果。生成时间：{escape(generated_at)}</p>
   </header>
-  {_overview_table(ETF_CARDS)}
+  {_overview_table(cards)}
   <footer class="support">
     <div class="nav">
       <a href="theme_watch_sop.md">SOP</a>

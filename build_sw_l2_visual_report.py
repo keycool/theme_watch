@@ -12,7 +12,7 @@ SCAN_CSV = ROOT / "sw_l2_strategy_scan.csv"
 HISTORY_CSV = ROOT / ".cache_scan_v2" / "sw_daily_full_history.csv"
 OUTPUT_HTML = ROOT / "sw_l2_strategy_visual_report.html"
 
-WATCH_LABELS = {"启动确认", "接近启动", "观察中"}
+WATCH_LABELS = {"启动确认", "接近启动", "早期启动", "观察中"}
 TREND_LABELS = {"趋势延续型偏强", "趋势延续型强势"}
 HOT_LABELS = {"过热预警", "过热退潮"}
 
@@ -57,7 +57,14 @@ def _polyline(points: list[tuple[float, float]]) -> str:
     return " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
 
 
-def _line_points(values: pd.Series, min_value: float, max_value: float, width: int, top: int, height: int) -> list[tuple[float, float]]:
+def _line_points(
+    values: pd.Series,
+    min_value: float,
+    max_value: float,
+    width: int,
+    top: int,
+    height: int,
+) -> list[tuple[float, float]]:
     points: list[tuple[float, float]] = []
     span = max(max_value - min_value, 1e-9)
     values = values.reset_index(drop=True)
@@ -81,7 +88,7 @@ def _build_svg(history: pd.DataFrame) -> str:
 
     plot_values = pd.concat([chart["close"], chart["ma60"], chart["ma250"]]).dropna()
     if plot_values.empty:
-        return '<div class="empty-chart">历史数据不足，暂无法画图</div>'
+        return '<div class="empty-chart">历史数据不足，暂时无法绘图</div>'
 
     width = 620
     top = 18
@@ -244,6 +251,8 @@ def _card(row: pd.Series, history: pd.DataFrame) -> str:
     leader_group_detail = escape(str(row.get("leader_group_detail", "") or row.get("leader_group_names", "") or "-"))
     mv = _fmt_num(row.get("total_mv_yi"), 0)
     absorption_rank = _fmt_pct(row.get("absorption_rate_rank_pct"))
+    ma60_signal_value = row.get("ma60_early_signal")
+    ma60_signal = "-" if pd.isna(ma60_signal_value) else escape(str(ma60_signal_value))
     ma250_convergence = _ma250_convergence(history)
     below_ma250_streak = ma250_convergence["below_streak"]
     below_ma250_text = "-" if below_ma250_streak is None else f"{below_ma250_streak} 天"
@@ -271,6 +280,7 @@ def _card(row: pd.Series, history: pd.DataFrame) -> str:
       <div class="metrics">
         <span>连续低于 MA250：<strong>{below_ma250_text}</strong></span>
         <span>偏离度σ：<strong>{gap_sigma_text}</strong></span>
+        <span>MA60信号：<strong>{ma60_signal}</strong></span>
         <span>强势龙头：<strong>{leader_active_count}/{leader_count}</strong></span>
         <span>MA60：<strong>{leaders_above_ma60_count}/{leader_count}</strong></span>
         <span>MA250：<strong>{leaders_above_ma250_count}/{leader_count}</strong></span>
@@ -279,7 +289,7 @@ def _card(row: pd.Series, history: pd.DataFrame) -> str:
     <div class="metric-group auxiliary">
       <h3>辅助指标</h3>
       <div class="metrics">
-    <span>吸筹率分位：<strong>{absorption_rank}</strong></span>
+        <span>吸筹率分位：<strong>{absorption_rank}</strong></span>
         <span>波动率σ：<strong>{vol_sigma_text}</strong></span>
       </div>
     </div>

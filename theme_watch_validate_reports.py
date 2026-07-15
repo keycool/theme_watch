@@ -14,6 +14,16 @@ def _require(ok: bool, message: str) -> None:
         raise RuntimeError(message)
 
 
+def _require_no_empty_chart(html: str, page_name: str) -> None:
+    empty_markers = [
+        "历史数据不足",
+        "暂时无法绘图",
+        "暂无法画图",
+    ]
+    for marker in empty_markers:
+        _require(marker not in html, f"Topic page has empty chart marker {marker}: {page_name}")
+
+
 def _validate_index() -> None:
     _require(INDEX_HTML.exists(), "Homepage missing: reports/theme_watch/index.html")
     html = INDEX_HTML.read_text(encoding="utf-8", errors="replace")
@@ -32,6 +42,7 @@ def _validate_topic_pages() -> None:
         html = path.read_text(encoding="utf-8", errors="replace")
         _require("<article class=\"card\">" in html, f"Topic page missing cards: {path.name}")
         _require("class=\"sparkline\"" in html, f"Topic page missing sparkline: {path.name}")
+        _require_no_empty_chart(html, path.name)
         _require("主指标" in html, f"Topic page missing primary metrics: {path.name}")
         _require("辅助指标" in html, f"Topic page missing auxiliary metrics: {path.name}")
         _require(any(code in html for code in page["codes"]), f"Topic page missing expected SW code: {path.name}")
