@@ -1,0 +1,114 @@
+name: ETF Core Constituent Watch
+
+on:
+  push:
+    branches:
+      - main
+      - "codex/**"
+    paths:
+      - ".github/workflows/etf-constituent-daily.yml"
+      - "run_etf_constituent_workflow.py"
+      - "requirements-etf-constituent.txt"
+      - "industry_insight_sandbox/**"
+  workflow_dispatch:
+    inputs:
+      end_date:
+        description: "Trade date in YYYYMMDD. Leave blank to select it automatically."
+        required: false
+        type: string
+      allow_non_trade_day:
+        description: "Run even when the selected date is not an SSE trading day."
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "30 12 * * 1-5"
+
+permissions:
+  contents: read
+
+jobs:
+  calculate-and-verify:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai
+      TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+      WORKFLOW_END_DATE: ${{ github.event.inputs.end_date || '' }}
+      WORKFLOW_ALLOW_NON_TRADE_DAY: ${{ github.event.inputs.allow_non_trade_day || 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: industry_insight_sandbox/package-lock.json
+
+      - name: Restore market data cache
+        uses: actions/cache/restore@v4
+        with:
+          path: industry_insight_sandbox/data/cache
+          key: etf-constituent-cache-v1-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            etf-constituent-cache-v1-${{ runner.os }}-${{ github.ref_name }}-
+            etf-constituent-cache-v1-${{ runner.os }}-
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements-etf-constituent.txt
+
+      - name: Install site dependencies
+        working-directory: industry_insight_sandbox
+        run: npm ci
+
+      - name: Calculate ETF constituent observations
+        id: calculate
+        shell: bash
+        run: |
+          args=(python run_etf_constituent_workflow.py --trigger-type github_actions)
+          if [[ -n "$WORKFLOW_END_DATE" ]]; then
+            args+=(--end-date "$WORKFLOW_END_DATE")
+          fi
+          if [[ "$WORKFLOW_ALLOW_NON_TRADE_DAY" == "true" ]]; then
+            args+=(--allow-non-trade-day)
+          fi
+          output="$("${args[@]}")"
+          printf '%s\n' "$output"
+          run_status="$(printf '%s\n' "$output" | awk -F= '$1 == "status" { print $2 }' | tail -n 1)"
+          echo "run_status=$run_status" >> "$GITHUB_OUTPUT"
+
+      - name: Build and verify all pages
+        if: steps.calculate.outputs.run_status == 'success'
+        working-directory: industry_insight_sandbox
+        run: npm test
+
+      - name: Upload workflow logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: etf-constituent-workflow-logs
+          path: logs/etf_constituent_workflow
+
+      - name: Upload observation snapshot
+        if: steps.calculate.outputs.run_status == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: etf-constituent-observation-${{ github.run_id }}
+          path: |
+            industry_insight_sandbox/data/overview.json
+            industry_insight_sandbox/data/all_topics.json
+            industry_insight_sandbox/data/topics
+            industry_insight_sandbox/dist
+
+      - name: Save market data cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: industry_insight_sandbox/data/cache
+          key: etf-constituent-cache-v1-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}
