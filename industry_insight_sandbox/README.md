@@ -90,7 +90,9 @@ py -B .\run_etf_constituent_workflow.py --end-date 20260717 --validate-only
 
 GitHub Actions 配置为 `.github/workflows/etf-constituent-daily.yml`，工作日北京时间
 20:30 自动运行，也支持手动指定交易日。运行产物包括 workflow 日志、20 个专题数据、
-总览数据和站点构建结果。
+总览数据和站点构建结果。计算完成后还会复用仓库现有的
+`Theme_Watch_FEISHU_WEBHOOK_URL` 与 `Theme_Watch_FEISHU_WEBHOOK_SECRET`
+发送独立的 ETF 核心成分观察摘要。
 
 ## 隔离边界
 

@@ -7,6 +7,7 @@ on:
       - "codex/**"
     paths:
       - ".github/workflows/etf-constituent-daily.yml"
+      - "etf_constituent_feishu_webhook.py"
       - "run_etf_constituent_workflow.py"
       - "requirements-etf-constituent.txt"
       - "industry_insight_sandbox/**"
@@ -105,6 +106,20 @@ jobs:
             industry_insight_sandbox/data/all_topics.json
             industry_insight_sandbox/data/topics
             industry_insight_sandbox/dist
+
+      - name: Send Feishu webhook
+        if: always()
+        env:
+          FEISHU_WEBHOOK_URL: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_URL }}
+          FEISHU_WEBHOOK_SECRET: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_SECRET }}
+          FEISHU_WEBHOOK_KEYWORD: theme_watch
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WORKFLOW_JOB_STATUS: ${{ job.status }}
+        run: |
+          python etf_constituent_feishu_webhook.py \
+            --summary-dir logs/etf_constituent_workflow \
+            --overview-path industry_insight_sandbox/data/overview.json \
+            --require-webhook
 
       - name: Save market data cache
         if: always()
