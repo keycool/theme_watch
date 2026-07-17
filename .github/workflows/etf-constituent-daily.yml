@@ -26,7 +26,7 @@ on:
     - cron: "30 12 * * 1-5"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   calculate-and-verify:
@@ -89,6 +89,28 @@ jobs:
         working-directory: industry_insight_sandbox
         run: npm test
 
+      - name: Publish live webpage data
+        if: steps.calculate.outputs.run_status == 'success'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          publish_dir="$(mktemp -d)"
+          cp industry_insight_sandbox/data/overview.json "$publish_dir/overview.json"
+          cp industry_insight_sandbox/data/all_topics.json "$publish_dir/all_topics.json"
+          cp -R industry_insight_sandbox/data/topics "$publish_dir/topics"
+          cd "$publish_dir"
+          git init
+          git checkout -b etf-watch-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "data: update ETF watch for ${WORKFLOW_END_DATE:-latest}"
+          auth_header="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)"
+          git -c "http.extraheader=AUTHORIZATION: basic $auth_header" \
+            push --force "https://github.com/${GITHUB_REPOSITORY}.git" \
+            HEAD:refs/heads/etf-watch-data
+
       - name: Upload workflow logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -113,6 +135,7 @@ jobs:
           FEISHU_WEBHOOK_URL: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_URL }}
           FEISHU_WEBHOOK_SECRET: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_SECRET }}
           FEISHU_WEBHOOK_KEYWORD: theme_watch
+          ETF_WATCH_SITE_URL: https://etf-core-constituent-watch.keyhf78.chatgpt.site
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           WORKFLOW_JOB_STATUS: ${{ job.status }}
         run: |

@@ -77,6 +77,7 @@ def _build_text(
     overview: dict[str, Any],
     *,
     run_url: str,
+    site_url: str,
     keyword: str,
     job_status: str,
 ) -> str:
@@ -138,6 +139,8 @@ def _build_text(
         f"指数权重日：{weight_text}",
         f"问题：{issues_text}",
     ]
+    if site_url:
+        lines.append(f"观察网页：{site_url}")
     if run_url:
         lines.append(f"运行详情：{run_url}")
     return "\n".join(lines)
@@ -198,6 +201,7 @@ def main() -> None:
     parser.add_argument("--summary-dir", default=str(DEFAULT_SUMMARY_DIR))
     parser.add_argument("--overview-path", default=str(DEFAULT_OVERVIEW_PATH))
     parser.add_argument("--run-url", default=os.getenv("GITHUB_RUN_URL", ""))
+    parser.add_argument("--site-url", default=os.getenv("ETF_WATCH_SITE_URL", ""))
     parser.add_argument("--job-status", default=os.getenv("WORKFLOW_JOB_STATUS", ""))
     parser.add_argument("--webhook-url", default=os.getenv("FEISHU_WEBHOOK_URL", ""))
     parser.add_argument(
@@ -219,6 +223,7 @@ def main() -> None:
         summary,
         overview,
         run_url=args.run_url,
+        site_url=args.site_url,
         keyword=args.keyword,
         job_status=args.job_status,
     )

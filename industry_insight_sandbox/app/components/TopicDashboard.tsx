@@ -103,6 +103,9 @@ type DashboardData = {
 type RangeKey = "120" | "250" | "all";
 type SortKey = "weight" | "pct1d" | "ret5d";
 
+const LIVE_TOPIC_ROOT =
+  "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/topics";
+
 const COLORS = {
   grid: "rgba(148, 163, 184, 0.14)",
   text: "#8090a6",
@@ -429,17 +432,41 @@ function WeightBars({ data }: { data: DashboardData["weights"] }) {
 }
 
 export default function TopicDashboard({
-  dashboardData,
+  dashboardData: bundledDashboardData,
 }: {
   dashboardData: DashboardData;
 }) {
+  const [dashboardData, setDashboardData] = useState(bundledDashboardData);
   const [range, setRange] = useState<RangeKey>("250");
   const [sortBy, setSortBy] = useState<SortKey>("weight");
+
+  useEffect(() => {
+    let cancelled = false;
+    const slug = bundledDashboardData.target.slug;
+    fetch(`${LIVE_TOPIC_ROOT}/${slug}.json?v=${Date.now()}`, {
+      cache: "no-store",
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Live topic HTTP ${response.status}`);
+        return response.json() as Promise<DashboardData>;
+      })
+      .then((liveData) => {
+        if (!cancelled && liveData.target?.slug === slug) {
+          setDashboardData(liveData);
+        }
+      })
+      .catch(() => {
+        // Keep the bundled snapshot when the live data branch is unavailable.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bundledDashboardData.target.slug]);
 
   const visibleChart = useMemo(() => {
     if (range === "all") return dashboardData.chart;
     return dashboardData.chart.slice(-Number(range));
-  }, [range]);
+  }, [dashboardData.chart, range]);
 
   const sortedComponents = useMemo(() => {
     return [...dashboardData.components].sort((left, right) => {
@@ -447,7 +474,7 @@ export default function TopicDashboard({
       const rightValue = right[sortBy] ?? -Infinity;
       return rightValue - leftValue;
     });
-  }, [sortBy]);
+  }, [dashboardData.components, sortBy]);
 
   const ma250Gap = dashboardData.summary.ma250Gap;
 

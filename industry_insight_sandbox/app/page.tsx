@@ -1,10 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import overviewData from "../data/overview.json";
+import { useEffect, useMemo, useState } from "react";
+import bundledOverviewData from "../data/overview.json";
 
 
-type Target = (typeof overviewData.targets)[number];
+type OverviewData = typeof bundledOverviewData;
+type Target = OverviewData["targets"][number];
+
+const LIVE_OVERVIEW_URL =
+  "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/overview.json";
 
 const BUCKET_ORDER = [
   "科技成长与高端制造",
@@ -148,9 +152,32 @@ function TargetCard({ target }: { target: Target }) {
 }
 
 export default function Home() {
+  const [overviewData, setOverviewData] = useState<OverviewData>(
+    bundledOverviewData,
+  );
   const [bucket, setBucket] = useState("全部");
   const [label, setLabel] = useState("全部");
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${LIVE_OVERVIEW_URL}?v=${Date.now()}`, { cache: "no-store" })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Live overview HTTP ${response.status}`);
+        return response.json() as Promise<OverviewData>;
+      })
+      .then((liveData) => {
+        if (!cancelled && liveData.meta?.targetCount === 20) {
+          setOverviewData(liveData);
+        }
+      })
+      .catch(() => {
+        // Keep the bundled snapshot when the live data branch is unavailable.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const targets = overviewData.targets;
   const filtered = useMemo(() => {
