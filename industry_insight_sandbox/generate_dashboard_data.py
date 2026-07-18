@@ -22,6 +22,10 @@ MAX_CORE_COUNT = 20
 LEADER_WATCH_COUNT = 10
 STRICT_LEADER_COUNT = 3
 BENCHMARK_CODE = "000300.SH"
+LOW_WARNING_DAYS = 40
+LOW_PASS_DAYS = 60
+FUNDING_CONFIRM_PERCENTILE = 0.80
+CROWDING_HOT_PERCENTILE = 0.95
 
 
 def as_float(value) -> float | None:
@@ -78,11 +82,62 @@ def fetch_csv(
     raise RuntimeError(f"Failed to fetch {cache_name}: {last_error}") from last_error
 
 
-def rolling_range(frame: pd.DataFrame) -> float:
-    mean_close = float(frame["close"].mean())
-    if not mean_close:
-        return 0.0
-    return float((frame["high"].max() - frame["low"].min()) / mean_close)
+def fetch_market_amount_history(
+    pro,
+    trade_dates: list[str],
+) -> pd.DataFrame:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    path = CACHE_DIR / "market_amount_history.csv"
+    if path.exists():
+        history = pd.read_csv(path, dtype={"trade_date": str})
+    else:
+        history = pd.DataFrame(columns=["trade_date", "market_amount"])
+
+    history["trade_date"] = history["trade_date"].astype(str)
+    history["market_amount"] = pd.to_numeric(
+        history["market_amount"], errors="coerce"
+    )
+    amount_by_date = history.set_index("trade_date")["market_amount"].to_dict()
+    latest_date = trade_dates[-1]
+
+    for index, trade_date in enumerate(trade_dates, start=1):
+        if trade_date in amount_by_date and trade_date != latest_date:
+            continue
+        last_error: Exception | None = None
+        for attempt in range(3):
+            try:
+                daily = pro.daily(
+                    trade_date=trade_date,
+                    fields="trade_date,amount",
+                )
+                amount = pd.to_numeric(daily["amount"], errors="coerce").sum(
+                    min_count=1
+                )
+                if pd.isna(amount):
+                    raise RuntimeError(f"No market amount for {trade_date}.")
+                amount_by_date[trade_date] = float(amount)
+                break
+            except Exception as exc:
+                last_error = exc
+                if attempt + 1 < 3:
+                    time.sleep(2 * (attempt + 1))
+        else:
+            raise RuntimeError(
+                f"Failed to fetch market amount for {trade_date}: {last_error}"
+            ) from last_error
+        time.sleep(0.12)
+        if index % 25 == 0:
+            print(f"  market amount history {index}/{len(trade_dates)}")
+
+    result = pd.DataFrame(
+        [
+            {"trade_date": trade_date, "market_amount": amount_by_date[trade_date]}
+            for trade_date in trade_dates
+            if trade_date in amount_by_date
+        ]
+    )
+    result.to_csv(path, index=False, encoding="utf-8-sig")
+    return result
 
 
 def limit_threshold(ts_code: str) -> float:
@@ -110,6 +165,7 @@ def build_topic(
     index_daily: pd.DataFrame,
     target_daily: pd.DataFrame,
     benchmark: pd.DataFrame,
+    market_amount_history: pd.DataFrame,
     weights: pd.DataFrame,
     stock_histories: dict[str, pd.DataFrame],
     name_map: dict[str, str],
@@ -206,17 +262,34 @@ def build_topic(
         on="trade_date",
         how="left",
     )
+    index_daily = index_daily.merge(
+        market_amount_history[["trade_date", "market_amount"]],
+        on="trade_date",
+        how="left",
+    )
+    index_daily["absorption_rate"] = (
+        index_daily["amount"] / index_daily["market_amount"]
+    )
+    index_daily["absorption_rank_pct"] = (
+        index_daily["absorption_rate"]
+        .rolling(252, min_periods=120)
+        .rank(pct=True)
+    )
     latest = index_daily.iloc[-1]
     last_120 = index_daily.tail(120).copy()
-    first_80 = last_120.head(80)
-    last_40 = last_120.tail(40)
-
-    distance_120d_high = float(latest["close"] / last_120["close"].max() - 1)
-    low_zone_ok = distance_120d_high <= -0.15
-    contraction_ratio = rolling_range(last_40) / rolling_range(first_80)
-    contraction_ok = contraction_ratio <= 0.90
-    no_new_low_ratio = float(last_40["close"].min() / last_120["close"].min())
-    no_new_low_ok = no_new_low_ratio >= 1.02
+    low_history = last_120.dropna(subset=["ma250"])
+    below_ma250_10_days = int(
+        (low_history["close"] <= low_history["ma250"] * 0.90).sum()
+    )
+    below_ma250_15_days = int(
+        (low_history["close"] <= low_history["ma250"] * 0.85).sum()
+    )
+    low_history_complete = len(low_history) == 120
+    structure_ok = low_history_complete and below_ma250_10_days >= LOW_PASS_DAYS
+    structure_warning = (
+        low_history_complete
+        and LOW_WARNING_DAYS <= below_ma250_10_days < LOW_PASS_DAYS
+    )
 
     aligned_relative = (
         index_daily[["trade_date", "close"]]
@@ -241,10 +314,6 @@ def build_topic(
         - 1
     )
     relative_excess = theme_ret_120 - benchmark_ret_120
-    relative_cold_ok = relative_excess <= -0.05
-    structure_ok = all(
-        [low_zone_ok, contraction_ok, no_new_low_ok, relative_cold_ok]
-    )
 
     above_ma60 = bool(
         pd.notna(latest["ma60"]) and latest["close"] >= latest["ma60"]
@@ -254,7 +323,7 @@ def build_topic(
         if pd.isna(row["ma60"]) or row["close"] < row["ma60"]:
             break
         ma60_streak += 1
-    ma60_watch_ok = above_ma60 and ma60_streak <= 20
+    ma60_watch_ok = above_ma60
     previous = index_daily.iloc[-2] if len(index_daily) >= 2 else None
     ma60_breakout_today = bool(
         previous is not None
@@ -263,27 +332,35 @@ def build_topic(
         and above_ma60
     )
 
-    above_ma250_3pct = bool(
-        pd.notna(latest["ma250"]) and latest["close"] >= latest["ma250"] * 1.03
-    )
     amount_ratio_latest = (
         float(latest["amount_ratio20"])
         if pd.notna(latest["amount_ratio20"])
         else 0.0
     )
-    volume_ok = amount_ratio_latest >= 1.20
     hold_two_days_ok = bool(
         index_daily.tail(2)["ma250"].notna().all()
         and (index_daily.tail(2)["close"] >= index_daily.tail(2)["ma250"]).all()
     )
-    breakout_streak = 0
-    for _, row in index_daily.iloc[::-1].iterrows():
-        if pd.isna(row["ma250"]) or row["close"] < row["ma250"] * 1.03:
-            break
-        breakout_streak += 1
-    new_breakout_ok = breakout_streak <= 20
-    breakout_emerged = above_ma250_3pct and volume_ok and new_breakout_ok
-    breakout_confirmed = breakout_emerged and hold_two_days_ok
+    absorption_rank_latest = (
+        float(latest["absorption_rank_pct"])
+        if pd.notna(latest["absorption_rank_pct"])
+        else None
+    )
+    last_three_funding_ranks = index_daily.tail(3)["absorption_rank_pct"]
+    funding_confirmed = bool(
+        last_three_funding_ranks.notna().all()
+        and (last_three_funding_ranks >= FUNDING_CONFIRM_PERCENTILE).all()
+    )
+    crowding_hot = bool(
+        absorption_rank_latest is not None
+        and absorption_rank_latest >= CROWDING_HOT_PERCENTILE
+    )
+    crowding_overheated = bool(
+        last_three_funding_ranks.notna().all()
+        and (last_three_funding_ranks >= CROWDING_HOT_PERCENTILE).all()
+    )
+    breakout_emerged = hold_two_days_ok or funding_confirmed
+    breakout_confirmed = hold_two_days_ok and funding_confirmed
 
     top_ten_weights = weights.head(LEADER_WATCH_COUNT).copy()
     top_ten_codes = top_ten_weights["con_code"].astype(str).tolist()
@@ -294,27 +371,35 @@ def build_topic(
         daily = stock_histories.get(code)
         if daily is None or daily.empty:
             continue
-        recent = daily.tail(20).reset_index(drop=True)
+        rank = rank_map[code]
+        event_window = 5 if rank <= STRICT_LEADER_COUNT else 3
+        recent = daily.tail(event_window).reset_index(drop=True)
         hits = recent.index[recent["pct_chg"] >= limit_threshold(code)].tolist()
         if not hits:
             continue
         hit_index = hits[-1]
+        hit_close = float(recent.iloc[hit_index]["close"])
         next_day = recent.iloc[hit_index + 1] if hit_index + 1 < len(recent) else None
+        latest_retained = float(daily.iloc[-1]["close"]) >= hit_close
+        continuation_ok = bool(
+            next_day is not None and float(next_day["pct_chg"]) > 0
+        )
         limit_events.append(
             {
                 "code": code,
                 "name": str(name_map.get(code, code)),
-                "weightRank": rank_map[code],
-                "tier": "核心龙头" if rank_map[code] <= STRICT_LEADER_COUNT else "权重异动",
+                "weightRank": rank,
+                "tier": "核心龙头" if rank <= STRICT_LEADER_COUNT else "权重异动",
                 "date": str(recent.iloc[hit_index]["trade_date"]),
                 "pct": as_float(recent.iloc[hit_index]["pct_chg"]),
                 "continuationKnown": next_day is not None,
                 "continuationPct": as_float(
                     None if next_day is None else next_day["pct_chg"]
                 ),
-                "continuationOk": bool(
-                    next_day is not None and float(next_day["pct_chg"]) > 0
-                ),
+                "continuationOk": continuation_ok,
+                "latestRetained": latest_retained,
+                "qualified": continuation_ok
+                and (latest_retained if rank <= STRICT_LEADER_COUNT else True),
             }
         )
 
@@ -324,13 +409,12 @@ def build_topic(
         if event["weightRank"] <= STRICT_LEADER_COUNT
     ]
     strict_limit_ok = bool(strict_limit_events)
-    strict_continuation_ok = any(
-        event["continuationOk"] for event in strict_limit_events
-    )
-    top_ten_limit_alert = bool(limit_events)
+    strict_continuation_ok = any(event["qualified"] for event in strict_limit_events)
     secondary_limit_alert = any(
-        event["weightRank"] > STRICT_LEADER_COUNT for event in limit_events
+        event["weightRank"] > STRICT_LEADER_COUNT and event["qualified"]
+        for event in limit_events
     )
+    top_ten_limit_alert = strict_limit_ok or secondary_limit_alert
     active_count = sum(
         bool(
             (row["pct1d"] is not None and row["pct1d"] >= 5)
@@ -343,7 +427,7 @@ def build_topic(
     leader_monitor_ok = (
         active_count >= 1 and ma60_count / len(component_rows) >= 0.5
     )
-    leader_confirmed = strict_limit_ok and strict_continuation_ok
+    leader_confirmed = strict_continuation_ok
     leader_warning = (top_ten_limit_alert or leader_monitor_ok) and not leader_confirmed
 
     close_to_high = float(latest["close"] / last_120["close"].max())
@@ -368,13 +452,14 @@ def build_topic(
         conclusion = "指数突破与核心成分开始共振，但站稳或龙头严格确认仍不完整。"
     elif (
         structure_ok
+        or structure_warning
         or ma60_watch_ok
         or breakout_emerged
         or top_ten_limit_alert
         or leader_monitor_ok
     ):
         final_label = "观察中"
-        conclusion = "已出现MA60、前十大权重异动或其他局部转强线索，但三个核心条件尚未同时闭环。"
+        conclusion = "已出现长期低位、MA60、资金集中或权重龙头异动线索，但三个核心条件尚未同时闭环。"
     else:
         final_label = "未启动"
         conclusion = "当前尚未形成低位结构、资金突破和权重龙头持续性的完整组合。"
@@ -438,11 +523,22 @@ def build_topic(
             "aboveMa60Count": ma60_count,
             "aboveMa250Count": ma250_count,
             "strictLeaderConfirmed": leader_confirmed,
+            "lowWarning": structure_warning,
+            "belowMa250TenDays": below_ma250_10_days,
+            "belowMa250FifteenDays": below_ma250_15_days,
             "ma60Watch": ma60_watch_ok,
             "ma60BreakoutToday": ma60_breakout_today,
             "ma60Gap": as_float(None if ma60_gap is None else ma60_gap * 100),
             "ma250Gap": as_float(None if ma250_gap is None else ma250_gap * 100),
             "amountRatio20": as_float(amount_ratio_latest),
+            "absorptionRankPct": as_float(
+                None
+                if absorption_rank_latest is None
+                else absorption_rank_latest * 100
+            ),
+            "fundingConfirmed": funding_confirmed,
+            "crowdingHot": crowding_hot,
+            "crowdingOverheated": crowding_overheated,
             "relativeExcess120": as_float(relative_excess * 100),
             "topThreeNames": top_three_names,
             "topTenNames": top_ten_names,
@@ -455,37 +551,23 @@ def build_topic(
                 "id": "structure",
                 "number": "01",
                 "title": "低位收敛",
-                "subtitle": "四项量化标准同时通过",
+                "subtitle": "120日低位停留时间",
                 "passed": structure_ok,
-                "warning": False,
+                "warning": structure_warning,
                 "items": [
                     condition(
-                        "仍处低位",
-                        low_zone_ok,
-                        f"{distance_120d_high:.1%}",
-                        "距120日高点 ≤ -15%",
-                        "避免把已接近阶段高点的对象当作低位启动。",
+                        "低位停留天数",
+                        structure_ok,
+                        f"{below_ma250_10_days}/120日",
+                        "过去120日中，收盘低于MA250至少10%的天数 ≥ 60",
+                        "达到40日先预警，达到60日正式通过。",
                     ),
                     condition(
-                        "波动收敛",
-                        contraction_ok,
-                        f"{contraction_ratio:.2f}×",
-                        "后40日区间 / 前80日区间 ≤ 0.90",
-                        "用日线代理周线高点降低、低点抬高的收敛过程。",
-                    ),
-                    condition(
-                        "停止创新低",
-                        no_new_low_ok,
-                        f"{no_new_low_ratio:.3f}×",
-                        "40日低点 / 120日低点 ≥ 1.02",
-                        "确认抛压释放后低点开始抬高。",
-                    ),
-                    condition(
-                        "相对冷门",
-                        relative_cold_ok,
-                        f"{relative_excess:.1%}",
-                        "120日相对沪深300超额 ≤ -5%",
-                        "用宽基超额收益统一比较不同ETF和主题指数的冷热。",
+                        "深度低位记录",
+                        below_ma250_15_days > 0,
+                        f"{below_ma250_15_days}/120日",
+                        "展示低于MA250至少15%的天数，不作为硬性条件",
+                        "用于区分低位停留的深度，不重复增加通过门槛。",
                     ),
                 ],
             },
@@ -509,40 +591,41 @@ def build_topic(
                                 else f"站上{ma60_streak}日"
                             )
                         ),
-                        "跟踪指数收于MA60上方，且连续天数 ≤ 20",
+                        "跟踪指数收盘站上MA60",
                         "只作为启动提前量提示，不替代MA250正式确认。",
                     ),
                     condition(
-                        "有效越过年线",
-                        above_ma250_3pct,
+                        "连续站上年线",
+                        hold_two_days_ok,
                         (
                             "-"
                             if pd.isna(latest["ma250"])
                             else f"{latest['close'] / latest['ma250'] - 1:.1%}"
                         ),
-                        "跟踪指数收盘 ≥ MA250 × 1.03",
-                        "ETF专题判断跟踪指数；主题指数直接判断自身。",
-                    ),
-                    condition(
-                        "核心成分放量",
-                        volume_ok,
-                        f"{amount_ratio_latest:.2f}×",
-                        "核心成分合计成交额 ≥ 20日均值 × 1.20",
-                        "不使用ETF自身成交额，避免申赎和交易活跃度干扰。",
-                    ),
-                    condition(
-                        "突破后站稳",
-                        hold_two_days_ok,
-                        "2日" if hold_two_days_ok else "未站稳",
                         "最近2个交易日均收于MA250上方",
-                        "排除盘中冲高和单日假突破。",
+                        "取消3%幅度要求，用连续收盘过滤单日假突破。",
                     ),
                     condition(
-                        "属于新突破",
-                        new_breakout_ok,
-                        f"{breakout_streak}日",
-                        "高于MA250 3%的连续天数 ≤ 20",
-                        "避免把已经充分上涨的趋势段标为首次启动。",
+                        "资金持续集中",
+                        funding_confirmed,
+                        (
+                            "-"
+                            if absorption_rank_latest is None
+                            else f"{absorption_rank_latest:.0%}"
+                        ),
+                        "指数成交额占全A成交额的历史分位连续3日 ≥ 80%",
+                        "使用过去252个交易日的自身历史分位判断增量资金。",
+                    ),
+                    condition(
+                        "拥挤风险",
+                        not crowding_hot,
+                        (
+                            "-"
+                            if absorption_rank_latest is None
+                            else f"{absorption_rank_latest:.0%}"
+                        ),
+                        "达到95%分位提示过热；连续3日达到95%视为高度拥挤",
+                        "95%分位只做风险提示，不作为启动确认。",
                     ),
                 ],
             },
@@ -550,7 +633,7 @@ def build_topic(
                 "id": "leader",
                 "number": "03",
                 "title": "权重龙头确认",
-                "subtitle": "前10预警，前3严格确认",
+                "subtitle": "前三闭环，第4至10名短期预警",
                 "passed": leader_confirmed,
                 "warning": leader_warning,
                 "items": [
@@ -562,25 +645,25 @@ def build_topic(
                         "权重前3用于严格确认，第4至10名用于渐进预警。",
                     ),
                     condition(
-                        "前十大涨停预警",
-                        top_ten_limit_alert,
-                        f"{len(limit_events)}次",
-                        "前10大权重股近20日内任一只触及涨停阈值",
-                        "第4至10名涨停会提示，但不会单独形成严格确认。",
+                        "次级龙头异动",
+                        secondary_limit_alert,
+                        f"{sum(event['weightRank'] > STRICT_LEADER_COUNT and event['qualified'] for event in limit_events)}次",
+                        "权重第4至10名近3日涨停，且次日继续收红",
+                        "只触发黄色预警，不能单独完成第三层闭环。",
                     ),
                     condition(
                         "前三龙头涨停",
                         strict_limit_ok,
                         f"{len(strict_limit_events)}次",
-                        "权重前3近20日内至少一只触及涨停阈值",
+                        "权重前3近5日内至少一只触及涨停阈值",
                         "保留原策略对标志性龙头的严格要求。",
                     ),
                     condition(
-                        "涨停后延续",
+                        "涨停后持续",
                         strict_continuation_ok,
                         "已确认" if strict_continuation_ok else "未确认",
-                        "涨停后的下一交易日继续收红",
-                        "用于区分市场共识和单日脉冲。",
+                        "次日继续收红，且最新收盘不低于涨停日收盘",
+                        "同时过滤单日脉冲和随后完全回吐。",
                     ),
                     condition(
                         "核心群体转强",
@@ -599,6 +682,11 @@ def build_topic(
                 "ma60": as_float(row["ma60"]),
                 "ma250": as_float(row["ma250"]),
                 "amountRatio20": as_float(row["amount_ratio20"]),
+                "absorptionRankPct": as_float(
+                    None
+                    if pd.isna(row["absorption_rank_pct"])
+                    else row["absorption_rank_pct"] * 100
+                ),
                 "themeNormalized": as_float(row["theme_normalized"]),
                 "benchmarkNormalized": as_float(row["benchmark_normalized"]),
             }
@@ -620,6 +708,7 @@ def build_topic(
             "目标清单来自现有项目 theme_watch_config.py 的正式跟踪对象，并用 theme_watch_dashboard.py 补充分组和显示名称。",
             "指数权重采用最新可用月末数据；页面同时展示权重日期，防止前视偏差。",
             "申万二级只保留为行业归属和横向对照，不决定本专题的启动标签。",
+            "资金集中度使用跟踪指数成交额占全A成交额的过去252日历史分位；80%用于确认，95%用于过热提示。",
         ],
     }
 
@@ -676,6 +765,11 @@ def main(end_date: str | None = None) -> None:
             refresh=True,
         )
     )
+    market_trade_dates = (
+        benchmark["trade_date"].astype(str).tail(260).tolist()
+    )
+    print(f"Preparing full-market amount history for {len(market_trade_dates)} days...")
+    market_amount_history = fetch_market_amount_history(pro, market_trade_dates)
 
     prepared: list[dict] = []
     unique_component_codes: set[str] = set()
@@ -816,6 +910,7 @@ def main(end_date: str | None = None) -> None:
             item["index_daily"],
             item["target_daily"],
             benchmark,
+            market_amount_history,
             item["weights"],
             stock_histories,
             name_map,
@@ -845,6 +940,11 @@ def main(end_date: str | None = None) -> None:
                 "latestPct": topic["target"]["latestPct"],
                 "ma250Gap": topic["summary"]["ma250Gap"],
                 "amountRatio20": topic["summary"]["amountRatio20"],
+                "absorptionRankPct": topic["summary"]["absorptionRankPct"],
+                "fundingConfirmed": topic["summary"]["fundingConfirmed"],
+                "crowdingHot": topic["summary"]["crowdingHot"],
+                "lowWarning": topic["summary"]["lowWarning"],
+                "belowMa250TenDays": topic["summary"]["belowMa250TenDays"],
                 "relativeExcess120": topic["summary"]["relativeExcess120"],
                 "coreCount": topic["summary"]["coreCount"],
                 "coreCoverage": topic["summary"]["coreCoverage"],

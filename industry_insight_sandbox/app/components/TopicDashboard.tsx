@@ -9,6 +9,7 @@ type ChartRow = {
   ma60: number | null;
   ma250: number | null;
   amountRatio20: number | null;
+  absorptionRankPct?: number | null;
   themeNormalized: number | null;
   benchmarkNormalized: number | null;
 };
@@ -79,6 +80,11 @@ type DashboardData = {
     ma60Gap?: number | null;
     ma250Gap: number | null;
     amountRatio20: number | null;
+    absorptionRankPct?: number | null;
+    fundingConfirmed?: boolean;
+    crowdingHot?: boolean;
+    lowWarning?: boolean;
+    belowMa250TenDays?: number;
     relativeExcess120: number | null;
     topThreeNames: string[];
     topTenNames?: string[];
@@ -105,6 +111,8 @@ type DashboardData = {
     continuationKnown: boolean;
     continuationPct: number | null;
     continuationOk: boolean;
+    latestRetained?: boolean;
+    qualified?: boolean;
   }[];
   notes: string[];
 };
@@ -238,21 +246,19 @@ function PriceChart({ rows }: { rows: ChartRow[] }) {
         );
       }
 
-      const maxAmount = Math.max(
-        ...rows.map((row) => row.amountRatio20 || 0),
-        1.2,
-      );
       const barWidth = Math.max(
         1,
         (width - padding.left - padding.right) / rows.length - 1,
       );
       rows.forEach((row, index) => {
-        if (row.amountRatio20 === null) return;
+        if (row.absorptionRankPct === null || row.absorptionRankPct === undefined) return;
         const barHeight =
-          (row.amountRatio20 / maxAmount) * (amountHeight - 12);
+          (row.absorptionRankPct / 100) * (amountHeight - 12);
         context.fillStyle =
-          row.amountRatio20 >= 1.2
-            ? "rgba(99, 214, 191, 0.38)"
+          row.absorptionRankPct >= 95
+            ? "rgba(244, 201, 107, 0.48)"
+            : row.absorptionRankPct >= 80
+              ? "rgba(99, 214, 191, 0.38)"
             : COLORS.amount;
         context.fillRect(
           x(index) - barWidth / 2,
@@ -262,14 +268,19 @@ function PriceChart({ rows }: { rows: ChartRow[] }) {
         );
       });
 
-      const thresholdY =
-        height - padding.bottom - (1.2 / maxAmount) * (amountHeight - 12);
-      context.setLineDash([4, 4]);
-      context.beginPath();
-      context.moveTo(padding.left, thresholdY);
-      context.lineTo(width - padding.right, thresholdY);
-      context.strokeStyle = "rgba(99, 214, 191, 0.44)";
-      context.stroke();
+      [80, 95].forEach((threshold) => {
+        const thresholdY =
+          height - padding.bottom - (threshold / 100) * (amountHeight - 12);
+        context.setLineDash([4, 4]);
+        context.beginPath();
+        context.moveTo(padding.left, thresholdY);
+        context.lineTo(width - padding.right, thresholdY);
+        context.strokeStyle =
+          threshold === 95
+            ? "rgba(244, 201, 107, 0.44)"
+            : "rgba(99, 214, 191, 0.44)";
+        context.stroke();
+      });
       context.setLineDash([]);
 
       drawPath(context, rows, "ma250", x, y, COLORS.ma250, 1.6);
@@ -528,7 +539,7 @@ export default function TopicDashboard({
           </h1>
           <p className="hero-description">
             取消“ETF → 申万二级”的强制中间映射。价格结构看跟踪指数，
-            增量资金看核心成分合计成交额，市场共识看指数权重龙头。
+            增量资金看指数成交额占全A成交额的历史分位，市场共识看指数权重龙头。
           </p>
         </div>
         <div className="hero-status">
@@ -567,7 +578,7 @@ export default function TopicDashboard({
           <strong className={ma250Gap !== null && ma250Gap >= 0 ? "up" : "down"}>
             {formatPercent(ma250Gap)}
           </strong>
-          <span>MA250仍为严格确认边界</span>
+          <span>连续2日站上MA250为价格确认</span>
         </article>
       </section>
 
@@ -578,8 +589,8 @@ export default function TopicDashboard({
             <h2>启动条件必须串联闭环</h2>
           </div>
           <p>
-            低位收敛按四项标准同时判断；MA60和前十大权重股异动只做提前预警。
-            只有MA250正式突破与前三龙头持续性完成，才能进入“启动确认”。
+            低位天数达到40日先预警、60日正式通过；MA60只做提前提示。
+            连续2日站上MA250、资金分位持续达标与前三龙头持续性共同完成闭环。
           </p>
         </div>
         <div className="stage-grid">
@@ -619,12 +630,12 @@ export default function TopicDashboard({
             <span><i style={{ background: COLORS.close }} />收盘</span>
             <span><i style={{ background: COLORS.ma60 }} />MA60</span>
             <span><i style={{ background: COLORS.ma250 }} />MA250</span>
-            <span><i className="bar-legend" />核心成分成交额 / MA20</span>
+            <span><i className="bar-legend" />指数成交额占全A成交额的历史分位</span>
           </div>
           <PriceChart rows={visibleChart} />
           <p className="chart-footnote">
-            成交柱来自优先覆盖指数权重60%、最多20只的核心成分股合计成交额；虚线位置为
-            1.20×放量阈值。数据截至 {formatDate(dashboardData.meta.latestDate)}。
+            成交柱为资金占比在过去252个交易日的历史分位；80%用于资金确认，
+            95%用于过热提示。数据截至 {formatDate(dashboardData.meta.latestDate)}。
           </p>
         </article>
 
@@ -700,11 +711,13 @@ export default function TopicDashboard({
                   <p>
                     {isStrictLeader
                       ? event.continuationOk
-                        ? "前三权重龙头涨停后继续收红，严格持续性通过。"
+                        ? event.latestRetained
+                          ? "前三权重龙头涨停后继续收红，且最新收盘未回吐，严格持续性通过。"
+                          : "前三权重龙头次日收红，但最新价格已回吐至涨停日下方。"
                         : "前三权重龙头已涨停，但次日延续尚未确认。"
                       : event.continuationOk
-                        ? "第4至10名权重股涨停后延续，触发增强观察提示。"
-                        : "第4至10名权重股出现涨停，触发早期异动提示。"}
+                        ? "第4至10名权重股近3日涨停后延续，只触发黄色预警。"
+                        : "第4至10名权重股出现涨停，等待次日延续确认。"}
                   </p>
                 </div>
                 );
@@ -712,7 +725,7 @@ export default function TopicDashboard({
             </div>
           ) : (
             <div className="empty-state">
-              前10大权重股近20个交易日没有出现涨停事件。
+              前三权重近5日、其余前十大权重近3日没有有效涨停事件。
             </div>
           )}
           <div className="leader-summary">

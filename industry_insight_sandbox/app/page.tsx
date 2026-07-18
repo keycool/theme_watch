@@ -5,7 +5,9 @@ import bundledOverviewData from "../data/overview.json";
 
 
 type OverviewData = typeof bundledOverviewData;
-type Target = OverviewData["targets"][number];
+type Target = OverviewData["targets"][number] & {
+  absorptionRankPct?: number | null;
+};
 type StageState = Target["stageStates"][number] & { warning?: boolean };
 
 const LIVE_OVERVIEW_URL =
@@ -83,8 +85,13 @@ function TargetRow({ target }: { target: Target }) {
         </strong>
       </div>
       <div className="target-row-metric">
-        <span>核心成交</span>
-        <strong>{target.amountRatio20?.toFixed(2) || "—"}×</strong>
+        <span>资金分位</span>
+        <strong>
+          {target.absorptionRankPct === null ||
+          target.absorptionRankPct === undefined
+            ? "—"
+            : `${target.absorptionRankPct.toFixed(0)}%`}
+        </strong>
       </div>
       <div className="target-row-metric">
         <span>当日</span>
@@ -107,7 +114,7 @@ function DashboardHeader() {
       <span>启动状态</span>
       <span>三层启动条件</span>
       <span>距MA250</span>
-      <span>核心成交</span>
+      <span>资金分位</span>
       <span>当日</span>
       <span />
     </div>
@@ -195,7 +202,7 @@ export default function Home() {
       .sort(
         (left, right) =>
           right.stagePassCount - left.stagePassCount ||
-          (right.amountRatio20 || 0) - (left.amountRatio20 || 0) ||
+          (right.absorptionRankPct || 0) - (left.absorptionRankPct || 0) ||
           left.order - right.order,
       );
   }, [label, query, targets]);
@@ -234,8 +241,8 @@ export default function Home() {
             <span>核心成分观察总览</span>
           </h1>
           <p>
-            20个正式标的集中在同一张启动观察表中，直接对照低位收敛、带量突破年线与
-            权重龙头确认。点击任一标的进入成分股专题。
+            20个正式标的集中在同一张启动观察表中，直接对照长期低位、MA60提前提示、
+            MA250与资金确认、权重龙头闭环。点击任一标的进入成分股专题。
           </p>
         </div>
         <SignalSummary

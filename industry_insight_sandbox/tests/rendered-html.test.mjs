@@ -114,7 +114,7 @@ test("server-renders all 20 independent topic pages", async () => {
   }
 });
 
-test("keeps MA60 and top-10 leader alerts below strict confirmation", async () => {
+test("keeps low-position, funding, and leader alerts below strict confirmation", async () => {
   const [generator, dashboard] = await Promise.all([
     readFile(new URL("../generate_dashboard_data.py", import.meta.url), "utf8"),
     readFile(
@@ -124,11 +124,18 @@ test("keeps MA60 and top-10 leader alerts below strict confirmation", async () =
   ]);
 
   assert.match(generator, /LEADER_WATCH_COUNT = 10/);
+  assert.match(generator, /LOW_WARNING_DAYS = 40/);
+  assert.match(generator, /LOW_PASS_DAYS = 60/);
+  assert.match(generator, /FUNDING_CONFIRM_PERCENTILE = 0\.80/);
+  assert.match(generator, /CROWDING_HOT_PERCENTILE = 0\.95/);
+  assert.match(generator, /below_ma250_10_days >= LOW_PASS_DAYS/);
+  assert.match(generator, /last_three_funding_ranks >= FUNDING_CONFIRM_PERCENTILE/);
   assert.match(generator, /"MA60提前提示"/);
-  assert.match(generator, /"前十大涨停预警"/);
-  assert.match(generator, /第4至10名涨停会提示，但不会单独形成严格确认/);
-  assert.match(dashboard, /MA60和前十大权重股异动只做提前预警/);
-  assert.match(dashboard, /前10大权重股近20个交易日没有出现涨停事件/);
+  assert.match(generator, /"次级龙头异动"/);
+  assert.match(generator, /权重第4至10名近3日涨停，且次日继续收红/);
+  assert.match(dashboard, /低位天数达到40日先预警、60日正式通过/);
+  assert.match(dashboard, /资金占比在过去252个交易日的历史分位/);
+  assert.match(dashboard, /前三权重近5日、其余前十大权重近3日没有有效涨停事件/);
 });
 
 test("keeps executable site code self-contained inside the sandbox", async () => {
