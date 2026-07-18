@@ -114,6 +114,23 @@ test("server-renders all 20 independent topic pages", async () => {
   }
 });
 
+test("keeps MA60 and top-10 leader alerts below strict confirmation", async () => {
+  const [generator, dashboard] = await Promise.all([
+    readFile(new URL("../generate_dashboard_data.py", import.meta.url), "utf8"),
+    readFile(
+      new URL("../app/components/TopicDashboard.tsx", import.meta.url),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(generator, /LEADER_WATCH_COUNT = 10/);
+  assert.match(generator, /"MA60提前提示"/);
+  assert.match(generator, /"前十大涨停预警"/);
+  assert.match(generator, /第4至10名涨停会提示，但不会单独形成严格确认/);
+  assert.match(dashboard, /MA60和前十大权重股异动只做提前预警/);
+  assert.match(dashboard, /前10大权重股近20个交易日没有出现涨停事件/);
+});
+
 test("keeps executable site code self-contained inside the sandbox", async () => {
   const executableFiles = [
     "app/page.tsx",

@@ -33,6 +33,7 @@ type Stage = {
   title: string;
   subtitle: string;
   passed: boolean;
+  warning?: boolean;
   items: {
     title: string;
     passed: boolean;
@@ -73,10 +74,16 @@ type DashboardData = {
     aboveMa60Count: number;
     aboveMa250Count: number;
     strictLeaderConfirmed: boolean;
+    ma60Watch?: boolean;
+    ma60BreakoutToday?: boolean;
+    ma60Gap?: number | null;
     ma250Gap: number | null;
     amountRatio20: number | null;
     relativeExcess120: number | null;
     topThreeNames: string[];
+    topTenNames?: string[];
+    topTenLimitAlert?: boolean;
+    secondaryLimitAlert?: boolean;
     stagePassCount: number;
   };
   stages: Stage[];
@@ -91,6 +98,8 @@ type DashboardData = {
   limitEvents: {
     code: string;
     name: string;
+    weightRank?: number;
+    tier?: string;
     date: string;
     pct: number | null;
     continuationKnown: boolean;
@@ -135,8 +144,9 @@ function formatNumber(value: number | null | undefined, digits = 1) {
   });
 }
 
-function statusText(passed: boolean) {
-  return passed ? "通过" : "未通过";
+function statusText(passed: boolean, warning = false) {
+  if (passed) return "通过";
+  return warning ? "提前预警" : "未通过";
 }
 
 function canvasSize(canvas: HTMLCanvasElement) {
@@ -374,16 +384,23 @@ function StageCard({
 }: {
   stage: Stage;
 }) {
+  const stateClass = stage.passed ? "passed" : stage.warning ? "warning" : "failed";
+  const statusClass = stage.passed
+    ? "is-pass"
+    : stage.warning
+      ? "is-warning"
+      : "is-fail";
+
   return (
-    <article className={`stage-card ${stage.passed ? "passed" : "failed"}`}>
+    <article className={`stage-card ${stateClass}`}>
       <div className="stage-header">
         <span className="stage-number">{stage.number}</span>
         <div>
           <p className="eyebrow">{stage.subtitle}</p>
           <h3>{stage.title}</h3>
         </div>
-        <span className={`status-chip ${stage.passed ? "is-pass" : "is-fail"}`}>
-          {statusText(stage.passed)}
+        <span className={`status-chip ${statusClass}`}>
+          {statusText(stage.passed, stage.warning)}
         </span>
       </div>
       <div className="condition-list">
@@ -561,8 +578,8 @@ export default function TopicDashboard({
             <h2>启动条件必须串联闭环</h2>
           </div>
           <p>
-            任一层只代表局部线索。只有低位收敛、带量突破和权重龙头持续性同时成立，
-            才能进入“启动确认”。
+            低位收敛按四项标准同时判断；MA60和前十大权重股异动只做提前预警。
+            只有MA250正式突破与前三龙头持续性完成，才能进入“启动确认”。
           </p>
         </div>
         <div className="stage-grid">
@@ -647,18 +664,23 @@ export default function TopicDashboard({
         <article className="panel leader-panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">TOP-3 LEADER CHECK</p>
+              <p className="eyebrow">TOP-10 WEIGHTED LEADER WATCH</p>
               <h2>标志性龙头事件</h2>
             </div>
           </div>
           {dashboardData.limitEvents.length ? (
             <div className="event-list">
-              {dashboardData.limitEvents.map((event) => (
+              {dashboardData.limitEvents.map((event) => {
+                const rank = event.weightRank ?? 1;
+                const isStrictLeader = rank <= 3;
+                return (
                 <div className="event-card" key={`${event.code}-${event.date}`}>
                   <div className="event-top">
                     <div>
                       <strong>{event.name}</strong>
-                      <span>{event.code}</span>
+                      <span>
+                        权重第{rank} · {event.tier ?? "核心龙头"} · {event.code}
+                      </span>
                     </div>
                     <b>{formatPercent(event.pct, 2)}</b>
                   </div>
@@ -676,16 +698,21 @@ export default function TopicDashboard({
                     </span>
                   </div>
                   <p>
-                    {event.continuationOk
-                      ? "涨停后继续收红，严格持续性通过。"
-                      : "涨停后未能继续收红，暂视为单次脉冲。"}
+                    {isStrictLeader
+                      ? event.continuationOk
+                        ? "前三权重龙头涨停后继续收红，严格持续性通过。"
+                        : "前三权重龙头已涨停，但次日延续尚未确认。"
+                      : event.continuationOk
+                        ? "第4至10名权重股涨停后延续，触发增强观察提示。"
+                        : "第4至10名权重股出现涨停，触发早期异动提示。"}
                   </p>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="empty-state">
-              权重前3近20个交易日没有出现涨停事件。
+              前10大权重股近20个交易日没有出现涨停事件。
             </div>
           )}
           <div className="leader-summary">

@@ -6,6 +6,7 @@ import bundledOverviewData from "../data/overview.json";
 
 type OverviewData = typeof bundledOverviewData;
 type Target = OverviewData["targets"][number];
+type StageState = Target["stageStates"][number] & { warning?: boolean };
 
 const LIVE_OVERVIEW_URL =
   "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/overview.json";
@@ -49,16 +50,30 @@ function TargetRow({ target }: { target: Target }) {
         </span>
       </div>
       <div className="target-row-stages">
-        {target.stageStates.map((stage, index) => (
-          <span
-            className={stage.passed ? "stage-pass" : "stage-wait"}
-            key={stage.title}
-            title={`${stage.title}：${stage.passed ? "通过" : "未通过"}`}
-          >
-            <i />
-            {index === 0 ? "低位" : index === 1 ? "突破" : "龙头"}
-          </span>
-        ))}
+        {target.stageStates.map((rawStage, index) => {
+          const stage = rawStage as StageState;
+          const state = stage.passed
+            ? "通过"
+            : stage.warning
+              ? "提前预警"
+              : "未通过";
+          return (
+            <span
+              className={
+                stage.passed
+                  ? "stage-pass"
+                  : stage.warning
+                    ? "stage-warning"
+                    : "stage-wait"
+              }
+              key={stage.title}
+              title={`${stage.title}：${state}`}
+            >
+              <i />
+              {index === 0 ? "低位" : index === 1 ? "突破" : "龙头"}
+            </span>
+          );
+        })}
         <small>{target.stagePassCount}/3</small>
       </div>
       <div className="target-row-metric">

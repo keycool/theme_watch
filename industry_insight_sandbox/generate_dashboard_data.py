@@ -19,6 +19,8 @@ TARGETS_PATH = ROOT / "targets.json"
 HISTORY_START = "20240101"
 CORE_WEIGHT_COVERAGE = 60.0
 MAX_CORE_COUNT = 20
+LEADER_WATCH_COUNT = 10
+STRICT_LEADER_COUNT = 3
 BENCHMARK_CODE = "000300.SH"
 
 
@@ -244,6 +246,23 @@ def build_topic(
         [low_zone_ok, contraction_ok, no_new_low_ok, relative_cold_ok]
     )
 
+    above_ma60 = bool(
+        pd.notna(latest["ma60"]) and latest["close"] >= latest["ma60"]
+    )
+    ma60_streak = 0
+    for _, row in index_daily.iloc[::-1].iterrows():
+        if pd.isna(row["ma60"]) or row["close"] < row["ma60"]:
+            break
+        ma60_streak += 1
+    ma60_watch_ok = above_ma60 and ma60_streak <= 20
+    previous = index_daily.iloc[-2] if len(index_daily) >= 2 else None
+    ma60_breakout_today = bool(
+        previous is not None
+        and pd.notna(previous["ma60"])
+        and previous["close"] < previous["ma60"]
+        and above_ma60
+    )
+
     above_ma250_3pct = bool(
         pd.notna(latest["ma250"]) and latest["close"] >= latest["ma250"] * 1.03
     )
@@ -266,9 +285,12 @@ def build_topic(
     breakout_emerged = above_ma250_3pct and volume_ok and new_breakout_ok
     breakout_confirmed = breakout_emerged and hold_two_days_ok
 
-    top_three_codes = core_weights.head(3)["con_code"].astype(str).tolist()
+    top_ten_weights = weights.head(LEADER_WATCH_COUNT).copy()
+    top_ten_codes = top_ten_weights["con_code"].astype(str).tolist()
+    top_three_codes = top_ten_codes[:STRICT_LEADER_COUNT]
+    rank_map = {code: rank for rank, code in enumerate(top_ten_codes, start=1)}
     limit_events: list[dict] = []
-    for code in top_three_codes:
+    for code in top_ten_codes:
         daily = stock_histories.get(code)
         if daily is None or daily.empty:
             continue
@@ -282,6 +304,8 @@ def build_topic(
             {
                 "code": code,
                 "name": str(name_map.get(code, code)),
+                "weightRank": rank_map[code],
+                "tier": "核心龙头" if rank_map[code] <= STRICT_LEADER_COUNT else "权重异动",
                 "date": str(recent.iloc[hit_index]["trade_date"]),
                 "pct": as_float(recent.iloc[hit_index]["pct_chg"]),
                 "continuationKnown": next_day is not None,
@@ -294,8 +318,19 @@ def build_topic(
             }
         )
 
-    strict_limit_ok = bool(limit_events)
-    strict_continuation_ok = any(event["continuationOk"] for event in limit_events)
+    strict_limit_events = [
+        event
+        for event in limit_events
+        if event["weightRank"] <= STRICT_LEADER_COUNT
+    ]
+    strict_limit_ok = bool(strict_limit_events)
+    strict_continuation_ok = any(
+        event["continuationOk"] for event in strict_limit_events
+    )
+    top_ten_limit_alert = bool(limit_events)
+    secondary_limit_alert = any(
+        event["weightRank"] > STRICT_LEADER_COUNT for event in limit_events
+    )
     active_count = sum(
         bool(
             (row["pct1d"] is not None and row["pct1d"] >= 5)
@@ -309,6 +344,7 @@ def build_topic(
         active_count >= 1 and ma60_count / len(component_rows) >= 0.5
     )
     leader_confirmed = strict_limit_ok and strict_continuation_ok
+    leader_warning = (top_ten_limit_alert or leader_monitor_ok) and not leader_confirmed
 
     close_to_high = float(latest["close"] / last_120["close"].max())
     trend_extension = bool(
@@ -330,9 +366,15 @@ def build_topic(
     elif structure_ok and breakout_emerged and leader_monitor_ok:
         final_label = "接近启动"
         conclusion = "指数突破与核心成分开始共振，但站稳或龙头严格确认仍不完整。"
-    elif structure_ok or breakout_emerged or leader_monitor_ok:
+    elif (
+        structure_ok
+        or ma60_watch_ok
+        or breakout_emerged
+        or top_ten_limit_alert
+        or leader_monitor_ok
+    ):
         final_label = "观察中"
-        conclusion = "已经出现局部转强线索，但三个核心条件尚未同时闭环。"
+        conclusion = "已出现MA60、前十大权重异动或其他局部转强线索，但三个核心条件尚未同时闭环。"
     else:
         final_label = "未启动"
         conclusion = "当前尚未形成低位结构、资金突破和权重龙头持续性的完整组合。"
@@ -354,6 +396,14 @@ def build_topic(
     top_three_names = [
         str(name_map.get(code, code)) for code in top_three_codes
     ]
+    top_ten_names = [
+        str(name_map.get(code, code)) for code in top_ten_codes
+    ]
+    ma60_gap = (
+        float(latest["close"] / latest["ma60"] - 1)
+        if pd.notna(latest["ma60"])
+        else None
+    )
 
     return {
         "meta": {
@@ -388,10 +438,16 @@ def build_topic(
             "aboveMa60Count": ma60_count,
             "aboveMa250Count": ma250_count,
             "strictLeaderConfirmed": leader_confirmed,
+            "ma60Watch": ma60_watch_ok,
+            "ma60BreakoutToday": ma60_breakout_today,
+            "ma60Gap": as_float(None if ma60_gap is None else ma60_gap * 100),
             "ma250Gap": as_float(None if ma250_gap is None else ma250_gap * 100),
             "amountRatio20": as_float(amount_ratio_latest),
             "relativeExcess120": as_float(relative_excess * 100),
             "topThreeNames": top_three_names,
+            "topTenNames": top_ten_names,
+            "topTenLimitAlert": top_ten_limit_alert,
+            "secondaryLimitAlert": secondary_limit_alert,
             "stagePassCount": sum([structure_ok, breakout_confirmed, leader_confirmed]),
         },
         "stages": [
@@ -399,8 +455,9 @@ def build_topic(
                 "id": "structure",
                 "number": "01",
                 "title": "低位收敛",
-                "subtitle": "筹码沉淀与冷门状态",
+                "subtitle": "四项量化标准同时通过",
                 "passed": structure_ok,
+                "warning": False,
                 "items": [
                     condition(
                         "仍处低位",
@@ -436,9 +493,25 @@ def build_topic(
                 "id": "breakout",
                 "number": "02",
                 "title": "带量突破年线",
-                "subtitle": "增量资金与趋势扭转",
+                "subtitle": "MA60预警，MA250确认",
                 "passed": breakout_confirmed,
+                "warning": ma60_watch_ok and not breakout_confirmed,
                 "items": [
+                    condition(
+                        "MA60提前提示",
+                        ma60_watch_ok,
+                        (
+                            "今日突破"
+                            if ma60_breakout_today
+                            else (
+                                "-"
+                                if pd.isna(latest["ma60"])
+                                else f"站上{ma60_streak}日"
+                            )
+                        ),
+                        "跟踪指数收于MA60上方，且连续天数 ≤ 20",
+                        "只作为启动提前量提示，不替代MA250正式确认。",
+                    ),
                     condition(
                         "有效越过年线",
                         above_ma250_3pct,
@@ -477,22 +550,30 @@ def build_topic(
                 "id": "leader",
                 "number": "03",
                 "title": "权重龙头确认",
-                "subtitle": "市场共识与上涨持续性",
+                "subtitle": "前10预警，前3严格确认",
                 "passed": leader_confirmed,
+                "warning": leader_warning,
                 "items": [
                     condition(
                         "观察对象明确",
-                        len(top_three_codes) == 3,
-                        "权重前3",
-                        "直接使用指数权重前3，而非申万市值龙头",
-                        "龙头定义与ETF或主题指数实际权重结构一致。",
+                        len(top_ten_codes) == LEADER_WATCH_COUNT,
+                        f"权重前{len(top_ten_codes)}",
+                        "直接观察指数前10大权重股，而非申万市值龙头",
+                        "权重前3用于严格确认，第4至10名用于渐进预警。",
                     ),
                     condition(
-                        "标志性涨停",
-                        strict_limit_ok,
+                        "前十大涨停预警",
+                        top_ten_limit_alert,
                         f"{len(limit_events)}次",
+                        "前10大权重股近20日内任一只触及涨停阈值",
+                        "第4至10名涨停会提示，但不会单独形成严格确认。",
+                    ),
+                    condition(
+                        "前三龙头涨停",
+                        strict_limit_ok,
+                        f"{len(strict_limit_events)}次",
                         "权重前3近20日内至少一只触及涨停阈值",
-                        "严格口径保留涨停要求；监控口径另看5日强势。",
+                        "保留原策略对标志性龙头的严格要求。",
                     ),
                     condition(
                         "涨停后延续",
@@ -532,7 +613,7 @@ def build_topic(
             }
             for _, row in weights.head(15).iterrows()
         ],
-        "components": component_rows,
+            "components": component_rows,
         "limitEvents": limit_events,
         "notes": [
             "这是封闭沙盒中的方法实验，不接入现有申万二级扫描、日报或发布流程。",
@@ -688,7 +769,9 @@ def main(end_date: str | None = None) -> None:
             max(3, coverage_count), MAX_CORE_COUNT, len(latest_weights)
         )
         unique_component_codes.update(
-            latest_weights.head(core_count)["con_code"].astype(str).tolist()
+            latest_weights.head(max(core_count, LEADER_WATCH_COUNT))["con_code"]
+            .astype(str)
+            .tolist()
         )
         prepared.append(
             {
@@ -768,9 +851,17 @@ def main(end_date: str | None = None) -> None:
                 "activeCount": topic["summary"]["activeCount"],
                 "aboveMa60Count": topic["summary"]["aboveMa60Count"],
                 "aboveMa250Count": topic["summary"]["aboveMa250Count"],
+                "ma60Watch": topic["summary"]["ma60Watch"],
+                "ma60BreakoutToday": topic["summary"]["ma60BreakoutToday"],
+                "topTenLimitAlert": topic["summary"]["topTenLimitAlert"],
+                "secondaryLimitAlert": topic["summary"]["secondaryLimitAlert"],
                 "stagePassCount": topic["summary"]["stagePassCount"],
                 "stageStates": [
-                    {"title": stage["title"], "passed": stage["passed"]}
+                    {
+                        "title": stage["title"],
+                        "passed": stage["passed"],
+                        "warning": stage["warning"],
+                    }
                     for stage in topic["stages"]
                 ],
                 "topThreeNames": topic["summary"]["topThreeNames"],
