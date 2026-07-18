@@ -95,6 +95,19 @@ test("server-renders the overview and links every formal target", async () => {
   }
 });
 
+test("orders the overview by startup status before secondary metrics", async () => {
+  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+
+  assert.match(
+    source,
+    /const LABEL_ORDER = \["趋势延续", "启动确认", "接近启动", "观察中", "未启动"\]/,
+  );
+  assert.match(
+    source,
+    /labelRank\(left\.label\) - labelRank\(right\.label\)/,
+  );
+});
+
 test("server-renders all 20 independent topic pages", async () => {
   const topics = await readJson("data/all_topics.json");
 

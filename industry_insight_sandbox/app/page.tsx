@@ -13,7 +13,12 @@ type StageState = Target["stageStates"][number] & { warning?: boolean };
 const LIVE_OVERVIEW_URL =
   "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/overview.json";
 
-const LABEL_ORDER = ["启动确认", "接近启动", "观察中", "未启动", "趋势延续"];
+const LABEL_ORDER = ["趋势延续", "启动确认", "接近启动", "观察中", "未启动"];
+
+function labelRank(value: string) {
+  const index = LABEL_ORDER.indexOf(value);
+  return index === -1 ? LABEL_ORDER.length : index;
+}
 
 function formatPercent(value: number | null | undefined, digits = 1) {
   if (value === null || value === undefined) return "—";
@@ -201,6 +206,7 @@ export default function Home() {
       )
       .sort(
         (left, right) =>
+          labelRank(left.label) - labelRank(right.label) ||
           right.stagePassCount - left.stagePassCount ||
           (right.absorptionRankPct || 0) - (left.absorptionRankPct || 0) ||
           left.order - right.order,
