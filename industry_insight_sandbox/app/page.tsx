@@ -10,15 +10,7 @@ type Target = OverviewData["targets"][number];
 const LIVE_OVERVIEW_URL =
   "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/overview.json";
 
-const BUCKET_ORDER = [
-  "科技成长与高端制造",
-  "大消费与医药",
-  "周期资源",
-  "红利金融地产",
-];
-
 const LABEL_ORDER = ["启动确认", "接近启动", "观察中", "未启动", "趋势延续"];
-
 
 function formatPercent(value: number | null | undefined, digits = 1) {
   if (value === null || value === undefined) return "—";
@@ -37,117 +29,112 @@ function labelClass(label: string) {
   return "label-idle";
 }
 
-function StatusDistribution({ targets }: { targets: Target[] }) {
-  const counts = LABEL_ORDER.map((label) => ({
-    label,
-    count: targets.filter((target) => target.label === label).length,
-  }));
-  const max = Math.max(...counts.map((row) => row.count), 1);
-
+function TargetRow({ target }: { target: Target }) {
   return (
-    <div className="distribution-chart">
-      {counts.map((row) => (
-        <div className="distribution-row" key={row.label}>
-          <span>{row.label}</span>
-          <div className="distribution-track">
-            <i
-              className={labelClass(row.label)}
-              style={{ width: `${(row.count / max) * 100}%` }}
-            />
-          </div>
-          <strong>{row.count}</strong>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function StageMatrix({ targets }: { targets: Target[] }) {
-  const ranked = [...targets].sort(
-    (left, right) =>
-      right.stagePassCount - left.stagePassCount ||
-      (right.amountRatio20 || 0) - (left.amountRatio20 || 0),
-  );
-  return (
-    <div className="stage-matrix">
-      <div className="stage-matrix-head">
-        <span>目标</span>
-        <span>低位</span>
-        <span>突破</span>
-        <span>龙头</span>
+    <a className="target-row" href={`/topic/${target.slug}`}>
+      <div className="target-row-identity">
+        <span className="target-kind">
+          {target.kind === "etf" ? "ETF" : "主题指数"}
+        </span>
+        <strong>{target.name}</strong>
+        <small className="mono">{target.code}</small>
       </div>
-      {ranked.slice(0, 10).map((target) => (
-        <a href={`/topic/${target.slug}`} key={target.slug}>
-          <span>{target.name}</span>
-          {target.stageStates.map((stage) => (
-            <i
-              className={stage.passed ? "matrix-on" : "matrix-off"}
-              key={stage.title}
-              title={`${stage.title}：${stage.passed ? "通过" : "未通过"}`}
-            />
-          ))}
-        </a>
-      ))}
-    </div>
-  );
-}
-
-function TargetCard({ target }: { target: Target }) {
-  return (
-    <a className="overview-card" href={`/topic/${target.slug}`}>
-      <div className="overview-card-top">
-        <div>
-          <span className="target-kind">
-            {target.kind === "etf" ? "ETF" : "主题指数"}
-          </span>
-          <h3>{target.name}</h3>
-          <p className="mono">{target.code}</p>
-        </div>
+      <div className="target-row-index">
+        <strong>{target.indexName}</strong>
+        <small className="mono">{target.indexCode}</small>
+      </div>
+      <div>
         <span className={`overview-label ${labelClass(target.label)}`}>
           {target.label}
         </span>
       </div>
-      <div className="index-identity">
-        <span>判断指数</span>
-        <strong>{target.indexName}</strong>
-        <small>{target.indexCode}</small>
-      </div>
-      <div className="overview-metrics">
-        <div>
-          <span>当日</span>
-          <strong className={(target.latestPct || 0) >= 0 ? "up" : "down"}>
-            {formatPercent(target.latestPct, 2)}
-          </strong>
-        </div>
-        <div>
-          <span>距MA250</span>
-          <strong className={(target.ma250Gap || 0) >= 0 ? "up" : "down"}>
-            {formatPercent(target.ma250Gap)}
-          </strong>
-        </div>
-        <div>
-          <span>核心成交</span>
-          <strong>{target.amountRatio20?.toFixed(2) || "—"}×</strong>
-        </div>
-      </div>
-      <div className="stage-mini">
+      <div className="target-row-stages">
         {target.stageStates.map((stage, index) => (
-          <div key={stage.title}>
-            <i className={stage.passed ? "is-pass" : "is-fail"} />
-            <span>
-              {index + 1}. {stage.title}
-            </span>
-          </div>
+          <span
+            className={stage.passed ? "stage-pass" : "stage-wait"}
+            key={stage.title}
+            title={`${stage.title}：${stage.passed ? "通过" : "未通过"}`}
+          >
+            <i />
+            {index === 0 ? "低位" : index === 1 ? "突破" : "龙头"}
+          </span>
         ))}
+        <small>{target.stagePassCount}/3</small>
       </div>
-      <div className="overview-card-bottom">
-        <span>
-          核心 {target.coreCount}只 / 权重{" "}
-          {target.coreCoverage?.toFixed(1) || "—"}%
-        </span>
-        <strong>查看专题 →</strong>
+      <div className="target-row-metric">
+        <span>距MA250</span>
+        <strong className={(target.ma250Gap || 0) >= 0 ? "up" : "down"}>
+          {formatPercent(target.ma250Gap)}
+        </strong>
       </div>
+      <div className="target-row-metric">
+        <span>核心成交</span>
+        <strong>{target.amountRatio20?.toFixed(2) || "—"}×</strong>
+      </div>
+      <div className="target-row-metric">
+        <span>当日</span>
+        <strong className={(target.latestPct || 0) >= 0 ? "up" : "down"}>
+          {formatPercent(target.latestPct, 2)}
+        </strong>
+      </div>
+      <span className="target-row-arrow" aria-hidden="true">
+        →
+      </span>
     </a>
+  );
+}
+
+function DashboardHeader() {
+  return (
+    <div className="target-dashboard-head" aria-hidden="true">
+      <span>标的</span>
+      <span>判断指数</span>
+      <span>启动状态</span>
+      <span>三层启动条件</span>
+      <span>距MA250</span>
+      <span>核心成交</span>
+      <span>当日</span>
+      <span />
+    </div>
+  );
+}
+
+function SignalSummary({
+  total,
+  confirmed,
+  watching,
+  latestDate,
+}: {
+  total: number;
+  confirmed: number;
+  watching: number;
+  latestDate: string;
+}) {
+  return (
+    <div className="overview-signal-summary">
+      <div className="signal-summary-heading">
+        <p className="eyebrow">TODAY&apos;S STARTUP WATCH</p>
+        <strong>今日启动观察</strong>
+      </div>
+      <div className="signal-summary-grid">
+        <article>
+          <span>全部标的</span>
+          <strong>{total}</strong>
+        </article>
+        <article>
+          <span>启动确认</span>
+          <strong className="confirmed-stat">{confirmed}</strong>
+        </article>
+        <article>
+          <span>启动观察</span>
+          <strong>{watching}</strong>
+        </article>
+        <article>
+          <span>数据日期</span>
+          <strong className="date-stat">{formatDate(latestDate)}</strong>
+        </article>
+      </div>
+    </div>
   );
 }
 
@@ -155,7 +142,6 @@ export default function Home() {
   const [overviewData, setOverviewData] = useState<OverviewData>(
     bundledOverviewData,
   );
-  const [bucket, setBucket] = useState("全部");
   const [label, setLabel] = useState("全部");
   const [query, setQuery] = useState("");
 
@@ -182,29 +168,28 @@ export default function Home() {
   const targets = overviewData.targets;
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return targets.filter(
-      (target) =>
-        (bucket === "全部" || target.bucket === bucket) &&
+    return targets
+      .filter(
+        (target) =>
         (label === "全部" || target.label === label) &&
         (!normalized ||
           target.name.toLowerCase().includes(normalized) ||
           target.code.toLowerCase().includes(normalized) ||
           target.indexName.toLowerCase().includes(normalized)),
-    );
-  }, [bucket, label, query, targets]);
+      )
+      .sort(
+        (left, right) =>
+          right.stagePassCount - left.stagePassCount ||
+          (right.amountRatio20 || 0) - (left.amountRatio20 || 0) ||
+          left.order - right.order,
+      );
+  }, [label, query, targets]);
 
-  const grouped = BUCKET_ORDER.map((name) => ({
-    name,
-    targets: filtered
-      .filter((target) => target.bucket === name)
-      .sort((left, right) => left.order - right.order),
-  })).filter((group) => group.targets.length);
-
-  const watchCount = targets.filter((target) =>
-    ["启动确认", "接近启动", "观察中"].includes(target.label),
+  const confirmedCount = targets.filter(
+    (target) => target.label === "启动确认",
   ).length;
-  const trendCount = targets.filter(
-    (target) => target.label === "趋势延续",
+  const watchCount = targets.filter((target) =>
+    ["接近启动", "观察中"].includes(target.label),
   ).length;
 
   return (
@@ -234,104 +219,54 @@ export default function Home() {
             <span>核心成分观察总览</span>
           </h1>
           <p>
-            清单严格来自现有项目正式配置：19只ETF与1个主题指数。点击任一标题进入专题，
-            直接查看跟踪指数、权重成分股成交、前三龙头和三层启动条件。
+            20个正式标的集中在同一张启动观察表中，直接对照低位收敛、带量突破年线与
+            权重龙头确认。点击任一标的进入成分股专题。
           </p>
         </div>
-        <div className="overview-stat-grid">
-          <article>
-            <span>正式目标</span>
-            <strong>{overviewData.meta.targetCount}</strong>
-            <small>{overviewData.meta.etfCount} ETF + {overviewData.meta.indexCount} 指数</small>
-          </article>
-          <article>
-            <span>启动观察</span>
-            <strong>{watchCount}</strong>
-            <small>观察中 / 接近 / 确认</small>
-          </article>
-          <article>
-            <span>趋势延续</span>
-            <strong>{trendCount}</strong>
-            <small>已脱离低位启动区</small>
-          </article>
-          <article>
-            <span>数据日期</span>
-            <strong className="date-stat">
-              {formatDate(targets[0].latestDate)}
-            </strong>
-            <small>权重日 {formatDate(targets[0].weightDate)}</small>
-          </article>
-        </div>
+        <SignalSummary
+          confirmed={confirmedCount}
+          latestDate={targets[0].latestDate}
+          total={overviewData.meta.targetCount}
+          watching={watchCount}
+        />
       </section>
 
-      <section className="overview-insights shell">
-        <article className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">STATUS DISTRIBUTION</p>
-              <h2>当前标签分布</h2>
-            </div>
+      <section className="overview-dashboard shell">
+        <div className="dashboard-title-row">
+          <div>
+            <p className="eyebrow">ALL TARGETS / THREE-STAGE WATCH</p>
+            <h2>全部标的启动观察</h2>
+            <p>默认按三层条件通过数排序，全部标的集中展示，不再按行业分块。</p>
           </div>
-          <StatusDistribution targets={targets} />
-        </article>
-        <article className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">THREE-STAGE MATRIX</p>
-              <h2>最接近闭环的目标</h2>
-            </div>
-          </div>
-          <StageMatrix targets={targets} />
-        </article>
-      </section>
-
-      <section className="overview-controls shell">
-        <div className="filter-group">
-          {["全部", ...BUCKET_ORDER].map((value) => (
-            <button
-              className={bucket === value ? "active" : ""}
-              key={value}
-              onClick={() => setBucket(value)}
-              type="button"
+          <div className="overview-control-right">
+            <select
+              aria-label="按启动状态筛选"
+              value={label}
+              onChange={(event) => setLabel(event.target.value)}
             >
-              {value}
-            </button>
-          ))}
-        </div>
-        <div className="overview-control-right">
-          <select value={label} onChange={(event) => setLabel(event.target.value)}>
-            <option>全部</option>
-            {LABEL_ORDER.map((value) => (
-              <option key={value}>{value}</option>
-            ))}
-          </select>
-          <input
-            aria-label="搜索ETF、指数或代码"
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索名称 / 代码 / 跟踪指数"
-            type="search"
-            value={query}
-          />
-        </div>
-      </section>
-
-      <section className="overview-groups shell">
-        {grouped.map((group) => (
-          <div className="overview-group" key={group.name}>
-            <div className="group-heading">
-              <h2>{group.name}</h2>
-              <span>{group.targets.length} 个目标</span>
-            </div>
-            <div className="overview-card-grid">
-              {group.targets.map((target) => (
-                <TargetCard key={target.slug} target={target} />
+              <option>全部</option>
+              {LABEL_ORDER.map((value) => (
+                <option key={value}>{value}</option>
               ))}
-            </div>
+            </select>
+            <input
+              aria-label="搜索ETF、指数或代码"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="搜索名称 / 代码 / 判断指数"
+              type="search"
+              value={query}
+            />
           </div>
-        ))}
-        {!grouped.length && (
-          <div className="overview-empty">没有符合当前筛选条件的目标。</div>
-        )}
+        </div>
+        <div className="target-dashboard">
+          <DashboardHeader />
+          {filtered.map((target) => (
+            <TargetRow key={target.slug} target={target} />
+          ))}
+          {!filtered.length && (
+            <div className="overview-empty">没有符合当前筛选条件的目标。</div>
+          )}
+        </div>
       </section>
 
       <footer className="footer shell">

@@ -81,10 +81,13 @@ test("server-renders the overview and links every formal target", async () => {
   const html = await response.text();
   assert.match(html, /<title>ETF与主题指数核心成分观察总览<\/title>/);
   assert.match(html, /20 formal project targets/);
-  assert.match(html, /19只ETF与1个主题指数/);
+  assert.match(html, /20个正式标的集中在同一张启动观察表中/);
   assert.match(html, /低位收敛/);
   assert.match(html, /带量突破年线/);
   assert.match(html, /权重龙头确认/);
+  assert.match(html, /全部标的启动观察/);
+  assert.doesNotMatch(html, /当前标签分布/);
+  assert.doesNotMatch(html, /最接近闭环的目标/);
 
   for (const target of overview.targets) {
     assert.match(html, new RegExp(`/topic/${target.slug}`));
