@@ -143,6 +143,11 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
   assert.match(generator, /CROWDING_HOT_PERCENTILE = 0\.95/);
   assert.match(generator, /below_ma250_10_days >= LOW_PASS_DAYS/);
   assert.match(generator, /last_three_funding_ranks >= FUNDING_CONFIRM_PERCENTILE/);
+  assert.match(generator, /observation_clues\.append\("连续2日站上MA250"\)/);
+  assert.match(
+    generator,
+    /当前观察线索：\{.*join\(observation_clues\)\}/,
+  );
   assert.match(generator, /"MA60提前提示"/);
   assert.match(generator, /"次级龙头异动"/);
   assert.match(generator, /权重第4至10名近3日涨停，且次日继续收红/);

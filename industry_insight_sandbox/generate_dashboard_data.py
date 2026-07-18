@@ -441,6 +441,28 @@ def build_topic(
         )
     )
 
+    observation_clues: list[str] = []
+    if structure_ok:
+        observation_clues.append("低位收敛条件已通过")
+    elif structure_warning:
+        observation_clues.append(
+            f"低位停留达到预警线（{below_ma250_10_days}/120日）"
+        )
+    if ma60_watch_ok:
+        observation_clues.append(
+            "当日站上MA60" if ma60_breakout_today else "已站上MA60"
+        )
+    if hold_two_days_ok:
+        observation_clues.append("连续2日站上MA250")
+    if funding_confirmed:
+        observation_clues.append("资金集中度连续3日达到80%分位")
+    if strict_limit_ok and not leader_confirmed:
+        observation_clues.append("前三权重股出现涨停，持续性尚未确认")
+    if secondary_limit_alert:
+        observation_clues.append("第4至10名权重股出现有效异动")
+    if leader_monitor_ok:
+        observation_clues.append("核心成分群体转强")
+
     if trend_extension:
         final_label = "趋势延续"
         conclusion = "指数与核心成分整体已脱离低位启动区，更适合按趋势延续与风险管理观察。"
@@ -459,7 +481,10 @@ def build_topic(
         or leader_monitor_ok
     ):
         final_label = "观察中"
-        conclusion = "已出现长期低位、MA60、资金集中或权重龙头异动线索，但三个核心条件尚未同时闭环。"
+        conclusion = (
+            f"当前观察线索：{'、'.join(observation_clues)}；"
+            "其余核心条件尚未闭环。"
+        )
     else:
         final_label = "未启动"
         conclusion = "当前尚未形成低位结构、资金突破和权重龙头持续性的完整组合。"
