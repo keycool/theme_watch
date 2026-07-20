@@ -22,8 +22,10 @@ MAX_CORE_COUNT = 20
 LEADER_WATCH_COUNT = 10
 STRICT_LEADER_COUNT = 3
 BENCHMARK_CODE = "000300.SH"
-LOW_WARNING_DAYS = 40
-LOW_PASS_DAYS = 60
+LOW_BELOW_MA250_WARNING_DAYS = 40
+LOW_BELOW_MA250_PASS_DAYS = 60
+LOW_DEEP_10_WARNING_DAYS = 12
+LOW_DEEP_10_PASS_DAYS = 24
 FUNDING_CONFIRM_PERCENTILE = 0.80
 CROWDING_HOT_PERCENTILE = 0.95
 
@@ -278,6 +280,9 @@ def build_topic(
     latest = index_daily.iloc[-1]
     last_120 = index_daily.tail(120).copy()
     low_history = last_120.dropna(subset=["ma250"])
+    below_ma250_days = int(
+        (low_history["close"] < low_history["ma250"]).sum()
+    )
     below_ma250_10_days = int(
         (low_history["close"] <= low_history["ma250"] * 0.90).sum()
     )
@@ -285,10 +290,17 @@ def build_topic(
         (low_history["close"] <= low_history["ma250"] * 0.85).sum()
     )
     low_history_complete = len(low_history) == 120
-    structure_ok = low_history_complete and below_ma250_10_days >= LOW_PASS_DAYS
+    structure_ok = low_history_complete and (
+        below_ma250_days >= LOW_BELOW_MA250_PASS_DAYS
+        or below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS
+    )
     structure_warning = (
         low_history_complete
-        and LOW_WARNING_DAYS <= below_ma250_10_days < LOW_PASS_DAYS
+        and not structure_ok
+        and (
+            below_ma250_days >= LOW_BELOW_MA250_WARNING_DAYS
+            or below_ma250_10_days >= LOW_DEEP_10_WARNING_DAYS
+        )
     )
 
     aligned_relative = (
@@ -441,12 +453,25 @@ def build_topic(
         )
     )
 
+    low_position_clues: list[str] = []
+    if below_ma250_days >= LOW_BELOW_MA250_PASS_DAYS:
+        low_position_clues.append(f"年线下停留{below_ma250_days}/120日")
+    if below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS:
+        low_position_clues.append(f"深跌10%达{below_ma250_10_days}/120日")
+    if not structure_ok:
+        if below_ma250_days >= LOW_BELOW_MA250_WARNING_DAYS:
+            low_position_clues.append(f"年线下停留{below_ma250_days}/120日")
+        if below_ma250_10_days >= LOW_DEEP_10_WARNING_DAYS:
+            low_position_clues.append(f"深跌10%达{below_ma250_10_days}/120日")
+
     observation_clues: list[str] = []
     if structure_ok:
-        observation_clues.append("低位收敛条件已通过")
+        observation_clues.append(
+            f"低位条件已通过（{'、'.join(low_position_clues)}）"
+        )
     elif structure_warning:
         observation_clues.append(
-            f"低位停留达到预警线（{below_ma250_10_days}/120日）"
+            f"低位条件预警（{'、'.join(low_position_clues)}）"
         )
     if ma60_watch_ok:
         observation_clues.append(
@@ -549,6 +574,7 @@ def build_topic(
             "aboveMa250Count": ma250_count,
             "strictLeaderConfirmed": leader_confirmed,
             "lowWarning": structure_warning,
+            "belowMa250Days": below_ma250_days,
             "belowMa250TenDays": below_ma250_10_days,
             "belowMa250FifteenDays": below_ma250_15_days,
             "ma60Watch": ma60_watch_ok,
@@ -576,16 +602,23 @@ def build_topic(
                 "id": "structure",
                 "number": "01",
                 "title": "低位收敛",
-                "subtitle": "120日低位停留时间",
+                "subtitle": "长期停留或加速下跌",
                 "passed": structure_ok,
                 "warning": structure_warning,
                 "items": [
                     condition(
-                        "低位停留天数",
-                        structure_ok,
+                        "年线下停留",
+                        below_ma250_days >= LOW_BELOW_MA250_PASS_DAYS,
+                        f"{below_ma250_days}/120日",
+                        "过去120日中，收盘低于MA250的天数 ≥ 60",
+                        "达到40日先预警，达到60日可通过低位条件。",
+                    ),
+                    condition(
+                        "加速下跌记录",
+                        below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS,
                         f"{below_ma250_10_days}/120日",
-                        "过去120日中，收盘低于MA250至少10%的天数 ≥ 60",
-                        "达到40日先预警，达到60日正式通过。",
+                        "过去120日中，收盘低于MA250至少10%的天数 ≥ 24",
+                        "达到12日先预警，达到24日可通过低位条件；两条路径满足其一即可。",
                     ),
                     condition(
                         "深度低位记录",
@@ -969,6 +1002,7 @@ def main(end_date: str | None = None) -> None:
                 "fundingConfirmed": topic["summary"]["fundingConfirmed"],
                 "crowdingHot": topic["summary"]["crowdingHot"],
                 "lowWarning": topic["summary"]["lowWarning"],
+                "belowMa250Days": topic["summary"]["belowMa250Days"],
                 "belowMa250TenDays": topic["summary"]["belowMa250TenDays"],
                 "relativeExcess120": topic["summary"]["relativeExcess120"],
                 "coreCount": topic["summary"]["coreCount"],

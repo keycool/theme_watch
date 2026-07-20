@@ -84,6 +84,7 @@ type DashboardData = {
     fundingConfirmed?: boolean;
     crowdingHot?: boolean;
     lowWarning?: boolean;
+    belowMa250Days?: number;
     belowMa250TenDays?: number;
     relativeExcess120: number | null;
     topThreeNames: string[];
@@ -589,7 +590,8 @@ export default function TopicDashboard({
             <h2>启动条件必须串联闭环</h2>
           </div>
           <p>
-            低位天数达到40日先预警、60日正式通过；MA60只做提前提示。
+            低于年线达到60日，或深跌10%达到24日，低位条件即可通过；
+            40日与12日分别作为提前预警。MA60只做提前提示。
             连续2日站上MA250、资金分位持续达标与前三龙头持续性共同完成闭环。
           </p>
         </div>
