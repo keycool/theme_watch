@@ -215,6 +215,38 @@ jobs:
             push --force "https://github.com/${GITHUB_REPOSITORY}.git" \
             HEAD:refs/heads/etf-watch-data
 
+      - name: Pull Vercel production environment
+        if: steps.calculate.outputs.run_status == 'success'
+        working-directory: industry_insight_sandbox
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build Vercel deployment
+        if: steps.calculate.outputs.run_status == 'success'
+        working-directory: industry_insight_sandbox
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy observation site to Vercel
+        id: deploy_vercel
+        if: steps.calculate.outputs.run_status == 'success'
+        working-directory: industry_insight_sandbox
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        shell: bash
+        run: |
+          deployment_url="$(npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          printf 'deployment_url=%s\n' "$deployment_url" >> "$GITHUB_OUTPUT"
+          printf 'Vercel production deployment: %s\n' "$deployment_url"
+
       - name: Upload workflow logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -239,7 +271,7 @@ jobs:
           FEISHU_WEBHOOK_URL: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_URL }}
           FEISHU_WEBHOOK_SECRET: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_SECRET }}
           FEISHU_WEBHOOK_KEYWORD: theme_watch
-          ETF_WATCH_SITE_URL: https://etf-core-constituent-watch.keyhf78.chatgpt.site
+          ETF_WATCH_SITE_URL: ${{ steps.deploy_vercel.outputs.deployment_url }}
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           WORKFLOW_JOB_STATUS: ${{ job.status }}
         run: |
