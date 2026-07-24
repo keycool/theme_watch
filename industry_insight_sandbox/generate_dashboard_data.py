@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Callable
 
 import pandas as pd
-import tushare as ts
 
 
 ROOT = Path(__file__).resolve().parent
@@ -151,6 +150,184 @@ def limit_threshold(ts_code: str) -> float:
     return 9.5
 
 
+def evaluate_limit_event(
+    *,
+    code: str,
+    name: str,
+    rank: int,
+    market_trade_dates: list[str],
+    daily: pd.DataFrame,
+) -> dict | None:
+    event_window = 5 if rank <= STRICT_LEADER_COUNT else 3
+    window_dates = [str(value) for value in market_trade_dates[-event_window:]]
+    if not window_dates or daily.empty:
+        return None
+
+    eligible = normalize_daily(daily)
+    eligible = eligible[eligible["trade_date"] <= window_dates[-1]].copy()
+    if eligible.empty:
+        return None
+
+    component_latest_date = str(eligible.iloc[-1]["trade_date"])
+    data_fresh = component_latest_date == window_dates[-1]
+    aligned = pd.DataFrame({"trade_date": window_dates}).merge(
+        eligible[["trade_date", "close", "pct_chg"]],
+        on="trade_date",
+        how="left",
+    )
+    hits = aligned.index[
+        aligned["pct_chg"] >= limit_threshold(code)
+    ].tolist()
+    if not hits:
+        return None
+
+    hit_index = hits[-1]
+    hit_row = aligned.iloc[hit_index]
+    hit_close = float(hit_row["close"])
+    next_market_date = (
+        window_dates[hit_index + 1]
+        if hit_index + 1 < len(window_dates)
+        else None
+    )
+    next_day = (
+        aligned.iloc[hit_index + 1]
+        if next_market_date is not None
+        else None
+    )
+    continuation_known = bool(
+        next_day is not None and pd.notna(next_day["pct_chg"])
+    )
+    continuation_ok = bool(
+        continuation_known and float(next_day["pct_chg"]) > 0
+    )
+    latest_close = aligned.iloc[-1]["close"]
+    latest_retained = bool(
+        data_fresh
+        and pd.notna(latest_close)
+        and float(latest_close) >= hit_close
+    )
+
+    return {
+        "code": code,
+        "name": name,
+        "weightRank": rank,
+        "tier": "核心龙头" if rank <= STRICT_LEADER_COUNT else "权重异动",
+        "date": str(hit_row["trade_date"]),
+        "pct": as_float(hit_row["pct_chg"]),
+        "marketWindowStart": window_dates[0],
+        "marketWindowEnd": window_dates[-1],
+        "componentLatestDate": component_latest_date,
+        "dataFresh": data_fresh,
+        "nextMarketDate": next_market_date,
+        "continuationKnown": continuation_known,
+        "continuationPct": as_float(
+            None if not continuation_known else next_day["pct_chg"]
+        ),
+        "continuationOk": continuation_ok,
+        "latestRetained": latest_retained,
+        "qualified": data_fresh
+        and continuation_ok
+        and (latest_retained if rank <= STRICT_LEADER_COUNT else True),
+    }
+
+
+def evaluate_structure_state(index_daily: pd.DataFrame) -> dict:
+    last_120 = index_daily.tail(120).copy()
+    low_history = last_120.dropna(subset=["ma250"])
+    below_ma250_days = int(
+        (low_history["close"] < low_history["ma250"]).sum()
+    )
+    below_ma250_10_days = int(
+        (low_history["close"] <= low_history["ma250"] * 0.90).sum()
+    )
+    below_ma250_15_days = int(
+        (low_history["close"] <= low_history["ma250"] * 0.85).sum()
+    )
+    complete = len(low_history) == 120
+    passed = complete and (
+        below_ma250_days >= LOW_BELOW_MA250_PASS_DAYS
+        or below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS
+    )
+    warning = (
+        complete
+        and not passed
+        and (
+            below_ma250_days >= LOW_BELOW_MA250_WARNING_DAYS
+            or below_ma250_10_days >= LOW_DEEP_10_WARNING_DAYS
+        )
+    )
+    return {
+        "complete": complete,
+        "passed": passed,
+        "warning": warning,
+        "belowMa250Days": below_ma250_days,
+        "belowMa250TenDays": below_ma250_10_days,
+        "belowMa250FifteenDays": below_ma250_15_days,
+    }
+
+
+def evaluate_breakout_state(index_daily: pd.DataFrame) -> dict:
+    latest = index_daily.iloc[-1]
+    above_ma60 = bool(
+        pd.notna(latest["ma60"]) and latest["close"] >= latest["ma60"]
+    )
+    ma60_streak = 0
+    for _, row in index_daily.iloc[::-1].iterrows():
+        if pd.isna(row["ma60"]) or row["close"] < row["ma60"]:
+            break
+        ma60_streak += 1
+    previous = index_daily.iloc[-2] if len(index_daily) >= 2 else None
+    ma60_breakout_today = bool(
+        previous is not None
+        and pd.notna(previous["ma60"])
+        and previous["close"] < previous["ma60"]
+        and above_ma60
+    )
+    amount_ratio_latest = (
+        float(latest["amount_ratio20"])
+        if pd.notna(latest["amount_ratio20"])
+        else 0.0
+    )
+    hold_two_days_ok = bool(
+        len(index_daily) >= 2
+        and index_daily.tail(2)["ma250"].notna().all()
+        and (index_daily.tail(2)["close"] >= index_daily.tail(2)["ma250"]).all()
+    )
+    absorption_rank_latest = (
+        float(latest["absorption_rank_pct"])
+        if pd.notna(latest["absorption_rank_pct"])
+        else None
+    )
+    last_three_funding_ranks = index_daily.tail(3)["absorption_rank_pct"]
+    funding_confirmed = bool(
+        len(last_three_funding_ranks) == 3
+        and last_three_funding_ranks.notna().all()
+        and (last_three_funding_ranks >= FUNDING_CONFIRM_PERCENTILE).all()
+    )
+    crowding_hot = bool(
+        absorption_rank_latest is not None
+        and absorption_rank_latest >= CROWDING_HOT_PERCENTILE
+    )
+    crowding_overheated = bool(
+        len(last_three_funding_ranks) == 3
+        and last_three_funding_ranks.notna().all()
+        and (last_three_funding_ranks >= CROWDING_HOT_PERCENTILE).all()
+    )
+    return {
+        "ma60Watch": above_ma60,
+        "ma60Streak": ma60_streak,
+        "ma60BreakoutToday": ma60_breakout_today,
+        "amountRatioLatest": amount_ratio_latest,
+        "holdTwoDays": hold_two_days_ok,
+        "absorptionRankLatest": absorption_rank_latest,
+        "fundingConfirmed": funding_confirmed,
+        "crowdingHot": crowding_hot,
+        "crowdingOverheated": crowding_overheated,
+        "emerged": hold_two_days_ok or funding_confirmed,
+        "confirmed": hold_two_days_ok and funding_confirmed,
+    }
+
+
 def condition(title: str, passed: bool, value: str, rule: str, note: str) -> dict:
     return {
         "title": title,
@@ -199,10 +376,14 @@ def build_topic(
         daily = stock_histories.get(code)
         if daily is None or daily.empty:
             continue
-        daily = daily.copy()
+        daily = daily[daily["trade_date"] <= latest_date].copy()
+        if daily.empty:
+            continue
         daily["ma60"] = daily["close"].rolling(60).mean()
         daily["ma250"] = daily["close"].rolling(250).mean()
         latest = daily.iloc[-1]
+        component_latest_date = str(latest["trade_date"])
+        data_fresh = component_latest_date == latest_date
         ret_5d = (
             float(latest["close"] / daily.iloc[-6]["close"] - 1)
             if len(daily) >= 6
@@ -226,14 +407,20 @@ def build_topic(
                 "industry": str(industry_map.get(code, "-")),
                 "market": str(market_map.get(code, "-")),
                 "weight": as_float(weight),
+                "latestDate": component_latest_date,
+                "dataFresh": data_fresh,
                 "pct1d": as_float(latest["pct_chg"]),
                 "ret5d": as_float(None if ret_5d is None else ret_5d * 100),
                 "ret20d": as_float(None if ret_20d is None else ret_20d * 100),
                 "aboveMa60": bool(
-                    pd.notna(latest["ma60"]) and latest["close"] >= latest["ma60"]
+                    data_fresh
+                    and pd.notna(latest["ma60"])
+                    and latest["close"] >= latest["ma60"]
                 ),
                 "aboveMa250": bool(
-                    pd.notna(latest["ma250"]) and latest["close"] >= latest["ma250"]
+                    data_fresh
+                    and pd.notna(latest["ma250"])
+                    and latest["close"] >= latest["ma250"]
                 ),
                 "amountRatio20": as_float(
                     None
@@ -279,29 +466,12 @@ def build_topic(
     )
     latest = index_daily.iloc[-1]
     last_120 = index_daily.tail(120).copy()
-    low_history = last_120.dropna(subset=["ma250"])
-    below_ma250_days = int(
-        (low_history["close"] < low_history["ma250"]).sum()
-    )
-    below_ma250_10_days = int(
-        (low_history["close"] <= low_history["ma250"] * 0.90).sum()
-    )
-    below_ma250_15_days = int(
-        (low_history["close"] <= low_history["ma250"] * 0.85).sum()
-    )
-    low_history_complete = len(low_history) == 120
-    structure_ok = low_history_complete and (
-        below_ma250_days >= LOW_BELOW_MA250_PASS_DAYS
-        or below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS
-    )
-    structure_warning = (
-        low_history_complete
-        and not structure_ok
-        and (
-            below_ma250_days >= LOW_BELOW_MA250_WARNING_DAYS
-            or below_ma250_10_days >= LOW_DEEP_10_WARNING_DAYS
-        )
-    )
+    structure_state = evaluate_structure_state(index_daily)
+    below_ma250_days = structure_state["belowMa250Days"]
+    below_ma250_10_days = structure_state["belowMa250TenDays"]
+    below_ma250_15_days = structure_state["belowMa250FifteenDays"]
+    structure_ok = structure_state["passed"]
+    structure_warning = structure_state["warning"]
 
     aligned_relative = (
         index_daily[["trade_date", "close"]]
@@ -327,98 +497,44 @@ def build_topic(
     )
     relative_excess = theme_ret_120 - benchmark_ret_120
 
-    above_ma60 = bool(
-        pd.notna(latest["ma60"]) and latest["close"] >= latest["ma60"]
-    )
-    ma60_streak = 0
-    for _, row in index_daily.iloc[::-1].iterrows():
-        if pd.isna(row["ma60"]) or row["close"] < row["ma60"]:
-            break
-        ma60_streak += 1
-    ma60_watch_ok = above_ma60
-    previous = index_daily.iloc[-2] if len(index_daily) >= 2 else None
-    ma60_breakout_today = bool(
-        previous is not None
-        and pd.notna(previous["ma60"])
-        and previous["close"] < previous["ma60"]
-        and above_ma60
-    )
-
-    amount_ratio_latest = (
-        float(latest["amount_ratio20"])
-        if pd.notna(latest["amount_ratio20"])
-        else 0.0
-    )
-    hold_two_days_ok = bool(
-        index_daily.tail(2)["ma250"].notna().all()
-        and (index_daily.tail(2)["close"] >= index_daily.tail(2)["ma250"]).all()
-    )
-    absorption_rank_latest = (
-        float(latest["absorption_rank_pct"])
-        if pd.notna(latest["absorption_rank_pct"])
-        else None
-    )
-    last_three_funding_ranks = index_daily.tail(3)["absorption_rank_pct"]
-    funding_confirmed = bool(
-        last_three_funding_ranks.notna().all()
-        and (last_three_funding_ranks >= FUNDING_CONFIRM_PERCENTILE).all()
-    )
-    crowding_hot = bool(
-        absorption_rank_latest is not None
-        and absorption_rank_latest >= CROWDING_HOT_PERCENTILE
-    )
-    crowding_overheated = bool(
-        last_three_funding_ranks.notna().all()
-        and (last_three_funding_ranks >= CROWDING_HOT_PERCENTILE).all()
-    )
-    breakout_emerged = hold_two_days_ok or funding_confirmed
-    breakout_confirmed = hold_two_days_ok and funding_confirmed
+    breakout_state = evaluate_breakout_state(index_daily)
+    ma60_watch_ok = breakout_state["ma60Watch"]
+    ma60_streak = breakout_state["ma60Streak"]
+    ma60_breakout_today = breakout_state["ma60BreakoutToday"]
+    amount_ratio_latest = breakout_state["amountRatioLatest"]
+    hold_two_days_ok = breakout_state["holdTwoDays"]
+    absorption_rank_latest = breakout_state["absorptionRankLatest"]
+    funding_confirmed = breakout_state["fundingConfirmed"]
+    crowding_hot = breakout_state["crowdingHot"]
+    crowding_overheated = breakout_state["crowdingOverheated"]
+    breakout_emerged = breakout_state["emerged"]
+    breakout_confirmed = breakout_state["confirmed"]
 
     top_ten_weights = weights.head(LEADER_WATCH_COUNT).copy()
     top_ten_codes = top_ten_weights["con_code"].astype(str).tolist()
     top_three_codes = top_ten_codes[:STRICT_LEADER_COUNT]
     rank_map = {code: rank for rank, code in enumerate(top_ten_codes, start=1)}
+    market_trade_dates = index_daily["trade_date"].astype(str).tolist()
     limit_events: list[dict] = []
     for code in top_ten_codes:
         daily = stock_histories.get(code)
         if daily is None or daily.empty:
             continue
         rank = rank_map[code]
-        event_window = 5 if rank <= STRICT_LEADER_COUNT else 3
-        recent = daily.tail(event_window).reset_index(drop=True)
-        hits = recent.index[recent["pct_chg"] >= limit_threshold(code)].tolist()
-        if not hits:
-            continue
-        hit_index = hits[-1]
-        hit_close = float(recent.iloc[hit_index]["close"])
-        next_day = recent.iloc[hit_index + 1] if hit_index + 1 < len(recent) else None
-        latest_retained = float(daily.iloc[-1]["close"]) >= hit_close
-        continuation_ok = bool(
-            next_day is not None and float(next_day["pct_chg"]) > 0
+        event = evaluate_limit_event(
+            code=code,
+            name=str(name_map.get(code, code)),
+            rank=rank,
+            market_trade_dates=market_trade_dates,
+            daily=daily,
         )
-        limit_events.append(
-            {
-                "code": code,
-                "name": str(name_map.get(code, code)),
-                "weightRank": rank,
-                "tier": "核心龙头" if rank <= STRICT_LEADER_COUNT else "权重异动",
-                "date": str(recent.iloc[hit_index]["trade_date"]),
-                "pct": as_float(recent.iloc[hit_index]["pct_chg"]),
-                "continuationKnown": next_day is not None,
-                "continuationPct": as_float(
-                    None if next_day is None else next_day["pct_chg"]
-                ),
-                "continuationOk": continuation_ok,
-                "latestRetained": latest_retained,
-                "qualified": continuation_ok
-                and (latest_retained if rank <= STRICT_LEADER_COUNT else True),
-            }
-        )
+        if event is not None:
+            limit_events.append(event)
 
     strict_limit_events = [
         event
         for event in limit_events
-        if event["weightRank"] <= STRICT_LEADER_COUNT
+        if event["weightRank"] <= STRICT_LEADER_COUNT and event["dataFresh"]
     ]
     strict_limit_ok = bool(strict_limit_events)
     strict_continuation_ok = any(event["qualified"] for event in strict_limit_events)
@@ -429,8 +545,11 @@ def build_topic(
     top_ten_limit_alert = strict_limit_ok or secondary_limit_alert
     active_count = sum(
         bool(
-            (row["pct1d"] is not None and row["pct1d"] >= 5)
-            or (row["ret5d"] is not None and row["ret5d"] >= 5)
+            row["dataFresh"]
+            and (
+                (row["pct1d"] is not None and row["pct1d"] >= 5)
+                or (row["ret5d"] is not None and row["ret5d"] >= 5)
+            )
         )
         for row in component_rows
     )
@@ -772,6 +891,8 @@ def build_topic(
 
 
 def main(end_date: str | None = None) -> None:
+    import tushare as ts
+
     token = ts.get_token()
     if not token:
         raise RuntimeError("Tushare token is not configured.")

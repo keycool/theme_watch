@@ -137,6 +137,10 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
   ]);
 
   assert.match(generator, /LEADER_WATCH_COUNT = 10/);
+  assert.match(generator, /market_trade_dates\[-event_window:\]/);
+  assert.match(generator, /component_latest_date == window_dates\[-1\]/);
+  assert.match(generator, /next_market_date = \(/);
+  assert.match(generator, /continuation_known = bool\(/);
   assert.match(generator, /LOW_BELOW_MA250_WARNING_DAYS = 40/);
   assert.match(generator, /LOW_BELOW_MA250_PASS_DAYS = 60/);
   assert.match(generator, /LOW_DEEP_10_WARNING_DAYS = 12/);
@@ -163,6 +167,12 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
   assert.match(dashboard, /低于年线达到60日，或深跌10%达到24日/);
   assert.match(dashboard, /40日与12日分别作为提前预警/);
   assert.match(dashboard, /资金占比在过去252个交易日的历史分位/);
+  assert.match(
+    dashboard,
+    /跟踪指数成交额占全A成交额的过去252日历史分位验证增量资金/,
+  );
+  assert.doesNotMatch(dashboard, /合计成交额验证增量资金/);
+  assert.match(dashboard, /成分股数据未更新到专题截止日/);
   assert.match(dashboard, /前三权重近5日、其余前十大权重近3日没有有效涨停事件/);
 });
 
@@ -188,4 +198,21 @@ test("keeps executable site code self-contained inside the sandbox", async () =>
   await assert.rejects(
     access(new URL("app/_sites-preview/SkeletonPreview.tsx", root)),
   );
+});
+
+test("keeps production publication on main and after Vercel succeeds", async () => {
+  const workflow = await readFile(
+    new URL("../.github/workflows/etf-constituent-daily.yml", root),
+    "utf8",
+  );
+
+  assert.match(workflow, /push:\s+branches:\s+- main/);
+  assert.doesNotMatch(workflow, /codex\/\*\*/);
+
+  const vercelDeployIndex = workflow.indexOf(
+    "- name: Deploy observation site to Vercel",
+  );
+  const dataPublishIndex = workflow.indexOf("- name: Publish live webpage data");
+  assert.ok(vercelDeployIndex >= 0);
+  assert.ok(dataPublishIndex > vercelDeployIndex);
 });

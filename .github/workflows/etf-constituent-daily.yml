@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - "codex/**"
     paths:
       - ".github/workflows/etf-constituent-daily.yml"
       - "etf_constituent_feishu_webhook.py"
@@ -193,28 +192,6 @@ jobs:
         working-directory: industry_insight_sandbox
         run: npm test
 
-      - name: Publish live webpage data
-        if: steps.calculate.outputs.run_status == 'success'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          publish_dir="$(mktemp -d)"
-          cp industry_insight_sandbox/data/overview.json "$publish_dir/overview.json"
-          cp industry_insight_sandbox/data/all_topics.json "$publish_dir/all_topics.json"
-          cp -R industry_insight_sandbox/data/topics "$publish_dir/topics"
-          cd "$publish_dir"
-          git init
-          git checkout -b etf-watch-data
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "data: update ETF watch for ${WORKFLOW_END_DATE:-latest}"
-          auth_header="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)"
-          git -c "http.extraheader=AUTHORIZATION: basic $auth_header" \
-            push --force "https://github.com/${GITHUB_REPOSITORY}.git" \
-            HEAD:refs/heads/etf-watch-data
-
       - name: Pull Vercel production environment
         if: steps.calculate.outputs.run_status == 'success'
         env:
@@ -238,6 +215,28 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+      - name: Publish live webpage data
+        if: steps.calculate.outputs.run_status == 'success'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          publish_dir="$(mktemp -d)"
+          cp industry_insight_sandbox/data/overview.json "$publish_dir/overview.json"
+          cp industry_insight_sandbox/data/all_topics.json "$publish_dir/all_topics.json"
+          cp -R industry_insight_sandbox/data/topics "$publish_dir/topics"
+          cd "$publish_dir"
+          git init
+          git checkout -b etf-watch-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "data: update ETF watch for ${WORKFLOW_END_DATE:-latest}"
+          auth_header="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)"
+          git -c "http.extraheader=AUTHORIZATION: basic $auth_header" \
+            push --force "https://github.com/${GITHUB_REPOSITORY}.git" \
+            HEAD:refs/heads/etf-watch-data
 
       - name: Upload workflow logs
         if: always()

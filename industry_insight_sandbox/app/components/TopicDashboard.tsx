@@ -20,6 +20,8 @@ type ComponentRow = {
   industry: string;
   market: string;
   weight: number | null;
+  latestDate?: string;
+  dataFresh?: boolean;
   pct1d: number | null;
   ret5d: number | null;
   ret20d: number | null;
@@ -109,6 +111,11 @@ type DashboardData = {
     tier?: string;
     date: string;
     pct: number | null;
+    marketWindowStart?: string;
+    marketWindowEnd?: string;
+    componentLatestDate?: string;
+    dataFresh?: boolean;
+    nextMarketDate?: string | null;
     continuationKnown: boolean;
     continuationPct: number | null;
     continuationOk: boolean;
@@ -686,6 +693,7 @@ export default function TopicDashboard({
               {dashboardData.limitEvents.map((event) => {
                 const rank = event.weightRank ?? 1;
                 const isStrictLeader = rank <= 3;
+                const eventFresh = event.dataFresh !== false;
                 return (
                 <div className="event-card" key={`${event.code}-${event.date}`}>
                   <div className="event-top">
@@ -704,14 +712,24 @@ export default function TopicDashboard({
                     <i />
                     <span
                       className={`event-node ${
-                        event.continuationOk ? "is-pass" : "is-fail"
+                        eventFresh && event.continuationOk
+                          ? "is-pass"
+                          : "is-fail"
                       }`}
                     >
-                      次日 {formatPercent(event.continuationPct, 2)}
+                      {eventFresh
+                        ? `次日 ${formatPercent(event.continuationPct, 2)}`
+                        : `数据截至 ${
+                            event.componentLatestDate
+                              ? formatDate(event.componentLatestDate)
+                              : "—"
+                          }`}
                     </span>
                   </div>
                   <p>
-                    {isStrictLeader
+                    {!eventFresh
+                      ? "成分股数据未更新到专题截止日，本事件仅保留记录，不参与龙头确认。"
+                      : isStrictLeader
                       ? event.continuationOk
                         ? event.latestRetained
                           ? "前三权重龙头涨停后继续收红，且最新收盘未回吐，严格持续性通过。"
@@ -857,8 +875,8 @@ export default function TopicDashboard({
           </article>
           <article>
             <span>资金验证对象</span>
-            <h3>核心成分股篮子</h3>
-            <p>优先累计覆盖指数权重60%，最多取20只，合计成交额验证增量资金。</p>
+            <h3>跟踪指数 / 全A市场</h3>
+            <p>使用跟踪指数成交额占全A成交额的过去252日历史分位验证增量资金。</p>
           </article>
           <article>
             <span>龙头确认对象</span>
