@@ -612,7 +612,7 @@ def build_topic(
         conclusion = "指数与核心成分整体已脱离低位启动区，更适合按趋势延续与风险管理观察。"
     elif structure_ok and breakout_confirmed and leader_confirmed:
         final_label = "启动确认"
-        conclusion = "低位结构、核心成分成交额、年线突破与权重龙头持续性已经闭环。"
+        conclusion = "低位结构、跟踪指数成交额占全A成交额分位、年线突破与权重龙头持续性已经闭环。"
     elif structure_ok and breakout_emerged and leader_monitor_ok:
         final_label = "接近启动"
         conclusion = "指数突破与核心成分开始共振，但站稳或龙头严格确认仍不完整。"

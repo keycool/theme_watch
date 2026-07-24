@@ -63,6 +63,15 @@ test("the formal target list and generated datasets stay aligned", async () => {
       topic.components.length >= 3,
       `${topic.target.code} has too few core components`,
     );
+    for (const component of topic.components) {
+      assert.equal(typeof component.latestDate, "string");
+      assert.equal(typeof component.dataFresh, "boolean");
+      assert.ok(component.latestDate <= topic.meta.latestDate);
+    }
+    for (const event of topic.limitEvents) {
+      assert.equal(typeof event.dataFresh, "boolean");
+      if (!event.dataFresh) assert.equal(event.qualified, false);
+    }
     assert.equal(topic.stages.length, 3);
     assert.deepEqual(
       topic.stages.map((stage) => stage.title),
@@ -149,6 +158,10 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
   assert.match(generator, /CROWDING_HOT_PERCENTILE = 0\.95/);
   assert.match(
     generator,
+    /跟踪指数成交额占全A成交额分位、年线突破与权重龙头持续性已经闭环/,
+  );
+  assert.match(
+    generator,
     /below_ma250_days >= LOW_BELOW_MA250_PASS_DAYS[\s\S]*or below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS/,
   );
   assert.match(
@@ -173,6 +186,11 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
   );
   assert.doesNotMatch(dashboard, /合计成交额验证增量资金/);
   assert.match(dashboard, /成分股数据未更新到专题截止日/);
+  assert.match(
+    dashboard,
+    /aria-label="跟踪指数收盘价、MA60、MA250及跟踪指数成交额占全A成交额历史分位图"/,
+  );
+  assert.doesNotMatch(dashboard, /核心成分成交额图/);
   assert.match(dashboard, /前三权重近5日、其余前十大权重近3日没有有效涨停事件/);
 });
 
@@ -190,6 +208,10 @@ test("keeps executable site code self-contained inside the sandbox", async () =>
   const executable = contents.join("\n");
 
   assert.match(contents[1], /lang="zh-CN"/);
+  assert.match(contents[0], /import Link from "next\/link"/);
+  assert.match(contents[2], /import Link from "next\/link"/);
+  assert.doesNotMatch(contents[0], /<a\s/);
+  assert.doesNotMatch(contents[2], /<a\s/);
   assert.doesNotMatch(
     executable,
     /(?:import|from|require|spawn|exec|run_path)[^\n]*(?:run_theme_watch|run_sw_l2|\.cache_scan_v2|reports[\\/]theme_watch)/i,
@@ -208,6 +230,13 @@ test("keeps production publication on main and after Vercel succeeds", async () 
 
   assert.match(workflow, /push:\s+branches:\s+- main/);
   assert.doesNotMatch(workflow, /codex\/\*\*/);
+  assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
+  assert.match(workflow, /group: etf-constituent-production/);
+  assert.match(workflow, /cancel-in-progress: false/);
+  assert.match(workflow, /allow_rollback:/);
+  assert.match(workflow, /rollback_confirmation:/);
+  assert.match(workflow, /Guard manually requested production date/);
+  assert.match(workflow, /Guard generated production date/);
 
   const vercelDeployIndex = workflow.indexOf(
     "- name: Deploy observation site to Vercel",

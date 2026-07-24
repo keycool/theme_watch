@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 
@@ -318,7 +319,7 @@ function PriceChart({ rows }: { rows: ChartRow[] }) {
     <canvas
       ref={canvasRef}
       className="chart-canvas chart-canvas-large"
-      aria-label="跟踪指数收盘价、MA60、MA250和核心成分成交额图"
+      aria-label="跟踪指数收盘价、MA60、MA250及跟踪指数成交额占全A成交额历史分位图"
     />
   );
 }
@@ -517,7 +518,7 @@ export default function TopicDashboard({
   return (
     <main>
       <header className="topbar">
-        <a className="brand-lockup" href="/">
+        <Link className="brand-lockup" href="/">
           <span className="brand-mark" aria-hidden="true">
             IW
           </span>
@@ -525,11 +526,11 @@ export default function TopicDashboard({
             <strong>Industry Watch Lab</strong>
             <small>ETF constituent sandbox</small>
           </div>
-        </a>
+        </Link>
         <div className="topbar-actions">
-          <a className="back-link" href="/">
+          <Link className="back-link" href="/">
             ← 返回全部专题
-          </a>
+          </Link>
           <div className="sandbox-badge">
             <span />
             封闭沙盒 · 不接入生产

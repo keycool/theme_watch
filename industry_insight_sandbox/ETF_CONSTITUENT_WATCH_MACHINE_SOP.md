@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "1.2.1"
+  version: "1.3.0"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -37,6 +37,7 @@ authority:
   local_orchestrator: "run_etf_constituent_workflow.py"
   ci_orchestrator: ".github/workflows/etf-constituent-daily.yml"
   scheduled_readiness_checker: "industry_insight_sandbox/check_tushare_readiness.py"
+  production_date_guard: "industry_insight_sandbox/guard_production_date.py"
   rendered_page_tests: "industry_insight_sandbox/tests/rendered-html.test.mjs"
   overview_sorting: "industry_insight_sandbox/app/page.tsx"
   webhook_sender: "etf_constituent_feishu_webhook.py"
@@ -351,6 +352,13 @@ execution:
           allow_non_trade_day:
             type: "boolean"
             default: false
+          allow_rollback:
+            type: "boolean"
+            default: false
+          rollback_confirmation:
+            type: "string"
+            required_when: "allow_rollback == true AND end_date < live_latest_date"
+            exact_formula: "'ROLLBACK ' + end_date"
       push:
         branches:
           - "main"
@@ -399,16 +407,30 @@ execution:
           - 2
           - 4
         throttle_seconds_between_symbol_queries: 0.35
-      calculate_job_condition: "all_probes_ready"
+      calculate_job_condition: "github.ref == 'refs/heads/main' AND all_probes_ready"
+    production_concurrency:
+      group: "etf-constituent-production"
+      cancel_in_progress: false
+      maximum_running: 1
+    production_date_monotonicity:
+      live_source: "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/overview.json"
+      live_date_formula: "the single latestDate shared by all live overview targets"
+      normal_publish_condition: "candidate_date >= live_date"
+      manual_preflight_applies_when: "workflow_dispatch AND end_date is not empty"
+      generated_output_guard_applies_before: "vercel_pull"
+      rollback_condition: "allow_rollback == true AND rollback_confirmation == 'ROLLBACK ' + candidate_date"
+      implicit_rollback_allowed: false
     calculate_and_publish_steps_in_order:
       - "checkout"
       - "setup_python_3_11"
+      - "guard_manual_requested_date_if_explicit"
       - "setup_node_22"
       - "restore_market_data_cache"
       - "install_python_dependencies"
       - "npm_ci"
       - "run_etf_constituent_workflow"
       - "npm_test_if_calculation_success"
+      - "guard_generated_production_date_if_calculation_success"
       - "vercel_pull_production_if_calculation_success"
       - "vercel_build_production_if_calculation_success"
       - "vercel_deploy_production_if_calculation_success"
@@ -449,17 +471,28 @@ validation:
     minimum_chart_rows_per_topic: 250
     minimum_core_components_per_topic: 3
     core_count_equals_component_rows: true
+    individual_topic_equals_aggregate_topic: true
+    every_component_has_latest_date: true
+    every_component_has_boolean_data_fresh: true
+    component_latest_date_not_after_topic_as_of: true
+    data_fresh_formula: "component.latestDate == topic.meta.latestDate"
+    stale_component_can_count_as_active: false
+    stale_component_can_count_as_above_ma60: false
+    stale_component_can_count_as_above_ma250: false
+    stale_component_can_qualify_leader_event: false
+    startup_confirmation_requires_fresh_strict_leader: true
     required_stage_titles_in_order:
       - "低位收敛"
       - "带量突破年线"
       - "权重龙头确认"
   site_test:
     command: "cd industry_insight_sandbox && npm test"
-    expected_python_behavior_test_count: 19
+    expected_python_behavior_test_count: 28
     expected_node_render_test_count: 8
     behavior_test_files:
       - "industry_insight_sandbox/tests/test_strategy_behavior.py"
       - "industry_insight_sandbox/tests/test_readiness_behavior.py"
+      - "industry_insight_sandbox/tests/test_publication_guards.py"
     required_behavior_cases:
       - "stale_component_own_tail_event_excluded"
       - "stale_latest_component_unqualified"
@@ -480,6 +513,15 @@ validation:
       - "readiness_reports_missing_tracking_metadata"
       - "readiness_rejects_unsupported_target_kind"
       - "readiness_requires_target_date_and_minimum_rows"
+      - "production_date_extracts_single_live_date"
+      - "production_date_blocks_implicit_rollback"
+      - "production_date_requires_exact_human_confirmation"
+      - "production_date_allows_confirmed_rollback"
+      - "production_date_allows_same_or_newer_date"
+      - "freshness_accepts_excluded_stale_component"
+      - "freshness_missing_fields_fail_validation"
+      - "freshness_future_component_date_fails_validation"
+      - "stale_component_cannot_create_startup_confirmation"
   vercel_build_test:
     command: "cd industry_insight_sandbox && npm run build:vercel"
   required_outputs:
@@ -591,13 +633,15 @@ secrets:
 
 failure_contract:
   stop_publication_when:
+    - "github_ref_is_not_refs_heads_main"
+    - "candidate_date_older_than_live_without_confirmed_rollback"
     - "generator_exit_code_nonzero"
     - "generated_data_validation_failed"
     - "npm_test_failed"
     - "vercel_pull_failed"
     - "vercel_build_failed"
     - "vercel_deploy_failed"
-  publication_order_invariant: "vercel_pull_and_build_and_deploy_success_before_etf_watch_data_force_push"
+  publication_order_invariant: "main_ref_and_date_guard_and_vercel_pull_and_build_and_deploy_success_before_etf_watch_data_force_push"
   preserve_and_upload_logs_on_failure: true
   send_feishu_on_failure: true
   save_cache_on_failure: true
@@ -605,6 +649,9 @@ failure_contract:
     missing_tushare_token: "TUSHARE_TOKEN_MISSING"
     non_trade_day: "SKIPPED_NON_TRADE_DAY"
     scheduled_data_incomplete: "TUSHARE_DAILY_DATA_NOT_READY"
+    non_main_production_ref: "PRODUCTION_REF_NOT_MAIN"
+    production_date_rollback_blocked: "PRODUCTION_DATE_ROLLBACK_BLOCKED"
+    rollback_confirmation_invalid: "ROLLBACK_CONFIRMATION_INVALID"
     target_count_mismatch: "TARGET_UNIVERSE_MISMATCH"
     missing_target_data: "TARGET_DATA_INCOMPLETE"
     missing_component_data: "NO_USABLE_CORE_COMPONENTS"

@@ -10,8 +10,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import tushare as ts
-
 
 ROOT = Path(__file__).resolve().parent
 SANDBOX_DIR = ROOT / "industry_insight_sandbox"
@@ -55,6 +53,8 @@ def _validate_date(value: str) -> str:
 
 
 def _is_trade_day(end_date: str) -> bool:
+    import tushare as ts
+
     token = ts.get_token()
     if not token:
         raise RuntimeError("Tushare token is not configured.")
@@ -96,6 +96,135 @@ def _decode_output(value: bytes) -> str:
         except UnicodeDecodeError:
             continue
     return value.decode("utf-8", errors="replace")
+
+
+def _validate_topic_freshness(topic: dict[str, Any]) -> list[str]:
+    issues: list[str] = []
+    code = topic.get("target", {}).get("code", "unknown")
+    as_of = topic.get("meta", {}).get("latestDate")
+    if not isinstance(as_of, str) or len(as_of) != 8 or not as_of.isdigit():
+        return [f"{code}: topic as_of/latestDate is invalid."]
+
+    components = topic.get("components", [])
+    component_freshness: dict[str, bool] = {}
+    fresh_active_count = 0
+    fresh_ma60_count = 0
+    fresh_ma250_count = 0
+
+    for component in components:
+        component_code = str(component.get("code", "unknown"))
+        if "latestDate" not in component:
+            issues.append(f"{code}/{component_code}: component latestDate is missing.")
+            continue
+        latest_date = component.get("latestDate")
+        if (
+            not isinstance(latest_date, str)
+            or len(latest_date) != 8
+            or not latest_date.isdigit()
+        ):
+            issues.append(f"{code}/{component_code}: component latestDate is invalid.")
+            continue
+        if latest_date > as_of:
+            issues.append(
+                f"{code}/{component_code}: component latestDate {latest_date} "
+                f"is later than topic as_of {as_of}."
+            )
+
+        if "dataFresh" not in component:
+            issues.append(f"{code}/{component_code}: component dataFresh is missing.")
+            continue
+        data_fresh = component.get("dataFresh")
+        if not isinstance(data_fresh, bool):
+            issues.append(
+                f"{code}/{component_code}: component dataFresh must be boolean."
+            )
+            continue
+        component_freshness[component_code] = data_fresh
+        if data_fresh != (latest_date == as_of):
+            issues.append(
+                f"{code}/{component_code}: dataFresh is inconsistent with latestDate."
+            )
+
+        if not data_fresh:
+            if component.get("aboveMa60") is True:
+                issues.append(
+                    f"{code}/{component_code}: stale component contributes to MA60 group strength."
+                )
+            if component.get("aboveMa250") is True:
+                issues.append(
+                    f"{code}/{component_code}: stale component contributes to MA250 group strength."
+                )
+            continue
+
+        pct_1d = component.get("pct1d")
+        ret_5d = component.get("ret5d")
+        if (
+            isinstance(pct_1d, (int, float)) and pct_1d >= 5
+        ) or (
+            isinstance(ret_5d, (int, float)) and ret_5d >= 5
+        ):
+            fresh_active_count += 1
+        fresh_ma60_count += int(component.get("aboveMa60") is True)
+        fresh_ma250_count += int(component.get("aboveMa250") is True)
+
+    summary = topic.get("summary", {})
+    if summary.get("activeCount") != fresh_active_count:
+        issues.append(f"{code}: activeCount includes stale or inconsistent components.")
+    if summary.get("aboveMa60Count") != fresh_ma60_count:
+        issues.append(f"{code}: aboveMa60Count includes stale or inconsistent components.")
+    if summary.get("aboveMa250Count") != fresh_ma250_count:
+        issues.append(f"{code}: aboveMa250Count includes stale or inconsistent components.")
+
+    strict_leader_confirmed = False
+    for event in topic.get("limitEvents", []):
+        event_code = str(event.get("code", "unknown"))
+        event_fresh = event.get("dataFresh")
+        if not isinstance(event_fresh, bool):
+            issues.append(f"{code}/{event_code}: leader event dataFresh must be boolean.")
+            continue
+        component_fresh = component_freshness.get(event_code)
+        if component_fresh is not None and event_fresh != component_fresh:
+            issues.append(
+                f"{code}/{event_code}: leader event freshness disagrees with component."
+            )
+        if not event_fresh and event.get("qualified") is True:
+            issues.append(f"{code}/{event_code}: stale component qualifies as leader.")
+        if (
+            event_fresh
+            and event.get("qualified") is True
+            and isinstance(event.get("weightRank"), int)
+            and event["weightRank"] <= 3
+        ):
+            strict_leader_confirmed = True
+
+    if summary.get("strictLeaderConfirmed") is not strict_leader_confirmed:
+        issues.append(f"{code}: strictLeaderConfirmed is inconsistent with fresh events.")
+
+    group_monitor_expected = bool(
+        components
+        and fresh_active_count >= 1
+        and fresh_ma60_count / len(components) >= 0.5
+    )
+    leader_stage = next(
+        (stage for stage in topic.get("stages", []) if stage.get("id") == "leader"),
+        None,
+    )
+    group_item = next(
+        (
+            item
+            for item in (leader_stage or {}).get("items", [])
+            if item.get("title") == "核心群体转强"
+        ),
+        None,
+    )
+    if group_item is None:
+        issues.append(f"{code}: leader group-strength item is missing.")
+    elif group_item.get("passed") is not group_monitor_expected:
+        issues.append(f"{code}: group-strength result includes stale components.")
+
+    if summary.get("label") == "启动确认" and not strict_leader_confirmed:
+        issues.append(f"{code}: startup confirmation lacks a fresh strict leader.")
+    return issues
 
 
 def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
@@ -145,6 +274,8 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
         )
 
     expected_stage_titles = ["低位收敛", "带量突破年线", "权重龙头确认"]
+    fresh_component_count = 0
+    stale_component_count = 0
     for topic in topics:
         target = topic.get("target", {})
         code = target.get("code", "unknown")
@@ -161,9 +292,21 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
             issues.append(f"{code}: fewer than 3 core components.")
         if topic.get("summary", {}).get("coreCount") != len(components):
             issues.append(f"{code}: coreCount does not match component rows.")
+        issues.extend(_validate_topic_freshness(topic))
+        fresh_component_count += sum(
+            component.get("dataFresh") is True for component in components
+        )
+        stale_component_count += sum(
+            component.get("dataFresh") is False for component in components
+        )
         stage_titles = [stage.get("title") for stage in topic.get("stages", [])]
         if stage_titles != expected_stage_titles:
             issues.append(f"{code}: three-stage observation chain is incomplete.")
+        slug = target.get("slug")
+        if slug:
+            individual_path = TOPIC_DIR / f"{slug}.json"
+            if individual_path.exists() and _read_json(individual_path) != topic:
+                issues.append(f"{code}: individual topic JSON differs from aggregate.")
 
     labels = Counter(
         item.get("label", "unknown") for item in overview.get("targets", [])
@@ -179,6 +322,8 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
         "weight_dates": weight_dates,
         "labels": dict(sorted(labels.items())),
         "topic_file_count": len(topic_files),
+        "fresh_component_count": fresh_component_count,
+        "stale_component_count": stale_component_count,
     }
     return issues, metrics
 

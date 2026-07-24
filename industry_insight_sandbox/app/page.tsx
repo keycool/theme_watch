@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import bundledOverviewData from "../data/overview.json";
 
@@ -39,7 +40,7 @@ function labelClass(label: string) {
 
 function TargetRow({ target }: { target: Target }) {
   return (
-    <a className="target-row" href={`/topic/${target.slug}`}>
+    <Link className="target-row" href={`/topic/${target.slug}`}>
       <div className="target-row-identity">
         <span className="target-kind">
           {target.kind === "etf" ? "ETF" : "主题指数"}
@@ -107,7 +108,7 @@ function TargetRow({ target }: { target: Target }) {
       <span className="target-row-arrow" aria-hidden="true">
         →
       </span>
-    </a>
+    </Link>
   );
 }
 
