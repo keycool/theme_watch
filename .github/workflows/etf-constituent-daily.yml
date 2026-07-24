@@ -232,17 +232,12 @@ jobs:
         run: npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
 
       - name: Deploy observation site to Vercel
-        id: deploy_vercel
         if: steps.calculate.outputs.run_status == 'success'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        shell: bash
-        run: |
-          deployment_url="$(npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
-          printf 'deployment_url=%s\n' "$deployment_url" >> "$GITHUB_OUTPUT"
-          printf 'Vercel production deployment: %s\n' "$deployment_url"
+        run: npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
 
       - name: Upload workflow logs
         if: always()
@@ -268,7 +263,7 @@ jobs:
           FEISHU_WEBHOOK_URL: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_URL }}
           FEISHU_WEBHOOK_SECRET: ${{ secrets.Theme_Watch_FEISHU_WEBHOOK_SECRET }}
           FEISHU_WEBHOOK_KEYWORD: theme_watch
-          ETF_WATCH_SITE_URL: ${{ steps.deploy_vercel.outputs.deployment_url }}
+          ETF_WATCH_SITE_URL: https://etf-core-constituent-watch.vercel.app
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           WORKFLOW_JOB_STATUS: ${{ job.status }}
         run: |
