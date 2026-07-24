@@ -217,7 +217,6 @@ jobs:
 
       - name: Pull Vercel production environment
         if: steps.calculate.outputs.run_status == 'success'
-        working-directory: industry_insight_sandbox
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -226,7 +225,6 @@ jobs:
 
       - name: Build Vercel deployment
         if: steps.calculate.outputs.run_status == 'success'
-        working-directory: industry_insight_sandbox
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -236,7 +234,6 @@ jobs:
       - name: Deploy observation site to Vercel
         id: deploy_vercel
         if: steps.calculate.outputs.run_status == 'success'
-        working-directory: industry_insight_sandbox
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
