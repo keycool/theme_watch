@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "1.2.0"
+  version: "1.2.1"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -341,7 +341,7 @@ execution:
       contents: "write"
     triggers:
       schedule:
-        cron: "5 21 * * 1-5"
+        cron: "5 23 * * 1-5"
         timezone: "Asia/Shanghai"
       workflow_dispatch:
         inputs:
