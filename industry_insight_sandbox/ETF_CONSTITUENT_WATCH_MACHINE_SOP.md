@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "1.1.0"
+  version: "1.2.0"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -36,6 +36,7 @@ authority:
   target_universe: "industry_insight_sandbox/targets.json"
   local_orchestrator: "run_etf_constituent_workflow.py"
   ci_orchestrator: ".github/workflows/etf-constituent-daily.yml"
+  scheduled_readiness_checker: "industry_insight_sandbox/check_tushare_readiness.py"
   rendered_page_tests: "industry_insight_sandbox/tests/rendered-html.test.mjs"
   overview_sorting: "industry_insight_sandbox/app/page.tsx"
   webhook_sender: "etf_constituent_feishu_webhook.py"
@@ -363,21 +364,41 @@ execution:
       applies_to_event: "schedule"
       target_date_formula: "current_date_in_Asia/Shanghai"
       non_trading_day_result: "data_ready_false"
+      target_source: "industry_insight_sandbox/targets.json"
+      target_source_checkout_required: true
+      etf_tracking_index_resolution:
+        metadata_api: "etf_basic"
+        metadata_fields:
+          - "ts_code"
+          - "index_code"
+          - "index_name"
+        etf_target_formula: "all targets where kind == etf"
+        direct_index_formula: "all targets where kind == index"
+        tracking_index_formula: "unique(etf_basic.index_code for every ETF target) UNION direct index target codes"
+        unresolved_etf_mapping_result: "data_ready_false"
       probes:
         stock_daily:
           api: "daily"
           minimum_rows: 1000
           required_trade_date: "${target_date}"
-        tracked_etf:
+        all_etf_targets:
           api: "fund_daily"
-          ts_code: "512480.SH"
+          codes: "every ETF code from target_source"
           minimum_rows: 1
           required_trade_date: "${target_date}"
-        tracked_index:
+          missing_any_code_result: "data_ready_false"
+        all_tracking_indexes:
           api: "index_daily"
-          ts_code: "931994.CSI"
+          codes: "every resolved tracking index plus every direct index target"
           minimum_rows: 1
           required_trade_date: "${target_date}"
+          missing_any_code_result: "data_ready_false"
+      query_control:
+        retry_attempts: 3
+        retry_backoff_seconds:
+          - 2
+          - 4
+        throttle_seconds_between_symbol_queries: 0.35
       calculate_job_condition: "all_probes_ready"
     calculate_and_publish_steps_in_order:
       - "checkout"
@@ -434,9 +455,11 @@ validation:
       - "权重龙头确认"
   site_test:
     command: "cd industry_insight_sandbox && npm test"
-    expected_python_behavior_test_count: 14
-    expected_node_render_test_count: 7
-    behavior_test_file: "industry_insight_sandbox/tests/test_strategy_behavior.py"
+    expected_python_behavior_test_count: 19
+    expected_node_render_test_count: 8
+    behavior_test_files:
+      - "industry_insight_sandbox/tests/test_strategy_behavior.py"
+      - "industry_insight_sandbox/tests/test_readiness_behavior.py"
     required_behavior_cases:
       - "stale_component_own_tail_event_excluded"
       - "stale_latest_component_unqualified"
@@ -452,6 +475,11 @@ validation:
       - "funding_below_threshold_blocks_confirmation"
       - "missing_breakout_market_days_cannot_confirm"
       - "ma60_equality_counts_as_breakout"
+      - "readiness_resolves_every_etf_and_direct_index"
+      - "readiness_deduplicates_shared_tracking_indexes"
+      - "readiness_reports_missing_tracking_metadata"
+      - "readiness_rejects_unsupported_target_kind"
+      - "readiness_requires_target_date_and_minimum_rows"
   vercel_build_test:
     command: "cd industry_insight_sandbox && npm run build:vercel"
   required_outputs:

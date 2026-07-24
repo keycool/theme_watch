@@ -216,3 +216,23 @@ test("keeps production publication on main and after Vercel succeeds", async () 
   assert.ok(vercelDeployIndex >= 0);
   assert.ok(dataPublishIndex > vercelDeployIndex);
 });
+
+test("checks every formal target and resolved tracking index before schedule", async () => {
+  const workflow = await readFile(
+    new URL("../.github/workflows/etf-constituent-daily.yml", root),
+    "utf8",
+  );
+  const readiness = await readFile(
+    new URL("check_tushare_readiness.py", root),
+    "utf8",
+  );
+
+  assert.match(workflow, /Checkout readiness target universe/);
+  assert.match(workflow, /check_tushare_readiness\.py/);
+  assert.doesNotMatch(workflow, /ts_code="512480\.SH"/);
+  assert.doesNotMatch(workflow, /ts_code="931994\.CSI"/);
+  assert.match(readiness, /for code in etf_targets:/);
+  assert.match(readiness, /for code in tracking_indexes:/);
+  assert.match(readiness, /pro\.etf_basic\(/);
+  assert.match(readiness, /unresolved_etfs/);
+});

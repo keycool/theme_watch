@@ -38,6 +38,9 @@ jobs:
     env:
       TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
     steps:
+      - name: Checkout readiness target universe
+        uses: actions/checkout@v4
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -50,69 +53,9 @@ jobs:
         id: check
         shell: bash
         run: |
-          python - <<'PY' | tee -a "$GITHUB_OUTPUT"
-          import os
-          from datetime import datetime
-          from zoneinfo import ZoneInfo
-
-          import tushare as ts
-
-          token = os.environ.get("TUSHARE_TOKEN", "").strip()
-          if not token:
-              raise SystemExit("TUSHARE_TOKEN is not configured.")
-
-          target_date = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d")
-          pro = ts.pro_api(token)
-          calendar = pro.trade_cal(
-              exchange="SSE",
-              start_date=target_date,
-              end_date=target_date,
-              fields="cal_date,is_open",
-          )
-          if calendar.empty:
-              raise SystemExit(f"Trading calendar returned no row for {target_date}.")
-
-          print(f"end_date={target_date}")
-          if int(calendar.iloc[0]["is_open"]) != 1:
-              print("data_ready=false")
-              print("reason=non_trading_day")
-              raise SystemExit(0)
-
-          probes = {
-              "stock_daily": pro.daily(
-                  trade_date=target_date,
-                  fields="ts_code,trade_date,close",
-              ),
-              "tracked_etf": pro.fund_daily(
-                  ts_code="512480.SH",
-                  start_date=target_date,
-                  end_date=target_date,
-                  fields="ts_code,trade_date,close",
-              ),
-              "tracked_index": pro.index_daily(
-                  ts_code="931994.CSI",
-                  start_date=target_date,
-                  end_date=target_date,
-                  fields="ts_code,trade_date,close",
-              ),
-          }
-          minimum_rows = {"stock_daily": 1000, "tracked_etf": 1, "tracked_index": 1}
-          readiness = {}
-          for name, frame in probes.items():
-              dates = (
-                  set(frame["trade_date"].astype(str))
-                  if not frame.empty and "trade_date" in frame
-                  else set()
-              )
-              ready = len(frame) >= minimum_rows[name] and target_date in dates
-              readiness[name] = ready
-              print(f"{name}_rows={len(frame)}")
-              print(f"{name}_ready={str(ready).lower()}")
-
-          data_ready = all(readiness.values())
-          print(f"data_ready={str(data_ready).lower()}")
-          print("reason=ready" if data_ready else "reason=daily_data_incomplete")
-          PY
+          python industry_insight_sandbox/check_tushare_readiness.py \
+            --targets industry_insight_sandbox/targets.json \
+            | tee -a "$GITHUB_OUTPUT"
 
   calculate-and-verify:
     needs: check_data_ready
