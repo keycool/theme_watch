@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import bundledOverviewData from "../data/overview.json";
+import StatusStrip from "./components/StatusStrip";
 
 
 type OverviewData = typeof bundledOverviewData;
@@ -233,10 +234,10 @@ export default function Home() {
             <small>20 formal project targets</small>
           </div>
         </div>
-        <div className="sandbox-badge">
-          <span />
-          封闭沙盒 · 不接入生产
-        </div>
+        <StatusStrip
+          generatedAt={overviewData.meta.generatedAt}
+          latestDate={targets[0].latestDate}
+        />
       </header>
 
       <section className="overview-hero shell">

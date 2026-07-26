@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import StatusStrip from "./StatusStrip";
 
 
 type ChartRow = {
@@ -531,10 +532,10 @@ export default function TopicDashboard({
           <Link className="back-link" href="/">
             ← 返回全部专题
           </Link>
-          <div className="sandbox-badge">
-            <span />
-            封闭沙盒 · 不接入生产
-          </div>
+          <StatusStrip
+            generatedAt={dashboardData.meta.generatedAt}
+            latestDate={dashboardData.meta.latestDate}
+          />
         </div>
       </header>
 

@@ -118,23 +118,43 @@ main {
   color: var(--gold);
 }
 
-.sandbox-badge {
+.status-strip {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 8px 12px;
-  border: 1px solid rgba(99, 214, 191, 0.28);
-  background: rgba(99, 214, 191, 0.06);
-  color: #a8e8db;
-  font-size: 12px;
+  justify-content: flex-end;
+  gap: 14px;
 }
 
-.sandbox-badge span {
+.status-pill {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 16px;
+  border: 1px solid rgba(139, 153, 174, 0.18);
+  border-radius: 999px;
+  background: rgba(15, 22, 33, 0.72);
+  color: #9eabbc;
+  font: 500 12px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.status-pill time {
+  color: #aeb9c8;
+}
+
+.status-pill-live {
+  color: #aeb9c8;
+  letter-spacing: 0.08em;
+}
+
+.status-pill-live i {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--teal);
-  box-shadow: 0 0 16px rgba(99, 214, 191, 0.9);
+  box-shadow: 0 0 10px rgba(99, 214, 191, 0.88);
 }
 
 .hero {
@@ -1262,9 +1282,15 @@ tbody tr:last-child td {
     width: calc(100% - 28px);
   }
 
-  .sandbox-badge {
-    padding: 7px 9px;
-    font-size: 10px;
+  .status-strip {
+    gap: 6px;
+  }
+
+  .status-pill {
+    min-height: 30px;
+    gap: 6px;
+    padding: 6px 10px;
+    font-size: 9px;
   }
 
   .topbar-actions {

@@ -90,6 +90,10 @@ test("server-renders the overview and links every formal target", async () => {
   const html = await response.text();
   assert.match(html, /<title>ETF与主题指数核心成分观察总览<\/title>/);
   assert.match(html, /20 formal project targets/);
+  assert.match(html, />LIVE</);
+  assert.match(html, /数据截止/);
+  assert.match(html, /生成于/);
+  assert.doesNotMatch(html, /封闭沙盒 · 不接入生产/);
   assert.match(html, /20个正式标的集中在同一张启动观察表中/);
   assert.match(html, /低位收敛/);
   assert.match(html, /带量突破年线/);
@@ -125,6 +129,10 @@ test("server-renders all 20 independent topic pages", async () => {
     assert.equal(response.status, 200, `${topic.target.code} did not render`);
 
     const html = await response.text();
+    assert.match(html, />LIVE</);
+    assert.match(html, /数据截止/);
+    assert.match(html, /生成于/);
+    assert.doesNotMatch(html, /封闭沙盒 · 不接入生产/);
     assert.match(html, new RegExp(topic.target.name));
     assert.match(html, new RegExp(topic.target.code.replace(".", "\\.")));
     assert.match(html, /低位收敛/);
