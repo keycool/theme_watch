@@ -9,6 +9,7 @@ import StatusStrip from "./components/StatusStrip";
 type OverviewData = typeof bundledOverviewData;
 type Target = OverviewData["targets"][number] & {
   absorptionRankPct?: number | null;
+  route?: string;
 };
 type StageState = Target["stageStates"][number] & { warning?: boolean };
 
@@ -41,10 +42,17 @@ function labelClass(label: string) {
 
 function TargetRow({ target }: { target: Target }) {
   return (
-    <Link className="target-row" href={`/topic/${target.slug}`}>
+    <Link
+      className="target-row"
+      href={target.route || `/topic/${target.slug}`}
+    >
       <div className="target-row-identity">
         <span className="target-kind">
-          {target.kind === "etf" ? "ETF" : "主题指数"}
+          {target.kind === "index"
+            ? "主题指数"
+            : target.kind === "hk_qdii"
+              ? "港股ETF"
+              : "ETF"}
         </span>
         <strong>{target.name}</strong>
         <small className="mono">{target.code}</small>
@@ -182,7 +190,7 @@ export default function Home() {
         return response.json() as Promise<OverviewData>;
       })
       .then((liveData) => {
-        if (!cancelled && liveData.meta?.targetCount === 20) {
+        if (!cancelled && liveData.meta?.targetCount === 22) {
           setOverviewData(liveData);
         }
       })
@@ -231,7 +239,7 @@ export default function Home() {
           </span>
           <div>
             <strong>Industry Watch Lab</strong>
-            <small>20 formal project targets</small>
+            <small>22 formal project targets</small>
           </div>
         </div>
         <StatusStrip
@@ -249,7 +257,7 @@ export default function Home() {
             <span>核心成分观察总览</span>
           </h1>
           <p>
-            20个正式标的集中在同一张启动观察表中，直接对照长期低位、MA60提前提示、
+            22个正式标的集中在同一张启动观察表中，直接对照长期低位、MA60提前提示、
             MA250与资金确认、权重龙头闭环。点击任一标的进入成分股专题。
           </p>
         </div>
@@ -308,7 +316,7 @@ export default function Home() {
           </p>
         </div>
         <div className="footer-notes">
-          <p>每个专题独立使用对应ETF的真实跟踪指数和最新月度权重。</p>
+          <p>每个专题使用对应ETF的真实跟踪指数和最新权重；港股标的保留专用数据口径。</p>
           <p>核心成分优先覆盖60%指数权重，最多取20只，实际覆盖率逐页展示。</p>
           <p>申万二级不参与本沙盒专题标签，只保留为成分股行业文字参照。</p>
           <p>以上内容仅用于策略研究与观察，不构成投资建议。</p>

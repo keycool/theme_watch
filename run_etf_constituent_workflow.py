@@ -14,11 +14,20 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 SANDBOX_DIR = ROOT / "industry_insight_sandbox"
 GENERATOR = SANDBOX_DIR / "generate_dashboard_data.py"
+HK_GENERATORS = [
+    SANDBOX_DIR / "generate_hk_qdii_dashboard_data.py",
+    SANDBOX_DIR / "generate_hk_connect_consumer_dashboard_data.py",
+]
+OVERVIEW_MERGER = SANDBOX_DIR / "merge_hk_qdii_overview.py"
 TARGETS_PATH = SANDBOX_DIR / "targets.json"
+HK_TARGETS_PATH = SANDBOX_DIR / "hk_qdii_targets.json"
 OVERVIEW_PATH = SANDBOX_DIR / "data" / "overview.json"
 ALL_TOPICS_PATH = SANDBOX_DIR / "data" / "all_topics.json"
 TOPIC_DIR = SANDBOX_DIR / "data" / "topics"
 SUMMARY_DIR = ROOT / "logs" / "etf_constituent_workflow"
+CORE_TARGET_COUNT = 20
+HK_TARGET_COUNT = 2
+TOTAL_TARGET_COUNT = CORE_TARGET_COUNT + HK_TARGET_COUNT
 
 
 def _default_end_date() -> str:
@@ -73,19 +82,33 @@ def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _run_generator(end_date: str, log_path: Path) -> int:
-    completed = subprocess.run(
+def _run_generators(end_date: str, log_path: Path) -> int:
+    commands = [
         [sys.executable, str(GENERATOR), "--end-date", end_date],
-        cwd=SANDBOX_DIR,
-        capture_output=True,
-        check=False,
-    )
-    output_bytes = completed.stdout or b""
-    if completed.stderr:
-        output_bytes += (b"\n" if output_bytes else b"") + completed.stderr
-    output = _decode_output(output_bytes)
-    log_path.write_text(output, encoding="utf-8")
-    return completed.returncode
+        *[
+            [sys.executable, str(generator), "--end-date", end_date]
+            for generator in HK_GENERATORS
+        ],
+        [sys.executable, str(OVERVIEW_MERGER)],
+    ]
+    log_sections: list[str] = []
+    for command in commands:
+        completed = subprocess.run(
+            command,
+            cwd=SANDBOX_DIR,
+            capture_output=True,
+            check=False,
+        )
+        output_bytes = completed.stdout or b""
+        if completed.stderr:
+            output_bytes += (b"\n" if output_bytes else b"") + completed.stderr
+        output = _decode_output(output_bytes)
+        log_sections.append(f"$ {' '.join(command)}\n{output}".rstrip())
+        if completed.returncode:
+            log_path.write_text("\n\n".join(log_sections) + "\n", encoding="utf-8")
+            return completed.returncode
+    log_path.write_text("\n\n".join(log_sections) + "\n", encoding="utf-8")
+    return 0
 
 
 def _decode_output(value: bytes) -> str:
@@ -227,18 +250,103 @@ def _validate_topic_freshness(topic: dict[str, Any]) -> list[str]:
     return issues
 
 
+def _validate_hk_topic(
+    topic: dict[str, Any],
+    *,
+    expected_code: str,
+    end_date: str,
+) -> list[str]:
+    issues: list[str] = []
+    code = topic.get("target", {}).get("code", "unknown")
+    meta = topic.get("meta", {})
+    summary = topic.get("summary", {})
+    if code != expected_code:
+        issues.append(f"HK target code {code} does not match {expected_code}.")
+    if meta.get("productionIntegrated") is not True:
+        issues.append(f"{code}: HK target is not marked as production integrated.")
+    as_of = meta.get("latestDate")
+    if as_of != end_date:
+        issues.append(f"{code}: latestDate {as_of} does not equal {end_date}.")
+
+    components = topic.get("constituents", [])
+    if len(components) != 10:
+        issues.append(f"{code}: expected 10 HK constituents, found {len(components)}.")
+    fresh_count = 0
+    above_ma60_count = 0
+    positive_5d_count = 0
+    freshness_by_code: dict[str, bool] = {}
+    for component in components:
+        component_code = str(component.get("code", "unknown"))
+        latest_date = component.get("latestDate")
+        data_fresh = component.get("dataFresh")
+        if (
+            not isinstance(latest_date, str)
+            or len(latest_date) != 8
+            or not latest_date.isdigit()
+        ):
+            issues.append(f"{code}/{component_code}: latestDate is invalid.")
+            continue
+        if latest_date > end_date:
+            issues.append(f"{code}/{component_code}: latestDate is after target date.")
+        if not isinstance(data_fresh, bool):
+            issues.append(f"{code}/{component_code}: dataFresh must be boolean.")
+            continue
+        if data_fresh != (latest_date == end_date):
+            issues.append(f"{code}/{component_code}: dataFresh is inconsistent.")
+        freshness_by_code[component_code] = data_fresh
+        if not data_fresh:
+            if component.get("aboveMa60") is True:
+                issues.append(f"{code}/{component_code}: stale row contributes to MA60.")
+            continue
+        fresh_count += 1
+        above_ma60_count += int(component.get("aboveMa60") is True)
+        positive_5d_count += int((component.get("ret5d") or 0) > 0)
+
+    if summary.get("freshConstituentCount") != fresh_count:
+        issues.append(f"{code}: freshConstituentCount is inconsistent.")
+    if summary.get("aboveMa60Count") != above_ma60_count:
+        issues.append(f"{code}: aboveMa60Count is inconsistent.")
+    if summary.get("positive5dCount") != positive_5d_count:
+        issues.append(f"{code}: positive5dCount is inconsistent.")
+
+    strict_confirmed = False
+    for event in topic.get("leaderEvents", []):
+        event_code = str(event.get("code", "unknown"))
+        event_fresh = event.get("dataFresh")
+        if not isinstance(event_fresh, bool):
+            issues.append(f"{code}/{event_code}: event dataFresh must be boolean.")
+            continue
+        component_fresh = freshness_by_code.get(event_code)
+        if component_fresh is not None and event_fresh != component_fresh:
+            issues.append(f"{code}/{event_code}: event freshness disagrees with component.")
+        if not event_fresh and event.get("qualified") is True:
+            issues.append(f"{code}/{event_code}: stale HK event qualifies.")
+        strict_confirmed = strict_confirmed or bool(event.get("strictQualified"))
+
+    if summary.get("strictLeaderConfirmed") is not strict_confirmed:
+        issues.append(f"{code}: strictLeaderConfirmed is inconsistent.")
+    if summary.get("label") == "启动确认" and not strict_confirmed:
+        issues.append(f"{code}: startup confirmation lacks a fresh strict leader.")
+    if len(topic.get("stages", [])) != 3:
+        issues.append(f"{code}: HK three-stage observation chain is incomplete.")
+    return issues
+
+
 def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
     issues: list[str] = []
-    required = [TARGETS_PATH, OVERVIEW_PATH, ALL_TOPICS_PATH]
+    required = [TARGETS_PATH, HK_TARGETS_PATH, OVERVIEW_PATH, ALL_TOPICS_PATH]
     missing = [str(path.relative_to(ROOT)) for path in required if not path.exists()]
     if missing:
         return [f"Missing required output: {', '.join(missing)}"], {}
 
     targets = _read_json(TARGETS_PATH)
+    hk_targets = _read_json(HK_TARGETS_PATH)
     overview = _read_json(OVERVIEW_PATH)
     topics = _read_json(ALL_TOPICS_PATH)
 
-    expected_codes = {item["code"] for item in targets}
+    core_codes = {item["code"] for item in targets}
+    hk_codes = {item["code"] for item in hk_targets}
+    expected_codes = core_codes | hk_codes
     overview_codes = {item["code"] for item in overview.get("targets", [])}
     topic_codes = {item.get("target", {}).get("code") for item in topics}
     expected_slugs = {
@@ -247,22 +355,34 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
     }
     topic_files = {path.stem for path in TOPIC_DIR.glob("*.json")}
 
-    if len(targets) != 20:
-        issues.append(f"Formal target count is {len(targets)}, expected 20.")
+    if len(targets) != CORE_TARGET_COUNT:
+        issues.append(
+            f"Core target count is {len(targets)}, expected {CORE_TARGET_COUNT}."
+        )
+    if len(hk_targets) != HK_TARGET_COUNT:
+        issues.append(
+            f"HK target count is {len(hk_targets)}, expected {HK_TARGET_COUNT}."
+        )
+    if core_codes & hk_codes:
+        issues.append("Core and HK target codes overlap.")
     if expected_codes != overview_codes:
-        issues.append("Overview target codes do not match targets.json.")
-    if expected_codes != topic_codes:
-        issues.append("Topic target codes do not match targets.json.")
+        issues.append("Overview target codes do not match the unified target universe.")
+    if core_codes != topic_codes:
+        issues.append("Core topic codes do not match targets.json.")
     if expected_slugs != topic_files:
         issues.append("Per-topic JSON files do not exactly match the formal target slugs.")
 
     meta = overview.get("meta", {})
     if meta.get("sandbox") is not True:
         issues.append("Overview is not marked as sandbox output.")
-    if meta.get("targetCount") != 20:
-        issues.append("Overview targetCount is not 20.")
-    if meta.get("etfCount") != 19 or meta.get("indexCount") != 1:
-        issues.append("Overview ETF/index counts are not 19/1.")
+    if meta.get("targetCount") != TOTAL_TARGET_COUNT:
+        issues.append(f"Overview targetCount is not {TOTAL_TARGET_COUNT}.")
+    if meta.get("coreTargetCount") != CORE_TARGET_COUNT:
+        issues.append(f"Overview coreTargetCount is not {CORE_TARGET_COUNT}.")
+    if meta.get("hkQdiiCount") != HK_TARGET_COUNT:
+        issues.append(f"Overview hkQdiiCount is not {HK_TARGET_COUNT}.")
+    if meta.get("etfCount") != 21 or meta.get("indexCount") != 1:
+        issues.append("Overview ETF/index counts are not 21/1.")
 
     overview_dates = {
         item.get("latestDate") for item in overview.get("targets", [])
@@ -308,6 +428,28 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
             if individual_path.exists() and _read_json(individual_path) != topic:
                 issues.append(f"{code}: individual topic JSON differs from aggregate.")
 
+    for config in hk_targets:
+        data_path = SANDBOX_DIR / config["dataFile"]
+        if not data_path.exists():
+            issues.append(f"Missing HK target output: {config['dataFile']}.")
+            continue
+        hk_topic = _read_json(data_path)
+        issues.extend(
+            _validate_hk_topic(
+                hk_topic,
+                expected_code=config["code"],
+                end_date=end_date,
+            )
+        )
+        fresh_component_count += sum(
+            component.get("dataFresh") is True
+            for component in hk_topic.get("constituents", [])
+        )
+        stale_component_count += sum(
+            component.get("dataFresh") is False
+            for component in hk_topic.get("constituents", [])
+        )
+
     labels = Counter(
         item.get("label", "unknown") for item in overview.get("targets", [])
     )
@@ -316,6 +458,8 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
     )
     metrics = {
         "target_count": len(expected_codes),
+        "core_target_count": len(core_codes),
+        "hk_qdii_count": len(hk_codes),
         "etf_count": meta.get("etfCount"),
         "index_count": meta.get("indexCount"),
         "latest_date": next(iter(overview_dates), None),
@@ -391,7 +535,7 @@ def main() -> None:
             print(f"summary_json={summary_path}")
             return
 
-    returncode = 0 if args.validate_only else _run_generator(end_date, log_path)
+    returncode = 0 if args.validate_only else _run_generators(end_date, log_path)
     if args.validate_only:
         log_path.write_text("validate_only=true\n", encoding="utf-8")
 

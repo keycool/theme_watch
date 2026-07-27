@@ -12,7 +12,9 @@ sys.path.insert(0, str(SANDBOX_DIR))
 
 from check_tushare_readiness import (
     build_readiness_universe,
+    extend_with_hk_qdii,
     frame_has_trade_date,
+    live_overview_is_current,
 )
 
 
@@ -68,6 +70,39 @@ class ReadinessUniverseBehaviorTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_readiness_universe(targets, [])
 
+    def test_extends_readiness_with_hk_etfs_indexes_and_benchmark(self) -> None:
+        core = {
+            "etf_targets": ["510001.SH"],
+            "tracking_indexes": ["000001.SH"],
+            "unresolved_etfs": [],
+        }
+        hk_targets = [
+            {
+                "code": "513970.SH",
+                "kind": "hk_qdii",
+                "readinessIndexCode": None,
+                "benchmarkCode": "HSI",
+            },
+            {
+                "code": "513230.SH",
+                "kind": "hk_qdii",
+                "readinessIndexCode": "931454.CSI",
+                "benchmarkCode": "HSI",
+            },
+        ]
+
+        universe = extend_with_hk_qdii(core, hk_targets)
+
+        self.assertEqual(
+            universe["etf_targets"],
+            ["510001.SH", "513230.SH", "513970.SH"],
+        )
+        self.assertEqual(
+            universe["tracking_indexes"],
+            ["000001.SH", "931454.CSI"],
+        )
+        self.assertEqual(universe["global_indexes"], ["HSI"])
+
 
 class TradeDateBehaviorTest(unittest.TestCase):
     def test_requires_target_date_and_minimum_row_count(self) -> None:
@@ -82,6 +117,32 @@ class TradeDateBehaviorTest(unittest.TestCase):
         self.assertFalse(frame_has_trade_date(frame, "20260725"))
         self.assertFalse(
             frame_has_trade_date(frame, "20260724", minimum_rows=3)
+        )
+
+
+class LiveOverviewBehaviorTest(unittest.TestCase):
+    def test_same_day_live_overview_short_circuits_readiness(self) -> None:
+        overview = {
+            "targets": [
+                {"latestDate": "20260724"},
+                {"latestDate": "20260724"},
+            ]
+        }
+
+        self.assertTrue(
+            live_overview_is_current(overview, "20260724")
+        )
+
+    def test_older_live_overview_does_not_short_circuit_readiness(self) -> None:
+        overview = {
+            "targets": [
+                {"latestDate": "20260723"},
+                {"latestDate": "20260723"},
+            ]
+        }
+
+        self.assertFalse(
+            live_overview_is_current(overview, "20260724")
         )
 
 

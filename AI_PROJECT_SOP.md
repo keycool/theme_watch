@@ -2,399 +2,128 @@
 
 ## First Read Rule
 
-Any AI agent taking over this project must read this file before reading other project documents or modifying code.
+任何AI代理接手本仓库时，必须先完整读取本文件，再读取其他项目文件或修改代码。
 
-For ETF/index core constituent observation tasks, the next mandatory file is
-`industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md`. Treat its
-YAML frontmatter as the machine execution contract and halt on implementation
-drift.
+本文件负责项目级路由与发布底线；策略阈值、输出结构和具体执行顺序以对应机器SOP为准。
 
-## Machine SOP
+## Machine Router
 
 ```yaml
-meta:
-  sop_id: "theme_watch_workflow_data_integrity_v1"
-  version: "1.0.0"
-  audience: "ai_agent_only"
-  project: "${project_name}"
-  default_branch: "${default_branch}"
-  required_vars:
-    - "${project_root}"
-    - "${repo_owner}"
-    - "${repo_name}"
-    - "${default_branch}"
-    - "${pages_url}"
-    - "${run_date}"
-  invariant:
-    strategy_core_logic_mutation_allowed: false
-    publish_branch_must_equal_default_branch: true
+project:
+  id: theme_watch
+  default_branch: main
+  repository: keycool/theme_watch
+  current_release: etf-watch-v2.0.0
 
-triggers:
-  - trigger_id: "remote_data_insufficient"
-    event: "github_pages_validation"
-    condition: "${published_page_bad_count} > 0"
-  - trigger_id: "workflow_after_push"
-    event: "git_push"
-    condition: "${pushed_branch} == ${default_branch}"
-  - trigger_id: "phase_archive"
-    event: "weekly_review_or_version_archive"
-    condition: "${stage_status} == 'ready_for_archive'"
+systems:
+  etf_constituent_watch:
+    status: primary_scheduled_production
+    description: 22标的ETF、指数与港股QDII核心成分启动观察
+    read_order:
+      - industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md
+      - industry_insight_sandbox/README.md
+    hk_qdii_extra_read:
+      when: task涉及513970.SH、513230.SH、017832.OF或港股QDII
+      file: industry_insight_sandbox/HK_QDII_WATCH_MACHINE_SOP.md
+    target_sources:
+      core_20: industry_insight_sandbox/targets.json
+      hk_qdii_2: industry_insight_sandbox/hk_qdii_targets.json
+    local_orchestrator: run_etf_constituent_workflow.py
+    ci_orchestrator: .github/workflows/etf-constituent-daily.yml
+    schedule:
+      timezone: Asia/Shanghai
+      cron: "25 22 * * 1-5"
+    production_url: https://etf-core-constituent-watch.vercel.app
+    live_data_branch: etf-watch-data
 
-steps:
-  - step_id: "verify_default_branch"
-    action:
-      tool: "shell"
-      args:
-        cwd: "${project_root}"
-        command: "git branch --show-current && git remote show origin"
-    outputs:
-      current_branch: "string"
-      default_branch: "string"
-      branch_aligned: "boolean"
-    condition: "${current_branch} == ${default_branch}"
-    on_failure:
-      status: "failed"
-      error_code: "BRANCH_NOT_DEFAULT"
-      next_step: "switch_to_default_branch"
+  legacy_theme_watch:
+    status: manual_only
+    description: 申万二级扫描、静态报告与GitHub Pages历史链路
+    read_order:
+      - reports/theme_watch/theme_watch_sop.md
+      - reports/theme_watch/daily_update_runbook.md
+    local_orchestrator: run_theme_watch_workflow.py
+    ci_orchestrator: .github/workflows/theme-watch-daily.yml
+    scheduled: false
 
-  - step_id: "switch_to_default_branch"
-    action:
-      tool: "shell"
-      args:
-        cwd: "${project_root}"
-        command: "git fetch origin ${default_branch} && git switch -c ${work_branch} origin/${default_branch}"
-    outputs:
-      work_branch: "string"
-      base_sha: "string"
-    condition: "${branch_aligned} == false"
-    on_failure:
-      status: "failed"
-      error_code: "DEFAULT_BRANCH_SWITCH_FAILED"
-      notify: "agent_name"
+mandatory_invariants:
+  production_branch: refs/heads/main
+  preserve_user_worktree: true
+  secrets_must_not_be_logged_or_committed: true
+  etf_and_legacy_cache_must_not_mix: true
+  etf_unified_target_count: 22
+  etf_core_target_count: 20
+  hk_qdii_target_count: 2
+  publish_date_must_not_regress_without_explicit_confirmation: true
+  vercel_success_required_before_live_data_publish: true
+  stale_component_cannot_confirm_leader_or_group_strength: true
 
-  - step_id: "verify_workflow_push_trigger"
-    action:
-      tool: "file_check"
-      args:
-        path: "${project_root}/.github/workflows/theme-watch-daily.yml"
-        yaml_path: "on.push.branches"
-        expected_value:
-          - "${default_branch}"
-    outputs:
-      workflow_push_trigger_present: "boolean"
-    condition: "${workflow_push_trigger_present} == true"
-    on_failure:
-      status: "failed"
-      error_code: "MISSING_PUSH_TRIGGER"
-      next_step: "patch_workflow_push_trigger"
-
-  - step_id: "patch_workflow_push_trigger"
-    action:
-      tool: "file_patch"
-      args:
-        path: "${project_root}/.github/workflows/theme-watch-daily.yml"
-        yaml_path: "on.push.branches"
-        value:
-          - "${default_branch}"
-    outputs:
-      workflow_file_changed: "boolean"
-    condition: "${workflow_push_trigger_present} == false"
-    on_failure:
-      status: "failed"
-      error_code: "PUSH_TRIGGER_PATCH_FAILED"
-      notify: "agent_name"
-
-  - step_id: "verify_committed_cache_seed_restore"
-    action:
-      tool: "file_check"
-      args:
-        path: "${project_root}/.github/workflows/theme-watch-daily.yml"
-        required_step_name: "Restore committed cache seeds"
-        required_seed_files:
-          - "${project_root}/.cache_scan_v2/sw_index_classify.csv"
-          - "${project_root}/.cache_scan_v2/sw_daily_full_history.csv"
-          - "${project_root}/.cache_scan_v2/daily_market_amount_history.csv"
-    outputs:
-      cache_seed_restore_present: "boolean"
-    condition: "${cache_seed_restore_present} == true"
-    on_failure:
-      status: "failed"
-      error_code: "MISSING_CACHE_SEED_RESTORE"
-      next_step: "patch_cache_seed_restore"
-
-  - step_id: "patch_cache_seed_restore"
-    action:
-      tool: "file_patch"
-      args:
-        path: "${project_root}/.github/workflows/theme-watch-daily.yml"
-        insert_after_step: "Restore cache"
-        step:
-          name: "Restore committed cache seeds"
-          run:
-            - "git checkout -- .cache_scan_v2/sw_index_classify.csv"
-            - "git checkout -- .cache_scan_v2/sw_daily_full_history.csv"
-            - "git checkout -- .cache_scan_v2/daily_market_amount_history.csv"
-    outputs:
-      workflow_file_changed: "boolean"
-    condition: "${cache_seed_restore_present} == false"
-    on_failure:
-      status: "failed"
-      error_code: "CACHE_SEED_RESTORE_PATCH_FAILED"
-      notify: "agent_name"
-
-  - step_id: "verify_market_amount_seed"
-    action:
-      tool: "csv_check"
-      args:
-        path: "${project_root}/.cache_scan_v2/daily_market_amount_history.csv"
-        required_columns:
-          - "trade_date"
-          - "market_amount"
-        min_rows: 250
-    outputs:
-      seed_rows: "integer"
-      seed_min_date: "string:YYYYMMDD"
-      seed_max_date: "string:YYYYMMDD"
-    condition: "${seed_rows} >= 250"
-    on_failure:
-      status: "failed"
-      error_code: "MARKET_AMOUNT_SEED_INSUFFICIENT"
-      next_step: "generate_market_amount_seed"
-
-  - step_id: "generate_market_amount_seed"
-    action:
-      tool: "python"
-      args:
-        cwd: "${project_root}"
-        script: "build_market_amount_seed_from_daily_market_cache"
-        input_glob: "${project_root}/.cache_scan_v2/daily_market_*.csv"
-        output_csv: "${project_root}/.cache_scan_v2/daily_market_amount_history.csv"
-    outputs:
-      seed_rows: "integer"
-      seed_output_csv: "string"
-    condition: "${seed_rows} >= 250"
-    on_failure:
-      status: "failed"
-      error_code: "MARKET_AMOUNT_SEED_GENERATION_FAILED"
-      notify: "agent_name"
-
-  - step_id: "verify_gitignore_cache_rules"
-    action:
-      tool: "file_check"
-      args:
-        path: "${project_root}/.gitignore"
-        required_lines:
-          - ".cache_scan_v2/*"
-          - "!.cache_scan_v2/"
-          - "!.cache_scan_v2/sw_index_classify.csv"
-          - "!.cache_scan_v2/sw_daily_full_history.csv"
-          - "!.cache_scan_v2/daily_market_amount_history.csv"
-    outputs:
-      gitignore_seed_rules_present: "boolean"
-    condition: "${gitignore_seed_rules_present} == true"
-    on_failure:
-      status: "failed"
-      error_code: "GITIGNORE_CACHE_RULES_INVALID"
-      notify: "agent_name"
-
-  - step_id: "verify_market_amount_loader"
-    action:
-      tool: "file_check"
-      args:
-        path: "${project_root}/run_sw_l2_strategy_scan.py"
-        required_symbols:
-          - "MARKET_AMOUNT_HISTORY_PATH"
-          - "_load_market_amount_seed"
-          - "_save_market_amount_seed"
-    outputs:
-      market_amount_seed_loader_present: "boolean"
-    condition: "${market_amount_seed_loader_present} == true"
-    on_failure:
-      status: "failed"
-      error_code: "MARKET_AMOUNT_LOADER_MISSING"
-      notify: "agent_name"
-
-  - step_id: "verify_report_validator_guards"
-    action:
-      tool: "file_check"
-      args:
-        path: "${project_root}/theme_watch_validate_reports.py"
-        required_checks:
-          - "data-insufficient badge"
-          - "empty chart text"
-          - "Scan CSV has data-insufficient crowding rows"
-    outputs:
-      validation_guards_present: "boolean"
-    condition: "${validation_guards_present} == true"
-    on_failure:
-      status: "failed"
-      error_code: "VALIDATION_GUARDS_MISSING"
-      notify: "agent_name"
-
-  - step_id: "run_local_workflow"
-    action:
-      tool: "shell"
-      args:
-        cwd: "${project_root}"
-        command: "py -B ./run_theme_watch_workflow.py --end-date ${run_date} --trigger-type manual --skip-sync"
-        timeout_seconds: 240
-    outputs:
-      workflow_exit_code: "integer"
-      workflow_status: "enum:success|warning|failed|skipped"
-      workflow_issues_count: "integer"
-      workflow_summary_json: "string"
-    condition: "${workflow_exit_code} == 0 && ${workflow_status} == 'success' && ${workflow_issues_count} == 0"
-    on_failure:
-      status: "failed"
-      error_code: "LOCAL_WORKFLOW_FAILED"
-      notify: "agent_name"
-
-  - step_id: "verify_local_outputs"
-    action:
-      tool: "python"
-      args:
-        cwd: "${project_root}"
-        script: "verify_theme_watch_outputs"
-        scan_csv: "${project_root}/sw_l2_strategy_scan.csv"
-        pages_dir: "${project_root}/reports/theme_watch/pages"
-        correlations_dir: "${project_root}/reports/theme_watch/correlations"
-        expected_run_date: "${run_date}"
-        forbidden_page_markers:
-          - ">数据不足<"
-          - "历史数据不足"
-          - "暂时无法绘图"
-          - "暂无法画图"
-    outputs:
-      scan_latest_date: "string:YYYYMMDD"
-      crowding_data_insufficient_rows: "integer"
-      bad_page_count: "integer"
-      bad_correlation_count: "integer"
-      total_svg_count: "integer"
-    condition: "${scan_latest_date} == ${run_date} && ${crowding_data_insufficient_rows} == 0 && ${bad_page_count} == 0 && ${bad_correlation_count} == 0 && ${total_svg_count} >= 19"
-    on_failure:
-      status: "failed"
-      error_code: "LOCAL_OUTPUT_VERIFICATION_FAILED"
-      notify: "agent_name"
-
-  - step_id: "commit_and_push"
-    action:
-      tool: "shell"
-      args:
-        cwd: "${project_root}"
-        command: "git add -A && git commit -m ${commit_message} && git push origin HEAD:${default_branch}"
-    outputs:
-      commit_sha: "string"
-      pushed_branch: "string"
-      pushed_sha: "string"
-    condition: "${pushed_branch} == ${default_branch}"
-    on_failure:
-      status: "failed"
-      error_code: "COMMIT_OR_PUSH_FAILED"
-      notify: "agent_name"
-
-  - step_id: "wait_for_github_actions"
-    action:
-      tool: "github_api"
-      args:
-        repo: "${repo_owner}/${repo_name}"
-        endpoint: "/actions/runs"
-        poll_interval_seconds: 15
-        max_polls: 30
-        match:
-          head_sha: "${pushed_sha}"
-          branch: "${default_branch}"
-    outputs:
-      run_id: "string"
-      run_status: "string"
-      run_conclusion: "string"
-      run_url: "string"
-    condition: "${run_status} == 'completed' && ${run_conclusion} == 'success'"
-    on_failure:
-      status: "failed"
-      error_code: "REMOTE_WORKFLOW_FAILED"
-      notify: "agent_name"
-
-  - step_id: "verify_published_pages"
-    action:
-      tool: "python"
-      args:
-        cwd: "${project_root}"
-        script: "fetch_and_verify_published_theme_pages"
-        pages_url: "${pages_url}"
-        expected_page_count: 19
-        min_total_svg_count: 19
-        forbidden_markers:
-          - ">数据不足<"
-          - "历史数据不足"
-          - "暂时无法绘图"
-          - "暂无法画图"
-    outputs:
-      checked_pages: "integer"
-      total_svg_count: "integer"
-      bad_pages: "array<string>"
-      published_page_bad_count: "integer"
-    condition: "${checked_pages} == 19 && ${total_svg_count} >= 19 && ${published_page_bad_count} == 0"
-    on_failure:
-      status: "failed"
-      error_code: "PUBLISHED_PAGE_VERIFICATION_FAILED"
-      notify: "agent_name"
-
-handoff_contract:
-  producer_agent: "technical_coordination_agent"
-  consumer_agent: "next_execution_agent"
-  payload_format: "yaml"
-  required_fields:
-    project_root:
-      type: "string"
-      format: "path"
-      value: "${project_root}"
-    repo:
-      type: "string"
-      format: "owner/name"
-      value: "${repo_owner}/${repo_name}"
-    default_branch:
-      type: "string"
-      value: "${default_branch}"
-    run_date:
-      type: "string"
-      format: "YYYYMMDD"
-      value: "${run_date}"
-    latest_successful_commit:
-      type: "string"
-      format: "git_sha"
-      value: "${pushed_sha}"
-    latest_successful_actions_run_id:
-      type: "string"
-      value: "${run_id}"
-    latest_successful_actions_run_url:
-      type: "string"
-      format: "url"
-      value: "${run_url}"
-    pages_url:
-      type: "string"
-      format: "url"
-      value: "${pages_url}"
-    cache_seed_files:
-      type: "array<string>"
-      value:
-        - "${project_root}/.cache_scan_v2/sw_index_classify.csv"
-        - "${project_root}/.cache_scan_v2/sw_daily_full_history.csv"
-        - "${project_root}/.cache_scan_v2/daily_market_amount_history.csv"
-    validation_result:
-      type: "object"
-      schema:
-        checked_pages: "integer"
-        total_svg_count: "integer"
-        published_page_bad_count: "integer"
-        bad_pages: "array<string>"
-    failure_escalation:
-      type: "object"
-      schema:
-        notify: "agent_name"
-        required_evidence:
-          - "run_id"
-          - "run_url"
-          - "failed_step_id"
-          - "error_code"
-          - "stdout_log_path"
+change_routing:
+  strategy_threshold:
+    update:
+      - implementation
+      - behavior_tests
+      - corresponding_machine_sop
+  target_universe:
+    update:
+      - authoritative_target_json
+      - orchestrator_validation
+      - rendered_page_tests
+      - corresponding_machine_sop
+  workflow_or_publication:
+    update:
+      - github_actions_workflow
+      - publication_tests
+      - corresponding_machine_sop
+    parse_yaml_after_change: true
 ```
+
+## ETF Production Execution
+
+统一ETF生产链路的固定顺序是：
+
+1. 检查线上是否已经包含目标日期。
+2. 检查20个核心目标、2个港股ETF、可用真实跟踪指数和恒生基准是否就绪。
+3. 运行20目标核心生成器。
+4. 分别运行513970与513230港股专用生成器。
+5. 合并为22标的统一总览。
+6. 校验目标数量、日期、新鲜度、标签闭环和输出文件。
+7. 运行Python测试、页面测试、lint与Vercel构建。
+8. 检查生产日期不得隐式回退。
+9. 部署Vercel Production。
+10. Vercel成功后才覆盖`etf-watch-data`分支。
+11. 上传日志与快照并发送飞书摘要。
+
+港股计算器不得被合并进A股生成器：
+
+- 513970使用ETF价格代理、ETF成交活跃度与恒生消费官方前十大。
+- 017832只作为联接基金展示身份；策略下沉到513230及931454.CSI。
+- 港股龙头事件不得套用A股涨停阈值。
+
+## Required Verification
+
+ETF相关代码、数据、页面、工作流或文档变更完成后，至少执行：
+
+```powershell
+cd "D:\CC\Industry Insight\industry_insight_sandbox"
+python -m unittest discover -s tests -p "test_*.py"
+npm run lint
+npm test
+npm run build:vercel
+```
+
+工作流或机器SOP发生变化时，还必须：
+
+- 解析GitHub Actions YAML。
+- 解析机器SOP YAML。
+- 验证`overview.json`恰有22个标的且日期唯一。
+- 验证所有总览行都具有可访问路由。
+- 验证候选生产日期不早于线上日期。
+
+## Git and Handoff
+
+- 默认分支为`main`。
+- 未经用户明确要求，不提交、不推送、不部署。
+- 用户明确要求提交时，只暂存任务范围内文件，避免夹带无关工作树修改。
+- 推送后核对远端SHA和GitHub Actions状态；远端运行失败时保留证据，不得声称发布成功。
+- 当前版本、运行方式和架构事实写入README或机器SOP，不把临时会话记录追加到入口文档。

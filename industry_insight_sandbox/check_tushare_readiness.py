@@ -3,14 +3,23 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
+from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
+
+from guard_production_date import extract_latest_date
 
 
 DEFAULT_TARGETS_PATH = Path(__file__).resolve().parent / "targets.json"
+DEFAULT_HK_TARGETS_PATH = Path(__file__).resolve().parent / "hk_qdii_targets.json"
+LIVE_OVERVIEW_URL = (
+    "https://raw.githubusercontent.com/keycool/theme_watch/"
+    "etf-watch-data/overview.json"
+)
 
 
 def clean_code(value) -> str | None:
@@ -68,11 +77,65 @@ def build_readiness_universe(
     }
 
 
+def extend_with_hk_qdii(
+    universe: dict[str, list[str]],
+    hk_targets: list[dict],
+) -> dict[str, list[str]]:
+    unsupported = sorted(
+        {
+            str(target.get("kind"))
+            for target in hk_targets
+            if target.get("kind") != "hk_qdii"
+        }
+    )
+    if unsupported:
+        raise ValueError(f"Unsupported HK target kinds: {', '.join(unsupported)}")
+    return {
+        "etf_targets": sorted(
+            set(universe["etf_targets"])
+            | {str(target["code"]) for target in hk_targets}
+        ),
+        "tracking_indexes": sorted(
+            set(universe["tracking_indexes"])
+            | {
+                str(target["readinessIndexCode"])
+                for target in hk_targets
+                if target.get("readinessIndexCode")
+            }
+        ),
+        "global_indexes": sorted(
+            {
+                str(target["benchmarkCode"])
+                for target in hk_targets
+                if target.get("benchmarkCode")
+            }
+        ),
+        "unresolved_etfs": universe["unresolved_etfs"],
+    }
+
+
 def frame_has_trade_date(frame, target_date: str, minimum_rows: int = 1) -> bool:
     if frame is None or frame.empty or "trade_date" not in frame:
         return False
     dates = set(frame["trade_date"].astype(str))
     return len(frame) >= minimum_rows and target_date in dates
+
+
+def read_live_overview(url: str) -> dict:
+    request = Request(
+        url,
+        headers={
+            "User-Agent": "ETF-Watch-Readiness",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+        },
+    )
+    with urlopen(request, timeout=30) as response:
+        return json.load(response)
+
+
+def live_overview_is_current(overview: dict, target_date: str) -> bool:
+    return extract_latest_date(overview) >= target_date
 
 
 def fetch_with_retry(fetcher: Callable, attempts: int = 3):
@@ -100,22 +163,50 @@ def emit(key: str, value) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--targets", type=Path, default=DEFAULT_TARGETS_PATH)
+    parser.add_argument(
+        "--hk-targets",
+        type=Path,
+        default=DEFAULT_HK_TARGETS_PATH,
+    )
     parser.add_argument("--target-date", help="Trade date in YYYYMMDD.")
+    parser.add_argument("--live-overview-url", default=LIVE_OVERVIEW_URL)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    target_date = args.target_date or datetime.now(
+        ZoneInfo("Asia/Shanghai")
+    ).strftime("%Y%m%d")
+    targets = json.loads(args.targets.read_text(encoding="utf-8"))
+    hk_targets = json.loads(args.hk_targets.read_text(encoding="utf-8"))
+    emit("end_date", target_date)
+    emit("target_count", len(targets) + len(hk_targets))
+
+    try:
+        live_overview = read_live_overview(args.live_overview_url)
+        live_latest_date = extract_latest_date(live_overview)
+        already_current = live_overview_is_current(
+            live_overview,
+            target_date,
+        )
+        emit("live_latest_date", live_latest_date)
+        emit("already_current", already_current)
+        if already_current:
+            emit("data_ready", False)
+            emit("reason", "already_current")
+            return 0
+    except Exception as exc:
+        print(f"Live overview check unavailable: {exc}", file=sys.stderr)
+        emit("live_latest_date", "unavailable")
+        emit("already_current", False)
+
     token = os.environ.get("TUSHARE_TOKEN", "").strip()
     if not token:
         raise SystemExit("TUSHARE_TOKEN is not configured.")
 
     import tushare as ts
 
-    target_date = args.target_date or datetime.now(
-        ZoneInfo("Asia/Shanghai")
-    ).strftime("%Y%m%d")
-    targets = json.loads(args.targets.read_text(encoding="utf-8"))
     pro = ts.pro_api(token)
 
     calendar = fetch_with_retry(
@@ -126,8 +217,6 @@ def main() -> int:
             fields="cal_date,is_open",
         )
     )
-    emit("end_date", target_date)
-    emit("target_count", len(targets))
     if calendar.empty:
         raise RuntimeError(f"Trading calendar returned no row for {target_date}.")
     if int(calendar.iloc[0]["is_open"]) != 1:
@@ -141,12 +230,16 @@ def main() -> int:
             fields="ts_code,index_code,index_name",
         )
     )
-    universe = build_readiness_universe(
-        targets,
-        etf_metadata.to_dict("records"),
+    universe = extend_with_hk_qdii(
+        build_readiness_universe(
+            targets,
+            etf_metadata.to_dict("records"),
+        ),
+        hk_targets,
     )
     etf_targets = universe["etf_targets"]
     tracking_indexes = universe["tracking_indexes"]
+    global_indexes = universe["global_indexes"]
     unresolved_etfs = universe["unresolved_etfs"]
 
     stock_daily = fetch_with_retry(
@@ -189,19 +282,36 @@ def main() -> int:
             missing_tracking_indexes.append(code)
         time.sleep(0.35)
 
+    missing_global_indexes: list[str] = []
+    for code in global_indexes:
+        frame = fetch_with_retry(
+            lambda code=code: pro.index_global(
+                ts_code=code,
+                start_date=target_date,
+                end_date=target_date,
+                fields="ts_code,trade_date,close",
+            )
+        )
+        if not frame_has_trade_date(frame, target_date):
+            missing_global_indexes.append(code)
+        time.sleep(0.35)
+
     data_ready = bool(
         stock_daily_ready
         and not unresolved_etfs
         and not missing_etf_targets
         and not missing_tracking_indexes
+        and not missing_global_indexes
     )
     emit("stock_daily_rows", len(stock_daily))
     emit("stock_daily_ready", stock_daily_ready)
     emit("etf_target_count", len(etf_targets))
     emit("tracking_index_count", len(tracking_indexes))
+    emit("global_index_count", len(global_indexes))
     emit("unresolved_etfs", unresolved_etfs)
     emit("missing_etf_targets", missing_etf_targets)
     emit("missing_tracking_indexes", missing_tracking_indexes)
+    emit("missing_global_indexes", missing_global_indexes)
     emit("data_ready", data_ready)
     emit("reason", "ready" if data_ready else "daily_data_incomplete")
     return 0

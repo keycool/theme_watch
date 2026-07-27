@@ -1,9 +1,10 @@
 # ETF 与主题指数核心成分启动观察
 
-这是一个与现有生产策略隔离的观察沙盒。目标清单严格取自现有项目正式配置，共 20 个对象：
+这是统一生产运行的 ETF 与指数核心成分观察站点，共 22 个对象：
 
-- 19 只 ETF
+- 19 只 A 股 ETF
 - 1 个主题指数
+- 2 只港股消费 QDII ETF
 - 4 个项目分组
 
 总览页展示全部对象的当前标签、三层条件状态、跟踪指数和核心成分摘要。点击任一对象标题，可进入独立专题页。
@@ -21,6 +22,12 @@
 对于项目中直接跟踪的主题指数，则使用：
 
 > 主题指数 → 自身指数行情 → 指数权重核心成分股
+
+港股消费对象使用独立计算引擎并汇入同一总览：
+
+> 513970 → ETF价格代理 + 恒生消费官方前十大
+
+> 017832 → 513230 → 931454.CSI指数行情 + 正式月度权重前十大
 
 三层启动条件采用“提前预警 + 严格确认”的渐进结构：
 
@@ -50,11 +57,19 @@ py -B .\generate_dashboard_data.py
 py -B .\generate_dashboard_data.py --end-date 20260717
 ```
 
+生产刷新应从仓库根目录运行统一编排器；它会依次生成20个核心专题、2个港股专题，
+再合并为22标的总览：
+
+```powershell
+py -B ..\run_etf_constituent_workflow.py --end-date 20260717
+```
+
 生成内容：
 
 - `data/overview.json`：总览数据
 - `data/all_topics.json`：全部专题合集
 - `data/topics/<slug>.json`：20 个独立专题数据
+- `data/hk_qdii/*.json`：2 个港股 QDII 专题数据
 
 ## 本地查看
 
@@ -80,9 +95,9 @@ http://localhost:3000/topic/<slug>
 npm test
 ```
 
-测试会核对正式目标清单、总览数据和专题数据完全一致，并逐个服务端渲染全部 20 个专题。
+测试会核对22标的统一总览、20个核心专题和2个港股专题，并逐个执行服务端渲染。
 
-## 独立 workflow
+## 统一 workflow
 
 仓库根目录提供独立编排器，不调用原有申万二级 workflow：
 
@@ -97,24 +112,25 @@ py -B .\run_etf_constituent_workflow.py --end-date 20260724 --validate-only
 ```
 
 GitHub Actions 配置为 `.github/workflows/etf-constituent-daily.yml`，工作日北京时间
-23:05 自动运行。定时任务会先检查全部正式ETF、全部真实跟踪指数及直接观察指数的
-当日数据，全部就绪后才进入正式计算；也支持手动指定交易日。运行产物包括 workflow 日志、20 个专题数据、
+22:25 自动运行。定时任务会先检查线上是否已经发布当日数据；未发布时，再检查全部正式ETF、
+全部真实跟踪指数及直接观察指数的当日数据。数据不完整时会在同一任务内最多检查3次、
+每次间隔约10分钟，全部就绪后才进入正式计算；也支持手动指定交易日。运行产物包括 workflow 日志、22 个标的数据、
 总览数据和站点构建结果。计算完成后还会复用仓库现有的
 `Theme_Watch_FEISHU_WEBHOOK_URL` 与 `Theme_Watch_FEISHU_WEBHOOK_SECRET`
-发送独立的 ETF 核心成分观察摘要。
+发送统一的 ETF 核心成分观察摘要。
 
 生产发布只允许从 `main` 分支执行，并按 `etf-constituent-production` 并发组串行运行。
 手动指定的 `end_date` 不得早于线上最新日期。如确需历史回滚，必须同时启用
 `allow_rollback`，并在 `rollback_confirmation` 中输入 `ROLLBACK YYYYMMDD`
 （其中日期必须与本次 `end_date` 完全一致）。
 
-独立观察网页：
+生产观察网页：
 
 ```text
 https://etf-core-constituent-watch.vercel.app
 ```
 
-workflow 每次成功计算后，会把最新总览和 20 个专题 JSON 发布到专用
+workflow 每次成功计算后，会把最新总览、20个核心专题和2个港股专题 JSON 发布到专用
 `etf-watch-data` 分支。网页启动后从该分支读取最新数据，失败时才回退到内置快照，
 因此日常更新不需要覆盖原有主题报告的 GitHub Pages。
 

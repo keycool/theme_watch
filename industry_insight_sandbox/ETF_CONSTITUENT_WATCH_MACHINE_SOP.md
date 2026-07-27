@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "1.3.0"
+  version: "1.5.0"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -27,13 +27,18 @@ sop:
     - "secrets"
     - "failure_contract"
   last_verified:
-    date: "2026-07-24"
+    date: "2026-07-27"
     implementation_baseline_ref: "same_git_commit_as_this_file"
 
 authority:
   on_conflict: "halt_with_SOP_DRIFT_DETECTED"
   strategy_engine: "industry_insight_sandbox/generate_dashboard_data.py"
   target_universe: "industry_insight_sandbox/targets.json"
+  hk_qdii_target_universe: "industry_insight_sandbox/hk_qdii_targets.json"
+  hk_qdii_strategy_engines:
+    - "industry_insight_sandbox/generate_hk_qdii_dashboard_data.py"
+    - "industry_insight_sandbox/generate_hk_connect_consumer_dashboard_data.py"
+  unified_overview_merger: "industry_insight_sandbox/merge_hk_qdii_overview.py"
   local_orchestrator: "run_etf_constituent_workflow.py"
   ci_orchestrator: ".github/workflows/etf-constituent-daily.yml"
   scheduled_readiness_checker: "industry_insight_sandbox/check_tushare_readiness.py"
@@ -57,10 +62,13 @@ invariants:
   forbidden_data_paths:
     - ".cache_scan_v2"
     - "reports/theme_watch"
-  target_count: 20
+  target_count: 22
+  core_target_count: 20
+  hk_qdii_target_count: 2
   target_kind_counts:
-    etf: 19
+    etf_total: 21
     index: 1
+    hk_qdii_etf: 2
   stage_count: 3
   stage_ids_in_order:
     - "structure"
@@ -72,7 +80,10 @@ invariants:
 
 target_universe:
   source_file: "industry_insight_sandbox/targets.json"
-  source_is_authoritative: true
+  source_is_authoritative_for_core_targets: true
+  hk_qdii_source_file: "industry_insight_sandbox/hk_qdii_targets.json"
+  hk_qdii_source_is_authoritative: true
+  unified_formula: "targets.json UNION hk_qdii_targets.json"
   duplicate_target_definitions_in_this_sop: false
   required_fields:
     - "bucket"
@@ -80,9 +91,11 @@ target_universe:
     - "name"
     - "kind"
     - "order"
-  allowed_kind:
+  allowed_core_kind:
     - "etf"
     - "index"
+  allowed_hk_qdii_kind:
+    - "hk_qdii"
   slug_formula: "lower(code).replace('.', '-')"
 
 data:
@@ -342,7 +355,7 @@ execution:
       contents: "write"
     triggers:
       schedule:
-        cron: "5 23 * * 1-5"
+        cron: "25 22 * * 1-5"
         timezone: "Asia/Shanghai"
       workflow_dispatch:
         inputs:
@@ -372,7 +385,9 @@ execution:
       applies_to_event: "schedule"
       target_date_formula: "current_date_in_Asia/Shanghai"
       non_trading_day_result: "data_ready_false"
-      target_source: "industry_insight_sandbox/targets.json"
+      target_sources:
+        - "industry_insight_sandbox/targets.json"
+        - "industry_insight_sandbox/hk_qdii_targets.json"
       target_source_checkout_required: true
       etf_tracking_index_resolution:
         metadata_api: "etf_basic"
@@ -382,7 +397,8 @@ execution:
           - "index_name"
         etf_target_formula: "all targets where kind == etf"
         direct_index_formula: "all targets where kind == index"
-        tracking_index_formula: "unique(etf_basic.index_code for every ETF target) UNION direct index target codes"
+        tracking_index_formula: "unique(etf_basic.index_code for every core ETF target) UNION direct index target codes UNION hk_qdii.readinessIndexCode"
+        global_index_formula: "unique(hk_qdii.benchmarkCode)"
         unresolved_etf_mapping_result: "data_ready_false"
       probes:
         stock_daily:
@@ -401,13 +417,40 @@ execution:
           minimum_rows: 1
           required_trade_date: "${target_date}"
           missing_any_code_result: "data_ready_false"
+        all_hk_benchmarks:
+          api: "index_global"
+          codes: "every benchmarkCode from hk_qdii_targets.json"
+          minimum_rows: 1
+          required_trade_date: "${target_date}"
+          missing_any_code_result: "data_ready_false"
       query_control:
         retry_attempts: 3
         retry_backoff_seconds:
           - 2
           - 4
         throttle_seconds_between_symbol_queries: 0.35
-      calculate_job_condition: "github.ref == 'refs/heads/main' AND all_probes_ready"
+      production_short_circuit:
+        live_source: "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/overview.json"
+        already_current_formula: "live_latest_date >= target_date"
+        result:
+          already_current: true
+          data_ready: false
+          reason: "already_current"
+          calculate_and_publish: false
+        live_check_failure_policy: "continue_to_tushare_readiness"
+      polling:
+        maximum_attempts: 3
+        interval_seconds: 600
+        relative_attempt_minutes:
+          - 0
+          - 10
+          - 20
+        retry_only_when_reason: "daily_data_incomplete"
+        immediate_stop_reasons:
+          - "ready"
+          - "already_current"
+          - "non_trading_day"
+      calculate_job_condition: "github.ref == 'refs/heads/main' AND all_probes_ready AND NOT already_current"
     production_concurrency:
       group: "etf-constituent-production"
       cancel_in_progress: false
@@ -428,7 +471,7 @@ execution:
       - "restore_market_data_cache"
       - "install_python_dependencies"
       - "npm_ci"
-      - "run_etf_constituent_workflow"
+      - "run_unified_etf_and_hk_qdii_workflow"
       - "npm_test_if_calculation_success"
       - "guard_generated_production_date_if_calculation_success"
       - "vercel_pull_production_if_calculation_success"
@@ -458,12 +501,15 @@ validation:
     failed_status_exit_code: 1
     skipped_status_exit_code: 0
   generated_data_checks:
-    target_count: 20
-    etf_count: 19
+    target_count: 22
+    core_target_count: 20
+    hk_qdii_count: 2
+    etf_count: 21
     index_count: 1
-    overview_codes_equal_target_codes: true
-    topic_codes_equal_target_codes: true
-    topic_file_slugs_equal_target_slugs: true
+    overview_codes_equal_unified_target_codes: true
+    core_topic_codes_equal_core_target_codes: true
+    core_topic_file_slugs_equal_core_target_slugs: true
+    every_hk_qdii_output_is_production_integrated: true
     overview_sandbox_flag: true
     every_latest_date_equals_end_date: true
     every_topic_sandbox_flag: true
@@ -487,8 +533,8 @@ validation:
       - "权重龙头确认"
   site_test:
     command: "cd industry_insight_sandbox && npm test"
-    expected_python_behavior_test_count: 28
-    expected_node_render_test_count: 8
+    expected_python_behavior_test_count: 38
+    expected_node_render_test_count: 10
     behavior_test_files:
       - "industry_insight_sandbox/tests/test_strategy_behavior.py"
       - "industry_insight_sandbox/tests/test_readiness_behavior.py"
@@ -513,6 +559,8 @@ validation:
       - "readiness_reports_missing_tracking_metadata"
       - "readiness_rejects_unsupported_target_kind"
       - "readiness_requires_target_date_and_minimum_rows"
+      - "same_day_live_overview_short_circuits_readiness"
+      - "older_live_overview_does_not_short_circuit_readiness"
       - "production_date_extracts_single_live_date"
       - "production_date_blocks_implicit_rollback"
       - "production_date_requires_exact_human_confirmation"
@@ -522,12 +570,16 @@ validation:
       - "freshness_missing_fields_fail_validation"
       - "freshness_future_component_date_fails_validation"
       - "stale_component_cannot_create_startup_confirmation"
+      - "readiness_includes_hk_etfs_tracking_index_and_global_benchmark"
+      - "hk_qdii_targets_merge_into_unified_overview"
   vercel_build_test:
     command: "cd industry_insight_sandbox && npm run build:vercel"
   required_outputs:
     - "industry_insight_sandbox/data/overview.json"
     - "industry_insight_sandbox/data/all_topics.json"
     - "industry_insight_sandbox/data/topics/<slug>.json"
+    - "industry_insight_sandbox/data/hk_qdii/513970-sh.json"
+    - "industry_insight_sandbox/data/hk_qdii/513230-sh.json"
     - "logs/etf_constituent_workflow/<run_id>.json"
     - "logs/etf_constituent_workflow/<run_id>.log"
 
@@ -539,6 +591,8 @@ output_schema:
       - "targetCount"
       - "etfCount"
       - "indexCount"
+      - "coreTargetCount"
+      - "hkQdiiCount"
       - "source"
       - "sandbox"
     required_target_fields:
@@ -559,6 +613,7 @@ output_schema:
       - "belowMa250TenDays"
       - "stagePassCount"
       - "stageStates"
+      - "route"
     required_component_freshness_fields:
       - "latestDate"
       - "dataFresh"
@@ -585,6 +640,7 @@ publication:
       - "overview.json"
       - "all_topics.json"
       - "topics/**"
+      - "hk_qdii/**"
   web_application:
     provider: "Vercel"
     project_name: "etf-core-constituent-watch"
@@ -594,7 +650,7 @@ publication:
     build_command: "npm run build:vercel"
     client_data_source: "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/overview.json"
     live_fetch_cache: "no-store"
-    live_data_accept_condition: "meta.targetCount == 20"
+    live_data_accept_condition: "meta.targetCount == 22 AND meta.hkQdiiCount == 2"
     live_fetch_failure_fallback: "bundled_build_snapshot"
   artifacts:
     logs_name: "etf-constituent-workflow-logs"
@@ -675,6 +731,7 @@ change_control:
     - "parse workflow YAML"
   target_universe_change_requires:
     - "update industry_insight_sandbox/targets.json"
+    - "update industry_insight_sandbox/hk_qdii_targets.json when changing HK targets"
     - "update expected target counts in run_etf_constituent_workflow.py and tests"
     - "update this SOP invariants"
   prohibited_behavior:
