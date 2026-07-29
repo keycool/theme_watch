@@ -193,7 +193,7 @@ export default function Home() {
         return response.json() as Promise<OverviewData>;
       })
       .then((liveData) => {
-        if (!cancelled && liveData.meta?.targetCount === 22) {
+        if (!cancelled && liveData.meta?.targetCount === 23) {
           setOverviewData(liveData);
         }
       })
@@ -242,7 +242,7 @@ export default function Home() {
           </span>
           <div>
             <strong>Industry Watch Lab</strong>
-            <small>22 formal project targets</small>
+            <small>23 formal project targets</small>
           </div>
         </div>
         <StatusStrip
@@ -260,7 +260,7 @@ export default function Home() {
             <span>核心成分观察总览</span>
           </h1>
           <p>
-            22个正式标的集中在同一张启动观察表中，直接对照长期低位、MA60提前提示、
+            23个正式标的集中在同一张启动观察表中，直接对照长期低位、MA60提前提示、
             MA250与资金确认、权重龙头闭环。点击任一标的进入成分股专题。
           </p>
         </div>

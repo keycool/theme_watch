@@ -67,8 +67,8 @@ def merge_overview(
     if len(configs) != len(dashboards):
         raise RuntimeError("HK QDII target and dashboard counts differ.")
     core_rows = overview.get("targets", [])
-    if len(core_rows) != 20:
-        raise RuntimeError(f"Expected 20 core targets before merge, found {len(core_rows)}.")
+    if len(core_rows) != 21:
+        raise RuntimeError(f"Expected 21 core targets before merge, found {len(core_rows)}.")
     for row in core_rows:
         row["route"] = f"/topic/{row['slug']}"
 

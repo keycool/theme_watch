@@ -6,7 +6,7 @@ contract:
   version: 2.0.0
   mode: production_extension
   production_integrated: true
-  unified_overview_target_count: 22
+  unified_overview_target_count: 23
   target_count: 2
   targets:
     - code: 513970.SH

@@ -54,8 +54,8 @@ class HkQdiiStrategyBehaviorTests(unittest.TestCase):
 
         merged = merge_overview(core_overview, configs, dashboards)
 
-        self.assertEqual(merged["meta"]["targetCount"], 22)
-        self.assertEqual(merged["meta"]["coreTargetCount"], 20)
+        self.assertEqual(merged["meta"]["targetCount"], 23)
+        self.assertEqual(merged["meta"]["coreTargetCount"], 21)
         self.assertEqual(merged["meta"]["hkQdiiCount"], 2)
         self.assertEqual(
             {row["route"] for row in merged["targets"] if row["kind"] == "hk_qdii"},

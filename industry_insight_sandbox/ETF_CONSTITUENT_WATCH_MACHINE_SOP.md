@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "1.6.0"
+  version: "1.7.0"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -27,7 +27,7 @@ sop:
     - "secrets"
     - "failure_contract"
   last_verified:
-    date: "2026-07-27"
+    date: "2026-07-29"
     implementation_baseline_ref: "same_git_commit_as_this_file"
 
 authority:
@@ -62,11 +62,11 @@ invariants:
   forbidden_data_paths:
     - ".cache_scan_v2"
     - "reports/theme_watch"
-  target_count: 22
-  core_target_count: 20
+  target_count: 23
+  core_target_count: 21
   hk_qdii_target_count: 2
   target_kind_counts:
-    etf_total: 21
+    etf_total: 22
     index: 1
     hk_qdii_etf: 2
   stage_count: 3
@@ -511,10 +511,10 @@ validation:
     failed_status_exit_code: 1
     skipped_status_exit_code: 0
   generated_data_checks:
-    target_count: 22
-    core_target_count: 20
+    target_count: 23
+    core_target_count: 21
     hk_qdii_count: 2
-    etf_count: 21
+    etf_count: 22
     index_count: 1
     overview_codes_equal_unified_target_codes: true
     core_topic_codes_equal_core_target_codes: true
@@ -543,8 +543,8 @@ validation:
       - "权重龙头确认"
   site_test:
     command: "cd industry_insight_sandbox && npm test"
-    expected_python_behavior_test_count: 38
-    expected_node_render_test_count: 10
+    expected_python_behavior_test_count: 44
+    expected_node_render_test_count: 11
     behavior_test_files:
       - "industry_insight_sandbox/tests/test_strategy_behavior.py"
       - "industry_insight_sandbox/tests/test_readiness_behavior.py"
@@ -666,7 +666,7 @@ publication:
     build_command: "npm run build:vercel"
     client_data_source: "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/overview.json"
     live_fetch_cache: "no-store"
-    live_data_accept_condition: "meta.targetCount == 22 AND meta.hkQdiiCount == 2"
+    live_data_accept_condition: "meta.targetCount == 23 AND meta.hkQdiiCount == 2"
     live_fetch_failure_fallback: "bundled_build_snapshot"
   artifacts:
     logs_name: "etf-constituent-workflow-logs"

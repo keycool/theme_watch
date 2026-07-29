@@ -25,7 +25,7 @@ OVERVIEW_PATH = SANDBOX_DIR / "data" / "overview.json"
 ALL_TOPICS_PATH = SANDBOX_DIR / "data" / "all_topics.json"
 TOPIC_DIR = SANDBOX_DIR / "data" / "topics"
 SUMMARY_DIR = ROOT / "logs" / "etf_constituent_workflow"
-CORE_TARGET_COUNT = 20
+CORE_TARGET_COUNT = 21
 HK_TARGET_COUNT = 2
 TOTAL_TARGET_COUNT = CORE_TARGET_COUNT + HK_TARGET_COUNT
 
@@ -381,8 +381,8 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
         issues.append(f"Overview coreTargetCount is not {CORE_TARGET_COUNT}.")
     if meta.get("hkQdiiCount") != HK_TARGET_COUNT:
         issues.append(f"Overview hkQdiiCount is not {HK_TARGET_COUNT}.")
-    if meta.get("etfCount") != 21 or meta.get("indexCount") != 1:
-        issues.append("Overview ETF/index counts are not 21/1.")
+    if meta.get("etfCount") != 22 or meta.get("indexCount") != 1:
+        issues.append("Overview ETF/index counts are not 22/1.")
 
     overview_dates = {
         item.get("latestDate") for item in overview.get("targets", [])

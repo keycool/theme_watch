@@ -47,15 +47,23 @@ test("the unified target universe and generated datasets stay aligned", async ()
   const overviewCodes = overview.targets.map((item) => item.code).sort();
   const topicCodes = topics.map((item) => item.target.code).sort();
 
-  assert.equal(targets.length, 20);
+  assert.equal(targets.length, 21);
   assert.equal(hkTargets.length, 2);
-  assert.equal(targets.filter((item) => item.kind === "etf").length, 19);
+  assert.equal(targets.filter((item) => item.kind === "etf").length, 20);
   assert.equal(targets.filter((item) => item.kind === "index").length, 1);
+  assert.ok(
+    ["159930.SZ", "159697.SZ", "515220.SH", "512400.SH"].every((code) =>
+      coreCodes.includes(code),
+    ),
+  );
   assert.deepEqual(overviewCodes, targetCodes);
   assert.deepEqual(topicCodes, coreCodes);
-  assert.equal(overview.meta.targetCount, 22);
+  assert.equal(overview.meta.targetCount, 23);
   assert.equal(overview.meta.hkQdiiCount, 2);
-  assert.equal(new Set(overview.targets.map((item) => item.slug)).size, 22);
+  assert.equal(new Set(overview.targets.map((item) => item.slug)).size, 23);
+  const nonferrous = topics.find((item) => item.target.code === "512400.SH");
+  assert.equal(nonferrous?.target.indexCode, "000819.SH");
+  assert.equal(nonferrous?.target.indexName, "中证有色金属");
   for (const target of overview.targets.filter((item) =>
     coreCodes.includes(item.code),
   )) {
@@ -102,12 +110,12 @@ test("server-renders the overview and links every unified target", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>ETF与主题指数核心成分观察总览<\/title>/);
-  assert.match(html, /22 formal project targets/);
+  assert.match(html, /23 formal project targets/);
   assert.match(html, />LIVE</);
   assert.match(html, /数据截止/);
   assert.match(html, /生成于/);
   assert.doesNotMatch(html, /封闭沙盒 · 不接入生产/);
-  assert.match(html, /22个正式标的集中在同一张启动观察表中/);
+  assert.match(html, /23个正式标的集中在同一张启动观察表中/);
   assert.match(html, /低位收敛/);
   assert.match(html, /带量突破年线/);
   assert.match(html, /权重龙头确认/);
@@ -149,7 +157,7 @@ test("orders the overview by startup status before secondary metrics", async () 
   );
 });
 
-test("server-renders all 20 independent topic pages", async () => {
+test("server-renders all 21 independent topic pages", async () => {
   const topics = await readJson("data/all_topics.json");
 
   for (const topic of topics) {

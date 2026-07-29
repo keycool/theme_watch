@@ -995,8 +995,8 @@ def main(end_date: str | None = None) -> None:
         raise RuntimeError("Tushare token is not configured.")
     pro = ts.pro_api(token)
     targets = json.loads(TARGETS_PATH.read_text(encoding="utf-8"))
-    if len(targets) != 20:
-        raise RuntimeError(f"Expected 20 formal targets, found {len(targets)}.")
+    if len(targets) != 21:
+        raise RuntimeError(f"Expected 21 formal targets, found {len(targets)}.")
 
     end_date = end_date or date.today().strftime("%Y%m%d")
     try:

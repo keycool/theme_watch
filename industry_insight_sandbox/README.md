@@ -64,8 +64,8 @@ py -B .\generate_dashboard_data.py
 py -B .\generate_dashboard_data.py --end-date 20260717
 ```
 
-生产刷新应从仓库根目录运行统一编排器；它会依次生成20个核心专题、2个港股专题，
-再合并为22标的总览：
+生产刷新应从仓库根目录运行统一编排器；它会依次生成21个核心专题、2个港股专题，
+再合并为23标的总览：
 
 ```powershell
 py -B ..\run_etf_constituent_workflow.py --end-date 20260717
@@ -102,7 +102,7 @@ http://localhost:3000/topic/<slug>
 npm test
 ```
 
-测试会核对22标的统一总览、20个核心专题和2个港股专题，并逐个执行服务端渲染。
+测试会核对23标的统一总览、21个核心专题和2个港股专题，并逐个执行服务端渲染。
 
 ## 统一 workflow
 
@@ -137,7 +137,7 @@ GitHub Actions 配置为 `.github/workflows/etf-constituent-daily.yml`，工作�
 https://etf-core-constituent-watch.vercel.app
 ```
 
-workflow 每次成功计算后，会把最新总览、20个核心专题和2个港股专题 JSON 发布到专用
+workflow 每次成功计算后，会把最新总览、21个核心专题和2个港股专题 JSON 发布到专用
 `etf-watch-data` 分支。网页启动后从该分支读取最新数据，失败时才回退到内置快照，
 因此日常更新不需要覆盖原有主题报告的 GitHub Pages。
 
