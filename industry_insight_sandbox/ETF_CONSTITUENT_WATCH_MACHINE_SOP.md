@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "1.5.0"
+  version: "1.6.0"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -219,13 +219,17 @@ strategy:
     pass_formula: "path_a.pass OR path_b.pass"
     warning_formula: "NOT pass AND (path_a.warning OR path_b.warning)"
     path_a:
-      metric: "count(close < ma250 in last 120 trade days)"
+      metric: "count(close <= ma250 * 0.95 in last 120 trade days)"
       warning_threshold_days: 40
       pass_threshold_days: 60
+      intent: "count only effective low-position days and exclude shallow oscillation around ma250"
     path_b:
-      metric: "count(close <= ma250 * 0.90 in last 120 trade days)"
-      warning_threshold_days: 12
-      pass_threshold_days: 24
+      metrics:
+        below_ma250_days: "count(close < ma250 in last 120 trade days)"
+        deep_10_days: "count(close <= ma250 * 0.90 in last 120 trade days)"
+      warning_formula: "below_ma250_days >= 24 AND deep_10_days >= 12"
+      pass_formula: "below_ma250_days >= 40 AND deep_10_days >= 24"
+      intent: "prevent a recent sharp decline from being treated as long-term low-position convergence"
     diagnostic_only:
       metric: "count(close <= ma250 * 0.85 in last 120 trade days)"
       affects_pass: false
@@ -234,6 +238,11 @@ strategy:
   stage_breakout:
     id: "breakout"
     title: "带量突破年线"
+    ma60_observation_window:
+      gap_formula: "latest_close / latest_ma60 - 1"
+      enter_formula: "latest_close >= latest_ma60 * 0.97"
+      minimum_gap_percent: -3.0
+      role: "required_gate_for_overall_observation_label"
     ma60_early_warning:
       formula: "latest_close >= latest_ma60"
       pass_replacement_allowed: false
@@ -248,7 +257,7 @@ strategy:
       consecutive_trade_days: 3
     pass_formula: "price_confirmation AND funding_confirmation"
     emerged_formula: "price_confirmation OR funding_confirmation"
-    warning_formula: "ma60_early_warning AND NOT pass"
+    warning_formula: "ma60_observation_window AND NOT pass"
     crowding_risk:
       current_hot_formula: "latest_absorption_rank_pct >= 0.95"
       overheated_formula: "last_3_trade_days_all(absorption_rank_pct >= 0.95)"
@@ -318,9 +327,10 @@ label_state_machine:
     - label: "接近启动"
       condition: "structure.pass AND breakout.emerged AND leader.group_monitor"
     - label: "观察中"
-      condition: "structure.pass OR structure.warning OR breakout.ma60_early_warning OR breakout.emerged OR leader.strict_limit_seen OR leader.secondary_alert OR leader.group_monitor"
+      condition: "(structure.pass OR structure.warning) AND breakout.ma60_observation_window"
     - label: "未启动"
       condition: "otherwise"
+  side_signal_rule: "when structure is absent or the tracking index is outside the ma60 observation window, breakout and leader signals remain visible but cannot raise the overall label"
   stage_pass_count_formula: "sum(structure.pass, breakout.pass, leader.pass)"
   overview_sort:
     label_order:
@@ -614,6 +624,9 @@ output_schema:
       - "stagePassCount"
       - "stageStates"
       - "route"
+    core_target_additional_required_fields:
+      - "belowMa250FiveDays"
+      - "ma60Near"
     required_component_freshness_fields:
       - "latestDate"
       - "dataFresh"
@@ -630,6 +643,9 @@ output_schema:
       - "components"
       - "limitEvents"
       - "notes"
+    core_topic_summary_additional_required_fields:
+      - "belowMa250FiveDays"
+      - "ma60Near"
 
 publication:
   live_data:

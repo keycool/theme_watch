@@ -80,6 +80,7 @@ type DashboardData = {
     aboveMa250Count: number;
     strictLeaderConfirmed: boolean;
     ma60Watch?: boolean;
+    ma60Near?: boolean;
     ma60BreakoutToday?: boolean;
     ma60Gap?: number | null;
     ma250Gap: number | null;
@@ -89,6 +90,7 @@ type DashboardData = {
     crowdingHot?: boolean;
     lowWarning?: boolean;
     belowMa250Days?: number;
+    belowMa250FiveDays?: number;
     belowMa250TenDays?: number;
     relativeExcess120: number | null;
     topThreeNames: string[];
@@ -479,6 +481,9 @@ export default function TopicDashboard({
   const [sortBy, setSortBy] = useState<SortKey>("weight");
 
   useEffect(() => {
+    if (["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname)) {
+      return;
+    }
     let cancelled = false;
     const slug = bundledDashboardData.target.slug;
     fetch(`${LIVE_TOPIC_ROOT}/${slug}.json?v=${Date.now()}`, {
@@ -599,8 +604,10 @@ export default function TopicDashboard({
             <h2>启动条件必须串联闭环</h2>
           </div>
           <p>
-            低于年线达到60日，或深跌10%达到24日，低位条件即可通过；
-            40日与12日分别作为提前预警。MA60只做提前提示。
+            低于年线至少5%达到60日可通过，达到40日先预警；
+            或年线下至少40日且深跌10%达到24日通过，第二条路径在
+            24日年线下停留且深跌12日时预警。低位结构至少预警，并且
+            距MA60不低于-3%，总状态才进入观察中；站上MA60为正式提前提示。
             连续2日站上MA250、资金分位持续达标与前三龙头持续性共同完成闭环。
           </p>
         </div>

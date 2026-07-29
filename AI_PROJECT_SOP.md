@@ -13,7 +13,7 @@ project:
   id: theme_watch
   default_branch: main
   repository: keycool/theme_watch
-  current_release: etf-watch-v2.0.0
+  current_release: etf-watch-v2.1.0
 
 systems:
   etf_constituent_watch:

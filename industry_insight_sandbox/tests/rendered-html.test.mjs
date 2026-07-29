@@ -56,6 +56,12 @@ test("the unified target universe and generated datasets stay aligned", async ()
   assert.equal(overview.meta.targetCount, 22);
   assert.equal(overview.meta.hkQdiiCount, 2);
   assert.equal(new Set(overview.targets.map((item) => item.slug)).size, 22);
+  for (const target of overview.targets.filter((item) =>
+    coreCodes.includes(item.code),
+  )) {
+    assert.equal(typeof target.belowMa250FiveDays, "number");
+    assert.equal(typeof target.ma60Near, "boolean");
+  }
 
   for (const topic of topics) {
     assert.equal(topic.meta.sandbox, true);
@@ -63,6 +69,8 @@ test("the unified target universe and generated datasets stay aligned", async ()
     assert.ok(topic.meta.weightDate);
     assert.ok(topic.target.indexCode);
     assert.ok(topic.target.indexName);
+    assert.equal(typeof topic.summary.belowMa250FiveDays, "number");
+    assert.equal(typeof topic.summary.ma60Near, "boolean");
     assert.ok(topic.chart.length >= 250, `${topic.target.code} chart is too short`);
     assert.ok(
       topic.components.length >= 3,
@@ -111,6 +119,21 @@ test("server-renders the overview and links every unified target", async () => {
     assert.match(html, new RegExp(target.route));
     assert.match(html, new RegExp(target.code.replace(".", "\\.")));
   }
+});
+
+test("keeps localhost previews on the bundled strategy snapshot", async () => {
+  const [home, topic] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL("../app/components/TopicDashboard.tsx", import.meta.url),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(home, /window\.location\.hostname/);
+  assert.match(topic, /window\.location\.hostname/);
+  assert.match(home, /\["localhost", "127\.0\.0\.1", "0\.0\.0\.0"\]/);
+  assert.match(topic, /\["localhost", "127\.0\.0\.1", "0\.0\.0\.0"\]/);
 });
 
 test("orders the overview by startup status before secondary metrics", async () => {
@@ -220,10 +243,13 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
   assert.match(generator, /component_latest_date == window_dates\[-1\]/);
   assert.match(generator, /next_market_date = \(/);
   assert.match(generator, /continuation_known = bool\(/);
-  assert.match(generator, /LOW_BELOW_MA250_WARNING_DAYS = 40/);
-  assert.match(generator, /LOW_BELOW_MA250_PASS_DAYS = 60/);
+  assert.match(generator, /LOW_BELOW_MA250_5_WARNING_DAYS = 40/);
+  assert.match(generator, /LOW_BELOW_MA250_5_PASS_DAYS = 60/);
   assert.match(generator, /LOW_DEEP_10_WARNING_DAYS = 12/);
   assert.match(generator, /LOW_DEEP_10_PASS_DAYS = 24/);
+  assert.match(generator, /LOW_DEEP_10_WARNING_MIN_BELOW_DAYS = 24/);
+  assert.match(generator, /LOW_DEEP_10_PASS_MIN_BELOW_DAYS = 40/);
+  assert.match(generator, /MA60_OBSERVATION_MIN_GAP = -0\.03/);
   assert.match(generator, /FUNDING_CONFIRM_PERCENTILE = 0\.80/);
   assert.match(generator, /CROWDING_HOT_PERCENTILE = 0\.95/);
   assert.match(
@@ -232,11 +258,15 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
   );
   assert.match(
     generator,
-    /below_ma250_days >= LOW_BELOW_MA250_PASS_DAYS[\s\S]*or below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS/,
+    /below_ma250_5_days >= LOW_BELOW_MA250_5_PASS_DAYS[\s\S]*or deep_path_passed/,
   );
   assert.match(
     generator,
-    /below_ma250_days >= LOW_BELOW_MA250_WARNING_DAYS[\s\S]*or below_ma250_10_days >= LOW_DEEP_10_WARNING_DAYS/,
+    /below_ma250_5_days >= LOW_BELOW_MA250_5_WARNING_DAYS[\s\S]*or deep_path_warning/,
+  );
+  assert.match(
+    generator,
+    /if \(structure_passed or structure_warning\) and ma60_near:[\s\S]*return "观察中"/,
   );
   assert.match(generator, /last_three_funding_ranks >= FUNDING_CONFIRM_PERCENTILE/);
   assert.match(generator, /observation_clues\.append\("连续2日站上MA250"\)/);
@@ -244,11 +274,12 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
     generator,
     /当前观察线索：\{.*join\(observation_clues\)\}/,
   );
-  assert.match(generator, /"MA60提前提示"/);
+  assert.match(generator, /"MA60观察窗口"/);
   assert.match(generator, /"次级龙头异动"/);
   assert.match(generator, /权重第4至10名近3日涨停，且次日继续收红/);
-  assert.match(dashboard, /低于年线达到60日，或深跌10%达到24日/);
-  assert.match(dashboard, /40日与12日分别作为提前预警/);
+  assert.match(dashboard, /低于年线至少5%达到60日可通过/);
+  assert.match(dashboard, /年线下至少40日且深跌10%达到24日通过/);
+  assert.match(dashboard, /距MA60不低于-3%/);
   assert.match(dashboard, /资金占比在过去252个交易日的历史分位/);
   assert.match(
     dashboard,

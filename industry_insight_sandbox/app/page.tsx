@@ -183,6 +183,9 @@ export default function Home() {
   const [query, setQuery] = useState("");
 
   useEffect(() => {
+    if (["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname)) {
+      return;
+    }
     let cancelled = false;
     fetch(`${LIVE_OVERVIEW_URL}?v=${Date.now()}`, { cache: "no-store" })
       .then((response) => {

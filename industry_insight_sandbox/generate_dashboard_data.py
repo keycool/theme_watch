@@ -21,10 +21,13 @@ MAX_CORE_COUNT = 20
 LEADER_WATCH_COUNT = 10
 STRICT_LEADER_COUNT = 3
 BENCHMARK_CODE = "000300.SH"
-LOW_BELOW_MA250_WARNING_DAYS = 40
-LOW_BELOW_MA250_PASS_DAYS = 60
+LOW_BELOW_MA250_5_WARNING_DAYS = 40
+LOW_BELOW_MA250_5_PASS_DAYS = 60
 LOW_DEEP_10_WARNING_DAYS = 12
 LOW_DEEP_10_PASS_DAYS = 24
+LOW_DEEP_10_WARNING_MIN_BELOW_DAYS = 24
+LOW_DEEP_10_PASS_MIN_BELOW_DAYS = 40
+MA60_OBSERVATION_MIN_GAP = -0.03
 FUNDING_CONFIRM_PERCENTILE = 0.80
 CROWDING_HOT_PERCENTILE = 0.95
 
@@ -237,6 +240,9 @@ def evaluate_structure_state(index_daily: pd.DataFrame) -> dict:
     below_ma250_days = int(
         (low_history["close"] < low_history["ma250"]).sum()
     )
+    below_ma250_5_days = int(
+        (low_history["close"] <= low_history["ma250"] * 0.95).sum()
+    )
     below_ma250_10_days = int(
         (low_history["close"] <= low_history["ma250"] * 0.90).sum()
     )
@@ -244,16 +250,24 @@ def evaluate_structure_state(index_daily: pd.DataFrame) -> dict:
         (low_history["close"] <= low_history["ma250"] * 0.85).sum()
     )
     complete = len(low_history) == 120
+    deep_path_passed = (
+        below_ma250_days >= LOW_DEEP_10_PASS_MIN_BELOW_DAYS
+        and below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS
+    )
+    deep_path_warning = (
+        below_ma250_days >= LOW_DEEP_10_WARNING_MIN_BELOW_DAYS
+        and below_ma250_10_days >= LOW_DEEP_10_WARNING_DAYS
+    )
     passed = complete and (
-        below_ma250_days >= LOW_BELOW_MA250_PASS_DAYS
-        or below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS
+        below_ma250_5_days >= LOW_BELOW_MA250_5_PASS_DAYS
+        or deep_path_passed
     )
     warning = (
         complete
         and not passed
         and (
-            below_ma250_days >= LOW_BELOW_MA250_WARNING_DAYS
-            or below_ma250_10_days >= LOW_DEEP_10_WARNING_DAYS
+            below_ma250_5_days >= LOW_BELOW_MA250_5_WARNING_DAYS
+            or deep_path_warning
         )
     )
     return {
@@ -261,15 +275,48 @@ def evaluate_structure_state(index_daily: pd.DataFrame) -> dict:
         "passed": passed,
         "warning": warning,
         "belowMa250Days": below_ma250_days,
+        "belowMa250FiveDays": below_ma250_5_days,
         "belowMa250TenDays": below_ma250_10_days,
         "belowMa250FifteenDays": below_ma250_15_days,
     }
+
+
+def evaluate_strategy_label(
+    *,
+    trend_extension: bool,
+    structure_passed: bool,
+    structure_warning: bool,
+    breakout_confirmed: bool,
+    breakout_emerged: bool,
+    leader_confirmed: bool,
+    leader_group_monitor: bool,
+    ma60_near: bool,
+) -> str:
+    if trend_extension:
+        return "趋势延续"
+    if structure_passed and breakout_confirmed and leader_confirmed:
+        return "启动确认"
+    if structure_passed and breakout_emerged and leader_group_monitor:
+        return "接近启动"
+    if (structure_passed or structure_warning) and ma60_near:
+        return "观察中"
+    return "未启动"
 
 
 def evaluate_breakout_state(index_daily: pd.DataFrame) -> dict:
     latest = index_daily.iloc[-1]
     above_ma60 = bool(
         pd.notna(latest["ma60"]) and latest["close"] >= latest["ma60"]
+    )
+    ma60_gap = (
+        float(latest["close"] / latest["ma60"] - 1)
+        if pd.notna(latest["ma60"])
+        else None
+    )
+    ma60_near = bool(
+        pd.notna(latest["ma60"])
+        and latest["close"]
+        >= latest["ma60"] * (1 + MA60_OBSERVATION_MIN_GAP)
     )
     ma60_streak = 0
     for _, row in index_daily.iloc[::-1].iterrows():
@@ -315,6 +362,8 @@ def evaluate_breakout_state(index_daily: pd.DataFrame) -> dict:
     )
     return {
         "ma60Watch": above_ma60,
+        "ma60Near": ma60_near,
+        "ma60Gap": ma60_gap,
         "ma60Streak": ma60_streak,
         "ma60BreakoutToday": ma60_breakout_today,
         "amountRatioLatest": amount_ratio_latest,
@@ -468,6 +517,7 @@ def build_topic(
     last_120 = index_daily.tail(120).copy()
     structure_state = evaluate_structure_state(index_daily)
     below_ma250_days = structure_state["belowMa250Days"]
+    below_ma250_5_days = structure_state["belowMa250FiveDays"]
     below_ma250_10_days = structure_state["belowMa250TenDays"]
     below_ma250_15_days = structure_state["belowMa250FifteenDays"]
     structure_ok = structure_state["passed"]
@@ -499,6 +549,8 @@ def build_topic(
 
     breakout_state = evaluate_breakout_state(index_daily)
     ma60_watch_ok = breakout_state["ma60Watch"]
+    ma60_near = breakout_state["ma60Near"]
+    ma60_gap = breakout_state["ma60Gap"]
     ma60_streak = breakout_state["ma60Streak"]
     ma60_breakout_today = breakout_state["ma60BreakoutToday"]
     amount_ratio_latest = breakout_state["amountRatioLatest"]
@@ -573,14 +625,22 @@ def build_topic(
     )
 
     low_position_clues: list[str] = []
-    if below_ma250_days >= LOW_BELOW_MA250_PASS_DAYS:
-        low_position_clues.append(f"年线下停留{below_ma250_days}/120日")
-    if below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS:
+    if below_ma250_5_days >= LOW_BELOW_MA250_5_PASS_DAYS:
+        low_position_clues.append(f"年线下5%停留{below_ma250_5_days}/120日")
+    if (
+        below_ma250_days >= LOW_DEEP_10_PASS_MIN_BELOW_DAYS
+        and below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS
+    ):
         low_position_clues.append(f"深跌10%达{below_ma250_10_days}/120日")
     if not structure_ok:
-        if below_ma250_days >= LOW_BELOW_MA250_WARNING_DAYS:
-            low_position_clues.append(f"年线下停留{below_ma250_days}/120日")
-        if below_ma250_10_days >= LOW_DEEP_10_WARNING_DAYS:
+        if below_ma250_5_days >= LOW_BELOW_MA250_5_WARNING_DAYS:
+            low_position_clues.append(
+                f"年线下5%停留{below_ma250_5_days}/120日"
+            )
+        if (
+            below_ma250_days >= LOW_DEEP_10_WARNING_MIN_BELOW_DAYS
+            and below_ma250_10_days >= LOW_DEEP_10_WARNING_DAYS
+        ):
             low_position_clues.append(f"深跌10%达{below_ma250_10_days}/120日")
 
     observation_clues: list[str] = []
@@ -596,6 +656,8 @@ def build_topic(
         observation_clues.append(
             "当日站上MA60" if ma60_breakout_today else "已站上MA60"
         )
+    elif ma60_near and ma60_gap is not None:
+        observation_clues.append(f"距MA60 {ma60_gap * 100:.1f}%，进入观察窗口")
     if hold_two_days_ok:
         observation_clues.append("连续2日站上MA250")
     if funding_confirmed:
@@ -607,31 +669,59 @@ def build_topic(
     if leader_monitor_ok:
         observation_clues.append("核心成分群体转强")
 
-    if trend_extension:
-        final_label = "趋势延续"
+    final_label = evaluate_strategy_label(
+        trend_extension=trend_extension,
+        structure_passed=structure_ok,
+        structure_warning=structure_warning,
+        breakout_confirmed=breakout_confirmed,
+        breakout_emerged=breakout_emerged,
+        leader_confirmed=leader_confirmed,
+        leader_group_monitor=leader_monitor_ok,
+        ma60_near=ma60_near,
+    )
+    if final_label == "趋势延续":
         conclusion = "指数与核心成分整体已脱离低位启动区，更适合按趋势延续与风险管理观察。"
-    elif structure_ok and breakout_confirmed and leader_confirmed:
-        final_label = "启动确认"
+    elif final_label == "启动确认":
         conclusion = "低位结构、跟踪指数成交额占全A成交额分位、年线突破与权重龙头持续性已经闭环。"
-    elif structure_ok and breakout_emerged and leader_monitor_ok:
-        final_label = "接近启动"
+    elif final_label == "接近启动":
         conclusion = "指数突破与核心成分开始共振，但站稳或龙头严格确认仍不完整。"
-    elif (
-        structure_ok
-        or structure_warning
-        or ma60_watch_ok
-        or breakout_emerged
-        or top_ten_limit_alert
-        or leader_monitor_ok
-    ):
-        final_label = "观察中"
+    elif final_label == "观察中":
         conclusion = (
             f"当前观察线索：{'、'.join(observation_clues)}；"
             "其余核心条件尚未闭环。"
         )
     else:
-        final_label = "未启动"
-        conclusion = "当前尚未形成低位结构、资金突破和权重龙头持续性的完整组合。"
+        side_clues = [
+            clue for clue in observation_clues if not clue.startswith("低位条件")
+        ]
+        if structure_ok or structure_warning:
+            structure_text = (
+                f"低位结构已通过（{'、'.join(low_position_clues)}）"
+                if structure_ok
+                else f"低位结构已预警（{'、'.join(low_position_clues)}）"
+            )
+            ma60_text = (
+                f"当前距MA60 {ma60_gap * 100:.1f}%"
+                if ma60_gap is not None
+                else "当前缺少有效MA60"
+            )
+            conclusion = (
+                f"{structure_text}；{ma60_text}，尚未进入启动观察窗口。"
+                + (
+                    f"旁侧提示：{'、'.join(side_clues)}，不改变总状态。"
+                    if side_clues
+                    else ""
+                )
+            )
+        else:
+            conclusion = (
+                "低位结构尚未达到预警门槛；"
+                + (
+                    f"当前仅有旁侧提示：{'、'.join(side_clues)}，不提升总状态。"
+                    if side_clues
+                    else "当前也没有均线、资金或龙头旁侧信号。"
+                )
+            )
 
     chart = index_daily.tail(320).copy()
     benchmark_chart = benchmark[["trade_date", "close"]].rename(
@@ -653,12 +743,6 @@ def build_topic(
     top_ten_names = [
         str(name_map.get(code, code)) for code in top_ten_codes
     ]
-    ma60_gap = (
-        float(latest["close"] / latest["ma60"] - 1)
-        if pd.notna(latest["ma60"])
-        else None
-    )
-
     return {
         "meta": {
             "generatedAt": pd.Timestamp.now(tz="Asia/Shanghai").strftime(
@@ -694,9 +778,11 @@ def build_topic(
             "strictLeaderConfirmed": leader_confirmed,
             "lowWarning": structure_warning,
             "belowMa250Days": below_ma250_days,
+            "belowMa250FiveDays": below_ma250_5_days,
             "belowMa250TenDays": below_ma250_10_days,
             "belowMa250FifteenDays": below_ma250_15_days,
             "ma60Watch": ma60_watch_ok,
+            "ma60Near": ma60_near,
             "ma60BreakoutToday": ma60_breakout_today,
             "ma60Gap": as_float(None if ma60_gap is None else ma60_gap * 100),
             "ma250Gap": as_float(None if ma250_gap is None else ma250_gap * 100),
@@ -726,18 +812,25 @@ def build_topic(
                 "warning": structure_warning,
                 "items": [
                     condition(
-                        "年线下停留",
-                        below_ma250_days >= LOW_BELOW_MA250_PASS_DAYS,
-                        f"{below_ma250_days}/120日",
-                        "过去120日中，收盘低于MA250的天数 ≥ 60",
-                        "达到40日先预警，达到60日可通过低位条件。",
+                        "有效低位停留",
+                        (
+                            below_ma250_5_days
+                            >= LOW_BELOW_MA250_5_PASS_DAYS
+                        ),
+                        f"{below_ma250_5_days}/120日",
+                        "过去120日中，收盘低于MA250至少5%的天数 ≥ 60",
+                        "有效低位达到40日先预警，达到60日可通过低位条件。",
                     ),
                     condition(
                         "加速下跌记录",
-                        below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS,
+                        (
+                            below_ma250_days
+                            >= LOW_DEEP_10_PASS_MIN_BELOW_DAYS
+                            and below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS
+                        ),
                         f"{below_ma250_10_days}/120日",
-                        "过去120日中，收盘低于MA250至少10%的天数 ≥ 24",
-                        "达到12日先预警，达到24日可通过低位条件；两条路径满足其一即可。",
+                        "年线下停留 ≥ 40日，且其中深跌10% ≥ 24日",
+                        "预警要求年线下至少24日且深跌10%至少12日；通过要求分别达到40日和24日。",
                     ),
                     condition(
                         "深度低位记录",
@@ -752,24 +845,28 @@ def build_topic(
                 "id": "breakout",
                 "number": "02",
                 "title": "带量突破年线",
-                "subtitle": "MA60预警，MA250确认",
+                "subtitle": "MA60观察窗，MA250确认",
                 "passed": breakout_confirmed,
-                "warning": ma60_watch_ok and not breakout_confirmed,
+                "warning": ma60_near and not breakout_confirmed,
                 "items": [
                     condition(
-                        "MA60提前提示",
-                        ma60_watch_ok,
+                        "MA60观察窗口",
+                        ma60_near,
                         (
                             "今日突破"
                             if ma60_breakout_today
                             else (
-                                "-"
-                                if pd.isna(latest["ma60"])
-                                else f"站上{ma60_streak}日"
+                                f"站上{ma60_streak}日"
+                                if ma60_watch_ok
+                                else (
+                                    "-"
+                                    if ma60_gap is None
+                                    else f"距MA60 {ma60_gap * 100:.1f}%"
+                                )
                             )
                         ),
-                        "跟踪指数收盘站上MA60",
-                        "只作为启动提前量提示，不替代MA250正式确认。",
+                        "跟踪指数收盘距MA60不低于-3%",
+                        "进入观察窗口；站上MA60为正式提前提示，但不替代MA250确认。",
                     ),
                     condition(
                         "连续站上年线",
@@ -1124,6 +1221,7 @@ def main(end_date: str | None = None) -> None:
                 "crowdingHot": topic["summary"]["crowdingHot"],
                 "lowWarning": topic["summary"]["lowWarning"],
                 "belowMa250Days": topic["summary"]["belowMa250Days"],
+                "belowMa250FiveDays": topic["summary"]["belowMa250FiveDays"],
                 "belowMa250TenDays": topic["summary"]["belowMa250TenDays"],
                 "relativeExcess120": topic["summary"]["relativeExcess120"],
                 "coreCount": topic["summary"]["coreCount"],
@@ -1132,6 +1230,7 @@ def main(end_date: str | None = None) -> None:
                 "aboveMa60Count": topic["summary"]["aboveMa60Count"],
                 "aboveMa250Count": topic["summary"]["aboveMa250Count"],
                 "ma60Watch": topic["summary"]["ma60Watch"],
+                "ma60Near": topic["summary"]["ma60Near"],
                 "ma60BreakoutToday": topic["summary"]["ma60BreakoutToday"],
                 "topTenLimitAlert": topic["summary"]["topTenLimitAlert"],
                 "secondaryLimitAlert": topic["summary"]["secondaryLimitAlert"],

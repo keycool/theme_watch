@@ -13,6 +13,7 @@ sys.path.insert(0, str(SANDBOX_DIR))
 from generate_dashboard_data import (
     evaluate_breakout_state,
     evaluate_limit_event,
+    evaluate_strategy_label,
     evaluate_structure_state,
     limit_threshold,
 )
@@ -24,12 +25,15 @@ def daily(rows: list[tuple[str, float, float]]) -> pd.DataFrame:
 
 def structure_frame(
     *,
-    below_days: int = 0,
+    effective_low_days: int = 0,
+    shallow_below_days: int = 0,
     deep_days: int = 0,
     row_count: int = 120,
 ) -> pd.DataFrame:
     close = [100.0] * row_count
-    for index in range(min(below_days, row_count)):
+    for index in range(min(shallow_below_days, row_count)):
+        close[index] = 99.0
+    for index in range(min(effective_low_days, row_count)):
         close[index] = 95.0
     for index in range(min(deep_days, row_count)):
         close[index] = 90.0
@@ -255,18 +259,42 @@ class LimitEventBehaviorTest(unittest.TestCase):
 
 class StructureBehaviorTest(unittest.TestCase):
     def test_path_a_warning_and_pass_thresholds_are_inclusive(self) -> None:
-        warning = evaluate_structure_state(structure_frame(below_days=40))
-        passed = evaluate_structure_state(structure_frame(below_days=60))
+        warning = evaluate_structure_state(
+            structure_frame(effective_low_days=40)
+        )
+        passed = evaluate_structure_state(
+            structure_frame(effective_low_days=60)
+        )
 
         self.assertTrue(warning["warning"])
         self.assertFalse(warning["passed"])
+        self.assertEqual(warning["belowMa250FiveDays"], 40)
         self.assertTrue(passed["passed"])
         self.assertFalse(passed["warning"])
 
-    def test_path_b_warning_and_pass_thresholds_are_inclusive(self) -> None:
-        warning = evaluate_structure_state(structure_frame(deep_days=12))
-        passed = evaluate_structure_state(structure_frame(deep_days=24))
+    def test_shallow_yearline_oscillation_is_not_effective_low_position(self) -> None:
+        state = evaluate_structure_state(
+            structure_frame(shallow_below_days=95)
+        )
 
+        self.assertEqual(state["belowMa250Days"], 95)
+        self.assertEqual(state["belowMa250FiveDays"], 0)
+        self.assertFalse(state["warning"])
+        self.assertFalse(state["passed"])
+
+    def test_path_b_requires_both_low_duration_and_deep_days(self) -> None:
+        recent_drop = evaluate_structure_state(
+            structure_frame(shallow_below_days=18, deep_days=12)
+        )
+        warning = evaluate_structure_state(
+            structure_frame(shallow_below_days=24, deep_days=12)
+        )
+        passed = evaluate_structure_state(
+            structure_frame(shallow_below_days=40, deep_days=24)
+        )
+
+        self.assertFalse(recent_drop["warning"])
+        self.assertFalse(recent_drop["passed"])
         self.assertTrue(warning["warning"])
         self.assertFalse(warning["passed"])
         self.assertTrue(passed["passed"])
@@ -274,7 +302,11 @@ class StructureBehaviorTest(unittest.TestCase):
 
     def test_incomplete_120_day_window_cannot_warn_or_pass(self) -> None:
         state = evaluate_structure_state(
-            structure_frame(below_days=119, deep_days=119, row_count=119)
+            structure_frame(
+                effective_low_days=119,
+                deep_days=119,
+                row_count=119,
+            )
         )
 
         self.assertFalse(state["complete"])
@@ -321,6 +353,79 @@ class BreakoutBehaviorTest(unittest.TestCase):
 
         self.assertTrue(state["ma60Watch"])
         self.assertTrue(state["ma60BreakoutToday"])
+
+    def test_ma60_observation_window_boundary_is_inclusive(self) -> None:
+        boundary = evaluate_breakout_state(
+            breakout_frame(
+                funding_ranks=[0.10],
+                closes=[97.0],
+                ma60=[100.0],
+            )
+        )
+        outside = evaluate_breakout_state(
+            breakout_frame(
+                funding_ranks=[0.10],
+                closes=[96.99],
+                ma60=[100.0],
+            )
+        )
+
+        self.assertFalse(boundary["ma60Watch"])
+        self.assertTrue(boundary["ma60Near"])
+        self.assertFalse(outside["ma60Near"])
+
+
+class StrategyLabelBehaviorTest(unittest.TestCase):
+    def label(self, **overrides: bool) -> str:
+        inputs = {
+            "trend_extension": False,
+            "structure_passed": False,
+            "structure_warning": False,
+            "breakout_confirmed": False,
+            "breakout_emerged": False,
+            "leader_confirmed": False,
+            "leader_group_monitor": False,
+            "ma60_near": False,
+        }
+        inputs.update(overrides)
+        return evaluate_strategy_label(**inputs)
+
+    def test_side_signals_cannot_enter_observation_without_structure(self) -> None:
+        self.assertEqual(
+            self.label(
+                breakout_emerged=True,
+                leader_confirmed=True,
+                leader_group_monitor=True,
+            ),
+            "未启动",
+        )
+
+    def test_structure_without_ma60_window_stays_unstarted(self) -> None:
+        self.assertEqual(self.label(structure_warning=True), "未启动")
+
+    def test_structure_and_ma60_window_enter_observation(self) -> None:
+        self.assertEqual(
+            self.label(structure_warning=True, ma60_near=True),
+            "观察中",
+        )
+
+    def test_later_states_remain_layered_on_structure_pass(self) -> None:
+        self.assertEqual(
+            self.label(
+                structure_passed=True,
+                breakout_emerged=True,
+                leader_group_monitor=True,
+            ),
+            "接近启动",
+        )
+        self.assertEqual(
+            self.label(
+                structure_passed=True,
+                breakout_confirmed=True,
+                leader_confirmed=True,
+            ),
+            "启动确认",
+        )
 
 
 if __name__ == "__main__":
