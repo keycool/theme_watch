@@ -3,10 +3,10 @@
 ```yaml
 contract:
   id: hk_qdii_watch
-  version: 2.2.0
+  version: 3.1.0
   mode: production_extension
   production_integrated: true
-  unified_overview_target_count: 23
+  unified_overview_target_count: 25
   target_count: 2
   targets:
     - code: 513970.SH
@@ -103,6 +103,32 @@ strategy:
       - 上升回踩: latest_close < latest_MA20 AND latest_MA20 >= latest_MA60 AND ma20_rising
       - 短期转弱: latest_close < latest_MA20 AND NOT ma20_rising
       - 震荡整理: otherwise_or_missing_indicator
+  moving_average_lifecycle:
+    shared_engine: moving_average_lifecycle.py
+    output_field: maLifecycle
+    affects_stage_or_primary_label: false
+    calculation_object_by_target:
+      513970.SH: 513970 ETF价格代理
+      513230.SH: 931454.CSI跟踪指数
+    safety_margin:
+      formula: (MA250 - MA60) / MA250
+      regime: MA60 < MA250
+      history: strictly_prior_500_trade_days
+      minimum_observations: 120
+      pass: current_separation >= 5% AND prior_history_percentile_rank >= 70%
+    predecessor_path:
+      - MA60先由上向下穿越MA250
+      - 前30个交易日至少20日满足 close < MA20 < MA60
+      - MA20向上穿越发生在MA60向上穿越之前20个交易日内
+    initial_start:
+      event: close由下向上穿越MA60
+      capital_interface: starter_position_eligible
+    trend_confirmation:
+      event: initial_start之后close由下向上穿越MA250
+      timing: 上穿MA250当日确认
+      capital_interface: scale_in_eligible
+    execution_owner: external_monitor
+    strategy_executes_orders: false
   stage_1:
     name: 低位收敛
     object_by_target:
@@ -184,7 +210,7 @@ execution:
 
 ## Machine invariants
 
-- This contract extends the 21-target A-share core into one 23-target production overview.
+- This contract extends the 23-target A-share core into one 25-target production overview.
 - Keep HK calculation engines separate from the A-share generator; unify only at orchestration, overview, validation and publication layers.
 - Treat 017832.OF as a feeder display identity; calculate its strategy from 513230.SH and 931454.CSI.
 - Never interpret ETF proxy values as official Hang Seng Consumption Index points.

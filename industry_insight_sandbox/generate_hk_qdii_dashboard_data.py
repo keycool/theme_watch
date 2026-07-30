@@ -11,6 +11,8 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
+from moving_average_lifecycle import evaluate_moving_average_lifecycle
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT = ROOT / "data" / "hk_qdii" / "513970-sh.json"
@@ -381,6 +383,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
     latest = fund.iloc[-1]
     previous = fund.iloc[-2]
     rhythm_label = evaluate_short_term_rhythm(fund)
+    ma_lifecycle = evaluate_moving_average_lifecycle(fund)
     ma60_above = bool(latest["close"] > latest["ma60"])
     ma60_breakout_today = bool(
         latest["close"] > latest["ma60"]
@@ -679,6 +682,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
         "summary": {
             "label": label,
             "rhythmLabel": rhythm_label,
+            "maLifecycle": ma_lifecycle,
             "conclusion": conclusion,
             "stagePassCount": stage_pass_count,
             "lowWarning": low_state["warning"],

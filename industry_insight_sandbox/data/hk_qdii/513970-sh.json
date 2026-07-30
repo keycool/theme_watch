@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generatedAt": "2026-07-30 11:33:14",
-    "latestDate": "20260729",
+    "generatedAt": "2026-07-30 19:43:53",
+    "latestDate": "20260730",
     "constituentDate": "20260729",
     "dataStart": "20230421",
     "method": "港股QDII ETF价格代理 + 官方前十大成分股",
@@ -26,7 +26,7 @@
     "benchmarkCode": "HSI",
     "benchmarkName": "恒生指数",
     "latestClose": 0.858,
-    "latestPct": 3.5,
+    "latestPct": 0.0,
     "feederCode": null,
     "feederName": null
   },
@@ -38,21 +38,42 @@
   "summary": {
     "label": "观察中",
     "rhythmLabel": "低位反弹",
+    "maLifecycle": {
+      "label": "初始启动",
+      "separationPct": 11.4863,
+      "separationRankPct": 98.8889,
+      "dynamicThresholdPct": 7.6511,
+      "separationObservationCount": 180,
+      "safetyMarginPassed": true,
+      "convergenceDays": 14,
+      "deathCrossDate": "20260310",
+      "warmUpDate": "20260713",
+      "initialStartDate": "20260720",
+      "trendConfirmedDate": null,
+      "initialStartToday": false,
+      "trendConfirmedToday": false,
+      "initialStartActive": true,
+      "trendConfirmedActive": false,
+      "initialStartInvalidated": false,
+      "capitalInterface": "starter_position_eligible",
+      "executionOwner": "external_monitor",
+      "strategyExecutesOrders": false
+    },
     "conclusion": "当前线索：低位条件通过、站上MA60、权重成分出现转强线索。",
     "stagePassCount": 1,
     "lowWarning": false,
-    "belowMa250Days": 102,
+    "belowMa250Days": 103,
     "belowMa250TenDays": 52,
     "belowMa250FifteenDays": 14,
-    "ma60Gap": 4.1094,
-    "ma250Gap": -7.8747,
-    "amountRankPct": 42.0635,
+    "ma60Gap": 4.1304,
+    "ma250Gap": -7.8303,
+    "amountRankPct": 23.8095,
     "fundingConfirmed": false,
     "strictLeaderConfirmed": false,
     "breadthConfirmed": true,
     "freshConstituentCount": 10,
     "aboveMa60Count": 9,
-    "positive5dCount": 10
+    "positive5dCount": 9
   },
   "stages": [
     {
@@ -66,7 +87,7 @@
         {
           "title": "年线下停留",
           "passed": true,
-          "value": "102/120日",
+          "value": "103/120日",
           "rule": "过去120日中，ETF收盘低于MA250的天数 ≥ 60",
           "note": "达到40日先预警；使用ETF价格代理恒生消费指数长期位置。"
         },
@@ -104,21 +125,21 @@
         {
           "title": "连续站上年线",
           "passed": false,
-          "value": "-7.9%",
+          "value": "-7.8%",
           "rule": "最近2个交易日均收于MA250上方",
           "note": "取消3%幅度要求，用连续收盘过滤单日假突破。"
         },
         {
           "title": "ETF资金持续集中",
           "passed": false,
-          "value": "42%",
+          "value": "24%",
           "rule": "ETF成交额自身252日历史分位连续3日 ≥ 80%",
           "note": "港股指数成交额口径不可得，统一版使用ETF自身成交活跃度。"
         },
         {
           "title": "拥挤风险",
           "passed": false,
-          "value": "42%",
+          "value": "24%",
           "rule": "ETF成交额历史分位达到95%提示过热",
           "note": "只做风险提示，不参与启动确认。"
         }
@@ -149,14 +170,14 @@
         {
           "title": "核心群体转强",
           "passed": true,
-          "value": "MA60 9/10 · 5日上涨 10/10",
+          "value": "MA60 9/10 · 5日上涨 9/10",
           "rule": "前十大至少5只站上MA60，且至少5只近5日上涨",
           "note": "龙头事件与群体广度必须同时通过。"
         },
         {
           "title": "第4至10名异动",
-          "passed": false,
-          "value": "0次",
+          "passed": true,
+          "value": "1次",
           "rule": "第4至10名近3日满足同一强势事件与持续性规则",
           "note": "只能触发预警，不能单独完成第三层。"
         }
@@ -165,24 +186,14 @@
   ],
   "chart": [
     {
-      "date": "20241204",
-      "close": 0.865,
-      "ma20": 0.8498,
-      "ma60": 0.8197,
-      "ma250": 0.7828,
-      "amountRankPct": 83.3333,
-      "etfNormalized": 100.0,
-      "benchmarkNormalized": 100.0
-    },
-    {
       "date": "20241205",
       "close": 0.856,
       "ma20": 0.8482,
       "ma60": 0.8219,
       "ma250": 0.7829,
       "amountRankPct": 81.746,
-      "etfNormalized": 98.9595,
-      "benchmarkNormalized": 99.078
+      "etfNormalized": 100.0,
+      "benchmarkNormalized": 100.0
     },
     {
       "date": "20241206",
@@ -191,8 +202,8 @@
       "ma60": 0.8246,
       "ma250": 0.7832,
       "amountRankPct": 89.6825,
-      "etfNormalized": 101.5029,
-      "benchmarkNormalized": 100.625
+      "etfNormalized": 102.5701,
+      "benchmarkNormalized": 101.5614
     },
     {
       "date": "20241209",
@@ -201,8 +212,8 @@
       "ma60": 0.8271,
       "ma250": 0.7834,
       "amountRankPct": 82.5397,
-      "etfNormalized": 100.9249,
-      "benchmarkNormalized": 103.402
+      "etfNormalized": 101.986,
+      "benchmarkNormalized": 104.3642
     },
     {
       "date": "20241210",
@@ -211,8 +222,8 @@
       "ma60": 0.8301,
       "ma250": 0.7838,
       "amountRankPct": 96.4286,
-      "etfNormalized": 103.237,
-      "benchmarkNormalized": 102.8812
+      "etfNormalized": 104.3224,
+      "benchmarkNormalized": 103.8386
     },
     {
       "date": "20241211",
@@ -221,8 +232,8 @@
       "ma60": 0.8331,
       "ma250": 0.7842,
       "amountRankPct": 93.254,
-      "etfNormalized": 102.8902,
-      "benchmarkNormalized": 102.0899
+      "etfNormalized": 103.972,
+      "benchmarkNormalized": 103.0399
     },
     {
       "date": "20241212",
@@ -231,8 +242,8 @@
       "ma60": 0.8367,
       "ma250": 0.7847,
       "amountRankPct": 96.4286,
-      "etfNormalized": 106.474,
-      "benchmarkNormalized": 103.3156
+      "etfNormalized": 107.5935,
+      "benchmarkNormalized": 104.2771
     },
     {
       "date": "20241213",
@@ -241,8 +252,8 @@
       "ma60": 0.84,
       "ma250": 0.7852,
       "amountRankPct": 93.254,
-      "etfNormalized": 103.815,
-      "benchmarkNormalized": 101.1588
+      "etfNormalized": 104.9065,
+      "benchmarkNormalized": 102.1002
     },
     {
       "date": "20241216",
@@ -251,8 +262,8 @@
       "ma60": 0.843,
       "ma250": 0.7856,
       "amountRankPct": 83.3333,
-      "etfNormalized": 102.3121,
-      "benchmarkNormalized": 100.2686
+      "etfNormalized": 103.3879,
+      "benchmarkNormalized": 101.2017
     },
     {
       "date": "20241217",
@@ -261,8 +272,8 @@
       "ma60": 0.8461,
       "ma250": 0.7861,
       "amountRankPct": 91.6667,
-      "etfNormalized": 102.1965,
-      "benchmarkNormalized": 99.7874
+      "etfNormalized": 103.271,
+      "benchmarkNormalized": 100.7159
     },
     {
       "date": "20241218",
@@ -271,8 +282,8 @@
       "ma60": 0.8492,
       "ma250": 0.7866,
       "amountRankPct": 82.5397,
-      "etfNormalized": 102.7746,
-      "benchmarkNormalized": 100.6184
+      "etfNormalized": 103.8551,
+      "benchmarkNormalized": 101.5547
     },
     {
       "date": "20241219",
@@ -281,8 +292,8 @@
       "ma60": 0.8518,
       "ma250": 0.7871,
       "amountRankPct": 78.9683,
-      "etfNormalized": 101.9653,
-      "benchmarkNormalized": 100.0509
+      "etfNormalized": 103.0374,
+      "benchmarkNormalized": 100.9819
     },
     {
       "date": "20241220",
@@ -291,8 +302,8 @@
       "ma60": 0.8542,
       "ma250": 0.7876,
       "amountRankPct": 86.9048,
-      "etfNormalized": 101.8497,
-      "benchmarkNormalized": 99.8898
+      "etfNormalized": 102.9206,
+      "benchmarkNormalized": 100.8193
     },
     {
       "date": "20241223",
@@ -301,8 +312,8 @@
       "ma60": 0.8565,
       "ma250": 0.7881,
       "amountRankPct": 83.7302,
-      "etfNormalized": 100.9249,
-      "benchmarkNormalized": 100.7125
+      "etfNormalized": 101.986,
+      "benchmarkNormalized": 101.6497
     },
     {
       "date": "20241224",
@@ -311,8 +322,8 @@
       "ma60": 0.8584,
       "ma250": 0.7886,
       "amountRankPct": 82.1429,
-      "etfNormalized": 101.9653,
-      "benchmarkNormalized": 101.8024
+      "etfNormalized": 103.0374,
+      "benchmarkNormalized": 102.7497
     },
     {
       "date": "20241225",
@@ -321,7 +332,7 @@
       "ma60": 0.8605,
       "ma250": 0.7892,
       "amountRankPct": 26.1905,
-      "etfNormalized": 102.1965,
+      "etfNormalized": 103.271,
       "benchmarkNormalized": null
     },
     {
@@ -331,7 +342,7 @@
       "ma60": 0.8614,
       "ma250": 0.7897,
       "amountRankPct": 4.7619,
-      "etfNormalized": 102.0809,
+      "etfNormalized": 103.1542,
       "benchmarkNormalized": null
     },
     {
@@ -341,8 +352,8 @@
       "ma60": 0.8614,
       "ma250": 0.7901,
       "amountRankPct": 78.1746,
-      "etfNormalized": 101.1561,
-      "benchmarkNormalized": 101.7627
+      "etfNormalized": 102.2196,
+      "benchmarkNormalized": 102.7097
     },
     {
       "date": "20241230",
@@ -351,8 +362,8 @@
       "ma60": 0.8606,
       "ma250": 0.7906,
       "amountRankPct": 76.1905,
-      "etfNormalized": 100.3468,
-      "benchmarkNormalized": 101.5143
+      "etfNormalized": 101.4019,
+      "benchmarkNormalized": 102.4589
     },
     {
       "date": "20241231",
@@ -361,8 +372,8 @@
       "ma60": 0.8603,
       "ma250": 0.791,
       "amountRankPct": 80.5556,
-      "etfNormalized": 100.2312,
-      "benchmarkNormalized": 101.6082
+      "etfNormalized": 101.285,
+      "benchmarkNormalized": 102.5537
     },
     {
       "date": "20250102",
@@ -371,8 +382,8 @@
       "ma60": 0.8603,
       "ma250": 0.7913,
       "amountRankPct": 76.5873,
-      "etfNormalized": 98.7283,
-      "benchmarkNormalized": 99.3965
+      "etfNormalized": 99.7664,
+      "benchmarkNormalized": 100.3215
     },
     {
       "date": "20250103",
@@ -381,8 +392,8 @@
       "ma60": 0.8597,
       "ma250": 0.7916,
       "amountRankPct": 76.5873,
-      "etfNormalized": 98.2659,
-      "benchmarkNormalized": 100.0902
+      "etfNormalized": 99.2991,
+      "benchmarkNormalized": 101.0216
     },
     {
       "date": "20250106",
@@ -391,8 +402,8 @@
       "ma60": 0.8593,
       "ma250": 0.7919,
       "amountRankPct": 76.1905,
-      "etfNormalized": 97.2254,
-      "benchmarkNormalized": 99.7256
+      "etfNormalized": 98.2477,
+      "benchmarkNormalized": 100.6536
     },
     {
       "date": "20250107",
@@ -401,8 +412,8 @@
       "ma60": 0.8587,
       "ma250": 0.7922,
       "amountRankPct": 79.7619,
-      "etfNormalized": 96.8786,
-      "benchmarkNormalized": 98.5064
+      "etfNormalized": 97.8972,
+      "benchmarkNormalized": 99.423
     },
     {
       "date": "20250108",
@@ -411,8 +422,8 @@
       "ma60": 0.8587,
       "ma250": 0.7925,
       "amountRankPct": 73.4127,
-      "etfNormalized": 96.6474,
-      "benchmarkNormalized": 97.6567
+      "etfNormalized": 97.6636,
+      "benchmarkNormalized": 98.5655
     },
     {
       "date": "20250109",
@@ -421,8 +432,8 @@
       "ma60": 0.8588,
       "ma250": 0.7927,
       "amountRankPct": 75.3968,
-      "etfNormalized": 97.1098,
-      "benchmarkNormalized": 97.4594
+      "etfNormalized": 98.1308,
+      "benchmarkNormalized": 98.3663
     },
     {
       "date": "20250110",
@@ -431,8 +442,8 @@
       "ma60": 0.8588,
       "ma250": 0.7929,
       "amountRankPct": 74.6032,
-      "etfNormalized": 95.3757,
-      "benchmarkNormalized": 96.5649
+      "etfNormalized": 96.3785,
+      "benchmarkNormalized": 97.4635
     },
     {
       "date": "20250113",
@@ -441,8 +452,8 @@
       "ma60": 0.8584,
       "ma250": 0.793,
       "amountRankPct": 68.6508,
-      "etfNormalized": 94.6821,
-      "benchmarkNormalized": 95.6018
+      "etfNormalized": 95.6776,
+      "benchmarkNormalized": 96.4914
     },
     {
       "date": "20250114",
@@ -451,8 +462,8 @@
       "ma60": 0.8583,
       "ma250": 0.7933,
       "amountRankPct": 78.1746,
-      "etfNormalized": 96.4162,
-      "benchmarkNormalized": 97.3525
+      "etfNormalized": 97.4299,
+      "benchmarkNormalized": 98.2584
     },
     {
       "date": "20250115",
@@ -461,8 +472,8 @@
       "ma60": 0.858,
       "ma250": 0.7936,
       "amountRankPct": 72.2222,
-      "etfNormalized": 95.4913,
-      "benchmarkNormalized": 97.6883
+      "etfNormalized": 96.4953,
+      "benchmarkNormalized": 98.5973
     },
     {
       "date": "20250116",
@@ -471,8 +482,8 @@
       "ma60": 0.8576,
       "ma250": 0.7939,
       "amountRankPct": 76.1905,
-      "etfNormalized": 96.6474,
-      "benchmarkNormalized": 98.8878
+      "etfNormalized": 97.6636,
+      "benchmarkNormalized": 99.808
     },
     {
       "date": "20250117",
@@ -481,8 +492,8 @@
       "ma60": 0.8575,
       "ma250": 0.7942,
       "amountRankPct": 71.0317,
-      "etfNormalized": 97.341,
-      "benchmarkNormalized": 99.1977
+      "etfNormalized": 98.3645,
+      "benchmarkNormalized": 100.1208
     },
     {
       "date": "20250120",
@@ -491,8 +502,8 @@
       "ma60": 0.8576,
       "ma250": 0.7947,
       "amountRankPct": 74.6032,
-      "etfNormalized": 98.6127,
-      "benchmarkNormalized": 100.9287
+      "etfNormalized": 99.6495,
+      "benchmarkNormalized": 101.8679
     },
     {
       "date": "20250121",
@@ -501,8 +512,8 @@
       "ma60": 0.8577,
       "ma250": 0.7952,
       "amountRankPct": 75.7937,
-      "etfNormalized": 99.5376,
-      "benchmarkNormalized": 101.8442
+      "etfNormalized": 100.5841,
+      "benchmarkNormalized": 102.7919
     },
     {
       "date": "20250122",
@@ -511,8 +522,8 @@
       "ma60": 0.8575,
       "ma250": 0.7956,
       "amountRankPct": 58.7302,
-      "etfNormalized": 97.9191,
-      "benchmarkNormalized": 100.1839
+      "etfNormalized": 98.9486,
+      "benchmarkNormalized": 101.1162
     },
     {
       "date": "20250123",
@@ -521,8 +532,8 @@
       "ma60": 0.8574,
       "ma250": 0.7959,
       "amountRankPct": 80.1587,
-      "etfNormalized": 96.4162,
-      "benchmarkNormalized": 99.7878
+      "etfNormalized": 97.4299,
+      "benchmarkNormalized": 100.7163
     },
     {
       "date": "20250124",
@@ -531,8 +542,8 @@
       "ma60": 0.8576,
       "ma250": 0.7963,
       "amountRankPct": 74.6032,
-      "etfNormalized": 98.7283,
-      "benchmarkNormalized": 101.6398
+      "etfNormalized": 99.7664,
+      "benchmarkNormalized": 102.5856
     },
     {
       "date": "20250127",
@@ -541,8 +552,8 @@
       "ma60": 0.8579,
       "ma250": 0.7968,
       "amountRankPct": 65.873,
-      "etfNormalized": 99.0751,
-      "benchmarkNormalized": 102.3062
+      "etfNormalized": 100.1168,
+      "benchmarkNormalized": 103.2583
     },
     {
       "date": "20250205",
@@ -551,8 +562,8 @@
       "ma60": 0.858,
       "ma250": 0.7973,
       "amountRankPct": 74.6032,
-      "etfNormalized": 98.4971,
-      "benchmarkNormalized": 104.3289
+      "etfNormalized": 99.5327,
+      "benchmarkNormalized": 105.2997
     },
     {
       "date": "20250206",
@@ -561,8 +572,8 @@
       "ma60": 0.8579,
       "ma250": 0.7979,
       "amountRankPct": 76.5873,
-      "etfNormalized": 99.7688,
-      "benchmarkNormalized": 105.8208
+      "etfNormalized": 100.8178,
+      "benchmarkNormalized": 106.8055
     },
     {
       "date": "20250207",
@@ -571,8 +582,8 @@
       "ma60": 0.8582,
       "ma250": 0.7985,
       "amountRankPct": 80.9524,
-      "etfNormalized": 100.4624,
-      "benchmarkNormalized": 107.0461
+      "etfNormalized": 101.5187,
+      "benchmarkNormalized": 108.0423
     },
     {
       "date": "20250210",
@@ -581,8 +592,8 @@
       "ma60": 0.8579,
       "ma250": 0.7992,
       "amountRankPct": 73.0159,
-      "etfNormalized": 100.4624,
-      "benchmarkNormalized": 109.0137
+      "etfNormalized": 101.5187,
+      "benchmarkNormalized": 110.0281
     },
     {
       "date": "20250211",
@@ -591,8 +602,8 @@
       "ma60": 0.8574,
       "ma250": 0.7999,
       "amountRankPct": 65.873,
-      "etfNormalized": 99.422,
-      "benchmarkNormalized": 107.8633
+      "etfNormalized": 100.4673,
+      "benchmarkNormalized": 108.867
     },
     {
       "date": "20250212",
@@ -601,8 +612,8 @@
       "ma60": 0.8573,
       "ma250": 0.8006,
       "amountRankPct": 70.6349,
-      "etfNormalized": 100.3468,
-      "benchmarkNormalized": 110.7153
+      "etfNormalized": 101.4019,
+      "benchmarkNormalized": 111.7455
     },
     {
       "date": "20250213",
@@ -611,8 +622,8 @@
       "ma60": 0.8579,
       "ma250": 0.8013,
       "amountRankPct": 89.6825,
-      "etfNormalized": 102.0809,
-      "benchmarkNormalized": 110.4947
+      "etfNormalized": 103.1542,
+      "benchmarkNormalized": 111.5229
     },
     {
       "date": "20250214",
@@ -621,8 +632,8 @@
       "ma60": 0.8586,
       "ma250": 0.8019,
       "amountRankPct": 76.5873,
-      "etfNormalized": 102.1965,
-      "benchmarkNormalized": 114.5771
+      "etfNormalized": 103.271,
+      "benchmarkNormalized": 115.6433
     },
     {
       "date": "20250217",
@@ -631,8 +642,8 @@
       "ma60": 0.8595,
       "ma250": 0.8026,
       "amountRankPct": 87.3016,
-      "etfNormalized": 102.0809,
-      "benchmarkNormalized": 114.5563
+      "etfNormalized": 103.1542,
+      "benchmarkNormalized": 115.6223
     },
     {
       "date": "20250218",
@@ -641,8 +652,8 @@
       "ma60": 0.8603,
       "ma250": 0.8032,
       "amountRankPct": 76.9841,
-      "etfNormalized": 101.9653,
-      "benchmarkNormalized": 116.3827
+      "etfNormalized": 103.0374,
+      "benchmarkNormalized": 117.4657
     },
     {
       "date": "20250219",
@@ -651,8 +662,8 @@
       "ma60": 0.8612,
       "ma250": 0.8039,
       "amountRankPct": 68.254,
-      "etfNormalized": 102.4277,
-      "benchmarkNormalized": 116.2177
+      "etfNormalized": 103.5047,
+      "benchmarkNormalized": 117.2992
     },
     {
       "date": "20250220",
@@ -661,8 +672,8 @@
       "ma60": 0.8616,
       "ma250": 0.8046,
       "amountRankPct": 71.8254,
-      "etfNormalized": 101.1561,
-      "benchmarkNormalized": 114.3575
+      "etfNormalized": 102.2196,
+      "benchmarkNormalized": 115.4216
     },
     {
       "date": "20250221",
@@ -671,8 +682,8 @@
       "ma60": 0.8621,
       "ma250": 0.8053,
       "amountRankPct": 81.746,
-      "etfNormalized": 101.2717,
-      "benchmarkNormalized": 118.9209
+      "etfNormalized": 102.3364,
+      "benchmarkNormalized": 120.0276
     },
     {
       "date": "20250224",
@@ -681,8 +692,8 @@
       "ma60": 0.8628,
       "ma250": 0.8061,
       "amountRankPct": 84.127,
-      "etfNormalized": 102.7746,
-      "benchmarkNormalized": 118.2305
+      "etfNormalized": 103.8551,
+      "benchmarkNormalized": 119.3307
     },
     {
       "date": "20250225",
@@ -691,8 +702,8 @@
       "ma60": 0.8635,
       "ma250": 0.8067,
       "amountRankPct": 72.619,
-      "etfNormalized": 100.2312,
-      "benchmarkNormalized": 116.6725
+      "etfNormalized": 101.285,
+      "benchmarkNormalized": 117.7582
     },
     {
       "date": "20250226",
@@ -701,8 +712,8 @@
       "ma60": 0.8644,
       "ma250": 0.8074,
       "amountRankPct": 88.4921,
-      "etfNormalized": 103.0058,
-      "benchmarkNormalized": 120.4912
+      "etfNormalized": 104.0888,
+      "benchmarkNormalized": 121.6124
     },
     {
       "date": "20250227",
@@ -711,8 +722,8 @@
       "ma60": 0.8657,
       "ma250": 0.8081,
       "amountRankPct": 99.2063,
-      "etfNormalized": 104.8555,
-      "benchmarkNormalized": 120.1385
+      "etfNormalized": 105.9579,
+      "benchmarkNormalized": 121.2564
     },
     {
       "date": "20250228",
@@ -721,8 +732,8 @@
       "ma60": 0.8661,
       "ma250": 0.8087,
       "amountRankPct": 98.8095,
-      "etfNormalized": 101.2717,
-      "benchmarkNormalized": 116.2029
+      "etfNormalized": 102.3364,
+      "benchmarkNormalized": 117.2843
     },
     {
       "date": "20250303",
@@ -731,8 +742,8 @@
       "ma60": 0.867,
       "ma250": 0.8092,
       "amountRankPct": 94.4444,
-      "etfNormalized": 102.7746,
-      "benchmarkNormalized": 116.5319
+      "etfNormalized": 103.8551,
+      "benchmarkNormalized": 117.6163
     },
     {
       "date": "20250304",
@@ -741,8 +752,8 @@
       "ma60": 0.8679,
       "ma250": 0.8098,
       "amountRankPct": 93.6508,
-      "etfNormalized": 103.815,
-      "benchmarkNormalized": 116.2052
+      "etfNormalized": 104.9065,
+      "benchmarkNormalized": 117.2866
     },
     {
       "date": "20250305",
@@ -751,8 +762,8 @@
       "ma60": 0.8686,
       "ma250": 0.8104,
       "amountRankPct": 93.254,
-      "etfNormalized": 104.6243,
-      "benchmarkNormalized": 119.51
+      "etfNormalized": 105.7243,
+      "benchmarkNormalized": 120.6221
     },
     {
       "date": "20250306",
@@ -761,8 +772,8 @@
       "ma60": 0.8694,
       "ma250": 0.811,
       "amountRankPct": 96.0317,
-      "etfNormalized": 106.0116,
-      "benchmarkNormalized": 123.4381
+      "etfNormalized": 107.1262,
+      "benchmarkNormalized": 124.5867
     },
     {
       "date": "20250307",
@@ -771,8 +782,8 @@
       "ma60": 0.8704,
       "ma250": 0.8115,
       "amountRankPct": 98.8095,
-      "etfNormalized": 107.052,
-      "benchmarkNormalized": 122.737
+      "etfNormalized": 108.1776,
+      "benchmarkNormalized": 123.8791
     },
     {
       "date": "20250310",
@@ -781,8 +792,8 @@
       "ma60": 0.8714,
       "ma250": 0.8121,
       "amountRankPct": 92.8571,
-      "etfNormalized": 105.896,
-      "benchmarkNormalized": 120.4687
+      "etfNormalized": 107.0093,
+      "benchmarkNormalized": 121.5897
     },
     {
       "date": "20250311",
@@ -791,8 +802,8 @@
       "ma60": 0.8722,
       "ma250": 0.8127,
       "amountRankPct": 95.6349,
-      "etfNormalized": 107.1676,
-      "benchmarkNormalized": 120.4619
+      "etfNormalized": 108.2944,
+      "benchmarkNormalized": 121.5828
     },
     {
       "date": "20250312",
@@ -801,8 +812,8 @@
       "ma60": 0.8729,
       "ma250": 0.8133,
       "amountRankPct": 98.8095,
-      "etfNormalized": 105.896,
-      "benchmarkNormalized": 119.5409
+      "etfNormalized": 107.0093,
+      "benchmarkNormalized": 120.6533
     },
     {
       "date": "20250313",
@@ -811,8 +822,8 @@
       "ma60": 0.873,
       "ma250": 0.8138,
       "amountRankPct": 96.0317,
-      "etfNormalized": 104.0462,
-      "benchmarkNormalized": 118.8436
+      "etfNormalized": 105.1402,
+      "benchmarkNormalized": 119.9495
     },
     {
       "date": "20250314",
@@ -821,8 +832,8 @@
       "ma60": 0.8738,
       "ma250": 0.8144,
       "amountRankPct": 98.8095,
-      "etfNormalized": 108.0925,
-      "benchmarkNormalized": 121.3627
+      "etfNormalized": 109.229,
+      "benchmarkNormalized": 122.492
     },
     {
       "date": "20250317",
@@ -831,8 +842,8 @@
       "ma60": 0.8741,
       "ma250": 0.8151,
       "amountRankPct": 99.2063,
-      "etfNormalized": 108.6705,
-      "benchmarkNormalized": 122.3027
+      "etfNormalized": 109.8131,
+      "benchmarkNormalized": 123.4408
     },
     {
       "date": "20250318",
@@ -841,8 +852,8 @@
       "ma60": 0.875,
       "ma250": 0.8159,
       "amountRankPct": 96.8254,
-      "etfNormalized": 110.289,
-      "benchmarkNormalized": 125.3166
+      "etfNormalized": 111.4486,
+      "benchmarkNormalized": 126.4827
     },
     {
       "date": "20250319",
@@ -851,8 +862,8 @@
       "ma60": 0.8762,
       "ma250": 0.8166,
       "amountRankPct": 96.0317,
-      "etfNormalized": 110.5202,
-      "benchmarkNormalized": 125.4714
+      "etfNormalized": 111.6822,
+      "benchmarkNormalized": 126.639
     },
     {
       "date": "20250320",
@@ -861,8 +872,8 @@
       "ma60": 0.877,
       "ma250": 0.8173,
       "amountRankPct": 96.0317,
-      "etfNormalized": 107.6301,
-      "benchmarkNormalized": 122.6795
+      "etfNormalized": 108.7617,
+      "benchmarkNormalized": 123.8211
     },
     {
       "date": "20250321",
@@ -871,8 +882,8 @@
       "ma60": 0.8775,
       "ma250": 0.8179,
       "amountRankPct": 94.0476,
-      "etfNormalized": 106.3584,
-      "benchmarkNormalized": 119.9938
+      "etfNormalized": 107.4766,
+      "benchmarkNormalized": 121.1104
     },
     {
       "date": "20250324",
@@ -881,8 +892,8 @@
       "ma60": 0.8782,
       "ma250": 0.8184,
       "amountRankPct": 90.873,
-      "etfNormalized": 106.3584,
-      "benchmarkNormalized": 121.087
+      "etfNormalized": 107.4766,
+      "benchmarkNormalized": 122.2138
     },
     {
       "date": "20250325",
@@ -891,8 +902,8 @@
       "ma60": 0.8786,
       "ma250": 0.8188,
       "amountRankPct": 90.0794,
-      "etfNormalized": 104.6243,
-      "benchmarkNormalized": 118.2439
+      "etfNormalized": 105.7243,
+      "benchmarkNormalized": 119.3442
     },
     {
       "date": "20250326",
@@ -901,8 +912,8 @@
       "ma60": 0.8792,
       "ma250": 0.8192,
       "amountRankPct": 86.1111,
-      "etfNormalized": 105.4335,
-      "benchmarkNormalized": 118.9483
+      "etfNormalized": 106.5421,
+      "benchmarkNormalized": 120.0552
     },
     {
       "date": "20250327",
@@ -911,8 +922,8 @@
       "ma60": 0.8802,
       "ma250": 0.8197,
       "amountRankPct": 98.0159,
-      "etfNormalized": 108.6705,
-      "benchmarkNormalized": 119.4319
+      "etfNormalized": 109.8131,
+      "benchmarkNormalized": 120.5433
     },
     {
       "date": "20250328",
@@ -921,8 +932,8 @@
       "ma60": 0.881,
       "ma250": 0.8202,
       "amountRankPct": 94.0476,
-      "etfNormalized": 107.7457,
-      "benchmarkNormalized": 118.661
+      "etfNormalized": 108.8785,
+      "benchmarkNormalized": 119.7652
     },
     {
       "date": "20250331",
@@ -931,8 +942,8 @@
       "ma60": 0.8815,
       "ma250": 0.8206,
       "amountRankPct": 87.3016,
-      "etfNormalized": 105.896,
-      "benchmarkNormalized": 117.1059
+      "etfNormalized": 107.0093,
+      "benchmarkNormalized": 118.1956
     },
     {
       "date": "20250401",
@@ -941,8 +952,8 @@
       "ma60": 0.8825,
       "ma250": 0.8211,
       "amountRankPct": 90.0794,
-      "etfNormalized": 107.5145,
-      "benchmarkNormalized": 117.5479
+      "etfNormalized": 108.6449,
+      "benchmarkNormalized": 118.6417
     },
     {
       "date": "20250402",
@@ -951,8 +962,8 @@
       "ma60": 0.8835,
       "ma250": 0.8216,
       "amountRankPct": 94.0476,
-      "etfNormalized": 107.9769,
-      "benchmarkNormalized": 117.526
+      "etfNormalized": 109.1121,
+      "benchmarkNormalized": 118.6197
     },
     {
       "date": "20250403",
@@ -961,8 +972,8 @@
       "ma60": 0.8843,
       "ma250": 0.822,
       "amountRankPct": 96.0317,
-      "etfNormalized": 105.6647,
-      "benchmarkNormalized": 115.7394
+      "etfNormalized": 106.7757,
+      "benchmarkNormalized": 116.8164
     },
     {
       "date": "20250407",
@@ -971,8 +982,8 @@
       "ma60": 0.8838,
       "ma250": 0.8221,
       "amountRankPct": 95.2381,
-      "etfNormalized": 95.1445,
-      "benchmarkNormalized": 100.4348
+      "etfNormalized": 96.1449,
+      "benchmarkNormalized": 101.3694
     },
     {
       "date": "20250408",
@@ -981,8 +992,8 @@
       "ma60": 0.8835,
       "ma250": 0.8222,
       "amountRankPct": 98.8095,
-      "etfNormalized": 95.9538,
-      "benchmarkNormalized": 101.9512
+      "etfNormalized": 96.9626,
+      "benchmarkNormalized": 102.8999
     },
     {
       "date": "20250409",
@@ -991,8 +1002,8 @@
       "ma60": 0.8834,
       "ma250": 0.8223,
       "amountRankPct": 98.4127,
-      "etfNormalized": 96.6474,
-      "benchmarkNormalized": 102.6442
+      "etfNormalized": 97.6636,
+      "benchmarkNormalized": 103.5994
     },
     {
       "date": "20250410",
@@ -1001,8 +1012,8 @@
       "ma60": 0.8839,
       "ma250": 0.8225,
       "amountRankPct": 97.2222,
-      "etfNormalized": 100.4624,
-      "benchmarkNormalized": 104.7579
+      "etfNormalized": 101.5187,
+      "benchmarkNormalized": 105.7327
     },
     {
       "date": "20250411",
@@ -1011,8 +1022,8 @@
       "ma60": 0.8845,
       "ma250": 0.8228,
       "amountRankPct": 96.0317,
-      "etfNormalized": 100.6936,
-      "benchmarkNormalized": 105.9376
+      "etfNormalized": 101.7523,
+      "benchmarkNormalized": 106.9234
     },
     {
       "date": "20250414",
@@ -1021,8 +1032,8 @@
       "ma60": 0.8852,
       "ma250": 0.823,
       "amountRankPct": 93.254,
-      "etfNormalized": 101.8497,
-      "benchmarkNormalized": 108.4839
+      "etfNormalized": 102.9206,
+      "benchmarkNormalized": 109.4934
     },
     {
       "date": "20250415",
@@ -1031,8 +1042,8 @@
       "ma60": 0.8862,
       "ma250": 0.8233,
       "amountRankPct": 93.6508,
-      "etfNormalized": 102.5434,
-      "benchmarkNormalized": 108.7315
+      "etfNormalized": 103.6215,
+      "benchmarkNormalized": 109.7433
     },
     {
       "date": "20250416",
@@ -1041,8 +1052,8 @@
       "ma60": 0.8871,
       "ma250": 0.8235,
       "amountRankPct": 90.4762,
-      "etfNormalized": 101.0405,
-      "benchmarkNormalized": 106.6583
+      "etfNormalized": 102.1028,
+      "benchmarkNormalized": 107.6509
     },
     {
       "date": "20250417",
@@ -1051,8 +1062,8 @@
       "ma60": 0.8879,
       "ma250": 0.8237,
       "amountRankPct": 91.6667,
-      "etfNormalized": 101.7341,
-      "benchmarkNormalized": 108.3712
+      "etfNormalized": 102.8037,
+      "benchmarkNormalized": 109.3796
     },
     {
       "date": "20250418",
@@ -1061,7 +1072,7 @@
       "ma60": 0.8887,
       "ma250": 0.824,
       "amountRankPct": 62.6984,
-      "etfNormalized": 101.1561,
+      "etfNormalized": 102.2196,
       "benchmarkNormalized": null
     },
     {
@@ -1071,7 +1082,7 @@
       "ma60": 0.8895,
       "ma250": 0.8242,
       "amountRankPct": 70.2381,
-      "etfNormalized": 102.1965,
+      "etfNormalized": 103.271,
       "benchmarkNormalized": null
     },
     {
@@ -1081,8 +1092,8 @@
       "ma60": 0.8903,
       "ma250": 0.8244,
       "amountRankPct": 94.0476,
-      "etfNormalized": 102.4277,
-      "benchmarkNormalized": 109.218
+      "etfNormalized": 103.5047,
+      "benchmarkNormalized": 110.2343
     },
     {
       "date": "20250423",
@@ -1091,8 +1102,8 @@
       "ma60": 0.8911,
       "ma250": 0.8248,
       "amountRankPct": 90.0794,
-      "etfNormalized": 104.7399,
-      "benchmarkNormalized": 111.8028
+      "etfNormalized": 105.8411,
+      "benchmarkNormalized": 112.8432
     },
     {
       "date": "20250424",
@@ -1101,8 +1112,8 @@
       "ma60": 0.8918,
       "ma250": 0.8251,
       "amountRankPct": 84.9206,
-      "etfNormalized": 104.0462,
-      "benchmarkNormalized": 110.9779
+      "etfNormalized": 105.1402,
+      "benchmarkNormalized": 112.0106
     },
     {
       "date": "20250425",
@@ -1111,8 +1122,8 @@
       "ma60": 0.8927,
       "ma250": 0.8255,
       "amountRankPct": 86.1111,
-      "etfNormalized": 104.5087,
-      "benchmarkNormalized": 111.3374
+      "etfNormalized": 105.6075,
+      "benchmarkNormalized": 112.3734
     },
     {
       "date": "20250428",
@@ -1121,8 +1132,8 @@
       "ma60": 0.894,
       "ma250": 0.826,
       "amountRankPct": 86.5079,
-      "etfNormalized": 105.0867,
-      "benchmarkNormalized": 111.2929
+      "etfNormalized": 106.1916,
+      "benchmarkNormalized": 112.3286
     },
     {
       "date": "20250429",
@@ -1131,8 +1142,8 @@
       "ma60": 0.8949,
       "ma250": 0.8265,
       "amountRankPct": 79.3651,
-      "etfNormalized": 104.8555,
-      "benchmarkNormalized": 111.476
+      "etfNormalized": 105.9579,
+      "benchmarkNormalized": 112.5134
     },
     {
       "date": "20250430",
@@ -1141,8 +1152,8 @@
       "ma60": 0.8958,
       "ma250": 0.827,
       "amountRankPct": 78.9683,
-      "etfNormalized": 105.2023,
-      "benchmarkNormalized": 112.0398
+      "etfNormalized": 106.3084,
+      "benchmarkNormalized": 113.0824
     },
     {
       "date": "20250506",
@@ -1151,8 +1162,8 @@
       "ma60": 0.8969,
       "ma250": 0.8276,
       "amountRankPct": 78.1746,
-      "etfNormalized": 106.2428,
-      "benchmarkNormalized": 114.7917
+      "etfNormalized": 107.3598,
+      "benchmarkNormalized": 115.8599
     },
     {
       "date": "20250507",
@@ -1161,8 +1172,8 @@
       "ma60": 0.8978,
       "ma250": 0.828,
       "amountRankPct": 79.7619,
-      "etfNormalized": 105.896,
-      "benchmarkNormalized": 114.9395
+      "etfNormalized": 107.0093,
+      "benchmarkNormalized": 116.009
     },
     {
       "date": "20250508",
@@ -1171,8 +1182,8 @@
       "ma60": 0.8984,
       "ma250": 0.8284,
       "amountRankPct": 76.5873,
-      "etfNormalized": 105.0867,
-      "benchmarkNormalized": 115.3652
+      "etfNormalized": 106.1916,
+      "benchmarkNormalized": 116.4387
     },
     {
       "date": "20250509",
@@ -1181,8 +1192,8 @@
       "ma60": 0.8992,
       "ma250": 0.8288,
       "amountRankPct": 76.5873,
-      "etfNormalized": 105.896,
-      "benchmarkNormalized": 115.8302
+      "etfNormalized": 107.0093,
+      "benchmarkNormalized": 116.9081
     },
     {
       "date": "20250512",
@@ -1191,8 +1202,8 @@
       "ma60": 0.9002,
       "ma250": 0.8292,
       "amountRankPct": 74.6032,
-      "etfNormalized": 106.1272,
-      "benchmarkNormalized": 119.2833
+      "etfNormalized": 107.243,
+      "benchmarkNormalized": 120.3933
     },
     {
       "date": "20250513",
@@ -1201,8 +1212,8 @@
       "ma60": 0.901,
       "ma250": 0.8295,
       "amountRankPct": 70.2381,
-      "etfNormalized": 106.474,
-      "benchmarkNormalized": 117.0486
+      "etfNormalized": 107.5935,
+      "benchmarkNormalized": 118.1378
     },
     {
       "date": "20250514",
@@ -1211,8 +1222,8 @@
       "ma60": 0.9019,
       "ma250": 0.8299,
       "amountRankPct": 75.0,
-      "etfNormalized": 108.0925,
-      "benchmarkNormalized": 119.7452
+      "etfNormalized": 109.229,
+      "benchmarkNormalized": 120.8595
     },
     {
       "date": "20250515",
@@ -1221,8 +1232,8 @@
       "ma60": 0.9027,
       "ma250": 0.8303,
       "amountRankPct": 69.8413,
-      "etfNormalized": 107.6301,
-      "benchmarkNormalized": 118.7955
+      "etfNormalized": 108.7617,
+      "benchmarkNormalized": 119.901
     },
     {
       "date": "20250516",
@@ -1231,8 +1242,8 @@
       "ma60": 0.9034,
       "ma250": 0.8305,
       "amountRankPct": 68.254,
-      "etfNormalized": 106.7052,
-      "benchmarkNormalized": 118.2479
+      "etfNormalized": 107.8271,
+      "benchmarkNormalized": 119.3483
     },
     {
       "date": "20250519",
@@ -1241,8 +1252,8 @@
       "ma60": 0.9041,
       "ma250": 0.8307,
       "amountRankPct": 63.4921,
-      "etfNormalized": 107.052,
-      "benchmarkNormalized": 118.1855
+      "etfNormalized": 108.1776,
+      "benchmarkNormalized": 119.2853
     },
     {
       "date": "20250520",
@@ -1251,8 +1262,8 @@
       "ma60": 0.9049,
       "ma250": 0.831,
       "amountRankPct": 68.254,
-      "etfNormalized": 107.7457,
-      "benchmarkNormalized": 119.952
+      "etfNormalized": 108.8785,
+      "benchmarkNormalized": 121.0682
     },
     {
       "date": "20250521",
@@ -1261,8 +1272,8 @@
       "ma60": 0.9058,
       "ma250": 0.8313,
       "amountRankPct": 72.619,
-      "etfNormalized": 107.8613,
-      "benchmarkNormalized": 120.6931
+      "etfNormalized": 108.9953,
+      "benchmarkNormalized": 121.8162
     },
     {
       "date": "20250522",
@@ -1271,8 +1282,8 @@
       "ma60": 0.9067,
       "ma250": 0.8315,
       "amountRankPct": 65.4762,
-      "etfNormalized": 107.5145,
-      "benchmarkNormalized": 119.2572
+      "etfNormalized": 108.6449,
+      "benchmarkNormalized": 120.367
     },
     {
       "date": "20250523",
@@ -1281,8 +1292,8 @@
       "ma60": 0.9073,
       "ma250": 0.8316,
       "amountRankPct": 65.0794,
-      "etfNormalized": 106.9364,
-      "benchmarkNormalized": 119.5457
+      "etfNormalized": 108.0607,
+      "benchmarkNormalized": 120.6581
     },
     {
       "date": "20250526",
@@ -1291,8 +1302,8 @@
       "ma60": 0.9083,
       "ma250": 0.8318,
       "amountRankPct": 72.2222,
-      "etfNormalized": 106.7052,
-      "benchmarkNormalized": 117.9302
+      "etfNormalized": 107.8271,
+      "benchmarkNormalized": 119.0276
     },
     {
       "date": "20250527",
@@ -1301,8 +1312,8 @@
       "ma60": 0.909,
       "ma250": 0.832,
       "amountRankPct": 84.127,
-      "etfNormalized": 108.0925,
-      "benchmarkNormalized": 118.435
+      "etfNormalized": 109.229,
+      "benchmarkNormalized": 119.5371
     },
     {
       "date": "20250528",
@@ -1311,8 +1322,8 @@
       "ma60": 0.9095,
       "ma250": 0.8322,
       "amountRankPct": 73.0159,
-      "etfNormalized": 108.4393,
-      "benchmarkNormalized": 117.8086
+      "etfNormalized": 109.5794,
+      "benchmarkNormalized": 118.9048
     },
     {
       "date": "20250529",
@@ -1321,8 +1332,8 @@
       "ma60": 0.9108,
       "ma250": 0.8325,
       "amountRankPct": 93.254,
-      "etfNormalized": 109.8266,
-      "benchmarkNormalized": 119.4045
+      "etfNormalized": 110.9813,
+      "benchmarkNormalized": 120.5156
     },
     {
       "date": "20250530",
@@ -1331,8 +1342,8 @@
       "ma60": 0.9115,
       "ma250": 0.8327,
       "amountRankPct": 72.2222,
-      "etfNormalized": 107.7457,
-      "benchmarkNormalized": 117.9679
+      "etfNormalized": 108.8785,
+      "benchmarkNormalized": 119.0657
     },
     {
       "date": "20250603",
@@ -1341,8 +1352,8 @@
       "ma60": 0.9122,
       "ma250": 0.833,
       "amountRankPct": 69.4444,
-      "etfNormalized": 108.7861,
-      "benchmarkNormalized": 119.096
+      "etfNormalized": 109.9299,
+      "benchmarkNormalized": 120.2043
     },
     {
       "date": "20250604",
@@ -1351,8 +1362,8 @@
       "ma60": 0.913,
       "ma250": 0.8334,
       "amountRankPct": 77.7778,
-      "etfNormalized": 110.1734,
-      "benchmarkNormalized": 119.813
+      "etfNormalized": 111.3318,
+      "benchmarkNormalized": 120.9279
     },
     {
       "date": "20250605",
@@ -1361,8 +1372,8 @@
       "ma60": 0.9135,
       "ma250": 0.8338,
       "amountRankPct": 88.8889,
-      "etfNormalized": 109.5954,
-      "benchmarkNormalized": 121.0942
+      "etfNormalized": 110.7477,
+      "benchmarkNormalized": 122.221
     },
     {
       "date": "20250606",
@@ -1371,8 +1382,8 @@
       "ma60": 0.9138,
       "ma250": 0.8342,
       "amountRankPct": 84.127,
-      "etfNormalized": 109.1329,
-      "benchmarkNormalized": 120.5146
+      "etfNormalized": 110.2804,
+      "benchmarkNormalized": 121.636
     },
     {
       "date": "20250609",
@@ -1381,8 +1392,8 @@
       "ma60": 0.9144,
       "ma250": 0.8346,
       "amountRankPct": 77.7778,
-      "etfNormalized": 110.289,
-      "benchmarkNormalized": 122.4844
+      "etfNormalized": 111.4486,
+      "benchmarkNormalized": 123.6242
     },
     {
       "date": "20250610",
@@ -1391,8 +1402,8 @@
       "ma60": 0.9151,
       "ma250": 0.8351,
       "amountRankPct": 94.4444,
-      "etfNormalized": 111.4451,
-      "benchmarkNormalized": 122.3904
+      "etfNormalized": 112.6168,
+      "benchmarkNormalized": 123.5293
     },
     {
       "date": "20250611",
@@ -1401,8 +1412,8 @@
       "ma60": 0.9159,
       "ma250": 0.8357,
       "amountRankPct": 80.1587,
-      "etfNormalized": 111.6763,
-      "benchmarkNormalized": 123.424
+      "etfNormalized": 112.8505,
+      "benchmarkNormalized": 124.5726
     },
     {
       "date": "20250612",
@@ -1411,8 +1422,8 @@
       "ma60": 0.9169,
       "ma250": 0.8363,
       "amountRankPct": 80.9524,
-      "etfNormalized": 111.3295,
-      "benchmarkNormalized": 121.7446
+      "etfNormalized": 112.5,
+      "benchmarkNormalized": 122.8775
     },
     {
       "date": "20250613",
@@ -1421,8 +1432,8 @@
       "ma60": 0.9172,
       "ma250": 0.8368,
       "amountRankPct": 69.0476,
-      "etfNormalized": 110.0578,
-      "benchmarkNormalized": 121.0212
+      "etfNormalized": 111.215,
+      "benchmarkNormalized": 122.1474
     },
     {
       "date": "20250616",
@@ -1431,8 +1442,8 @@
       "ma60": 0.9175,
       "ma250": 0.8373,
       "amountRankPct": 79.7619,
-      "etfNormalized": 110.6358,
-      "benchmarkNormalized": 121.8743
+      "etfNormalized": 111.7991,
+      "benchmarkNormalized": 123.0084
     },
     {
       "date": "20250617",
@@ -1441,8 +1452,8 @@
       "ma60": 0.9174,
       "ma250": 0.8378,
       "amountRankPct": 75.7937,
-      "etfNormalized": 109.5954,
-      "benchmarkNormalized": 121.4656
+      "etfNormalized": 110.7477,
+      "benchmarkNormalized": 122.5959
     },
     {
       "date": "20250618",
@@ -1451,8 +1462,8 @@
       "ma60": 0.9172,
       "ma250": 0.8383,
       "amountRankPct": 76.1905,
-      "etfNormalized": 108.7861,
-      "benchmarkNormalized": 120.1
+      "etfNormalized": 109.9299,
+      "benchmarkNormalized": 121.2176
     },
     {
       "date": "20250619",
@@ -1461,8 +1472,8 @@
       "ma60": 0.9168,
       "ma250": 0.8386,
       "amountRankPct": 95.6349,
-      "etfNormalized": 105.2023,
-      "benchmarkNormalized": 117.7044
+      "etfNormalized": 106.3084,
+      "benchmarkNormalized": 118.7997
     },
     {
       "date": "20250620",
@@ -1471,8 +1482,8 @@
       "ma60": 0.9166,
       "ma250": 0.839,
       "amountRankPct": 78.1746,
-      "etfNormalized": 104.9711,
-      "benchmarkNormalized": 119.1872
+      "etfNormalized": 106.0748,
+      "benchmarkNormalized": 120.2963
     },
     {
       "date": "20250623",
@@ -1481,8 +1492,8 @@
       "ma60": 0.9166,
       "ma250": 0.8394,
       "amountRankPct": 87.3016,
-      "etfNormalized": 106.0116,
-      "benchmarkNormalized": 119.9908
+      "etfNormalized": 107.1262,
+      "benchmarkNormalized": 121.1073
     },
     {
       "date": "20250624",
@@ -1491,8 +1502,8 @@
       "ma60": 0.9171,
       "ma250": 0.84,
       "amountRankPct": 84.127,
-      "etfNormalized": 108.3237,
-      "benchmarkNormalized": 122.4623
+      "etfNormalized": 109.4626,
+      "benchmarkNormalized": 123.6019
     },
     {
       "date": "20250625",
@@ -1501,8 +1512,8 @@
       "ma60": 0.9176,
       "ma250": 0.8406,
       "amountRankPct": 80.1587,
-      "etfNormalized": 108.9017,
-      "benchmarkNormalized": 123.9697
+      "etfNormalized": 110.0467,
+      "benchmarkNormalized": 125.1233
     },
     {
       "date": "20250626",
@@ -1511,8 +1522,8 @@
       "ma60": 0.9176,
       "ma250": 0.8411,
       "amountRankPct": 71.4286,
-      "etfNormalized": 108.6705,
-      "benchmarkNormalized": 123.2136
+      "etfNormalized": 109.8131,
+      "benchmarkNormalized": 124.3602
     },
     {
       "date": "20250627",
@@ -1521,8 +1532,8 @@
       "ma60": 0.9177,
       "ma250": 0.8417,
       "amountRankPct": 85.7143,
-      "etfNormalized": 108.7861,
-      "benchmarkNormalized": 123.0047
+      "etfNormalized": 109.9299,
+      "benchmarkNormalized": 124.1493
     },
     {
       "date": "20250630",
@@ -1531,8 +1542,8 @@
       "ma60": 0.9184,
       "ma250": 0.8424,
       "amountRankPct": 85.7143,
-      "etfNormalized": 110.289,
-      "benchmarkNormalized": 121.9315
+      "etfNormalized": 111.4486,
+      "benchmarkNormalized": 123.0661
     },
     {
       "date": "20250701",
@@ -1541,7 +1552,7 @@
       "ma60": 0.9187,
       "ma250": 0.843,
       "amountRankPct": 46.8254,
-      "etfNormalized": 109.9422,
+      "etfNormalized": 111.0981,
       "benchmarkNormalized": null
     },
     {
@@ -1551,8 +1562,8 @@
       "ma60": 0.9191,
       "ma250": 0.8437,
       "amountRankPct": 72.619,
-      "etfNormalized": 110.4046,
-      "benchmarkNormalized": 122.6869
+      "etfNormalized": 111.5654,
+      "benchmarkNormalized": 123.8286
     },
     {
       "date": "20250703",
@@ -1561,8 +1572,8 @@
       "ma60": 0.9197,
       "ma250": 0.8445,
       "amountRankPct": 66.2698,
-      "etfNormalized": 109.8266,
-      "benchmarkNormalized": 121.9197
+      "etfNormalized": 110.9813,
+      "benchmarkNormalized": 123.0542
     },
     {
       "date": "20250704",
@@ -1571,8 +1582,8 @@
       "ma60": 0.9217,
       "ma250": 0.8452,
       "amountRankPct": 84.127,
-      "etfNormalized": 109.4798,
-      "benchmarkNormalized": 121.1402
+      "etfNormalized": 110.6308,
+      "benchmarkNormalized": 122.2675
     },
     {
       "date": "20250707",
@@ -1581,8 +1592,8 @@
       "ma60": 0.9237,
       "ma250": 0.8459,
       "amountRankPct": 62.6984,
-      "etfNormalized": 109.711,
-      "benchmarkNormalized": 120.9972
+      "etfNormalized": 110.8645,
+      "benchmarkNormalized": 122.1232
     },
     {
       "date": "20250708",
@@ -1591,8 +1602,8 @@
       "ma60": 0.9258,
       "ma250": 0.8466,
       "amountRankPct": 69.8413,
-      "etfNormalized": 110.8671,
-      "benchmarkNormalized": 122.3154
+      "etfNormalized": 112.0327,
+      "benchmarkNormalized": 123.4536
     },
     {
       "date": "20250709",
@@ -1601,8 +1612,8 @@
       "ma60": 0.9272,
       "ma250": 0.8474,
       "amountRankPct": 55.5556,
-      "etfNormalized": 110.289,
-      "benchmarkNormalized": 121.02
+      "etfNormalized": 111.4486,
+      "benchmarkNormalized": 122.1461
     },
     {
       "date": "20250710",
@@ -1611,8 +1622,8 @@
       "ma60": 0.9286,
       "ma250": 0.8482,
       "amountRankPct": 54.3651,
-      "etfNormalized": 110.5202,
-      "benchmarkNormalized": 121.7091
+      "etfNormalized": 111.6822,
+      "benchmarkNormalized": 122.8417
     },
     {
       "date": "20250711",
@@ -1621,8 +1632,8 @@
       "ma60": 0.9299,
       "ma250": 0.849,
       "amountRankPct": 86.9048,
-      "etfNormalized": 110.8671,
-      "benchmarkNormalized": 122.2724
+      "etfNormalized": 112.0327,
+      "benchmarkNormalized": 123.4102
     },
     {
       "date": "20250714",
@@ -1631,8 +1642,8 @@
       "ma60": 0.9311,
       "ma250": 0.8499,
       "amountRankPct": 69.4444,
-      "etfNormalized": 110.5202,
-      "benchmarkNormalized": 122.5953
+      "etfNormalized": 111.6822,
+      "benchmarkNormalized": 123.7361
     },
     {
       "date": "20250715",
@@ -1641,8 +1652,8 @@
       "ma60": 0.9325,
       "ma250": 0.8508,
       "amountRankPct": 68.254,
-      "etfNormalized": 110.9827,
-      "benchmarkNormalized": 124.5545
+      "etfNormalized": 112.1495,
+      "benchmarkNormalized": 125.7135
     },
     {
       "date": "20250716",
@@ -1651,8 +1662,8 @@
       "ma60": 0.9338,
       "ma250": 0.8517,
       "amountRankPct": 80.9524,
-      "etfNormalized": 111.0983,
-      "benchmarkNormalized": 124.188
+      "etfNormalized": 112.2664,
+      "benchmarkNormalized": 125.3436
     },
     {
       "date": "20250717",
@@ -1661,8 +1672,8 @@
       "ma60": 0.9353,
       "ma250": 0.8526,
       "amountRankPct": 67.0635,
-      "etfNormalized": 111.3295,
-      "benchmarkNormalized": 124.0927
+      "etfNormalized": 112.5,
+      "benchmarkNormalized": 125.2474
     },
     {
       "date": "20250718",
@@ -1671,8 +1682,8 @@
       "ma60": 0.9367,
       "ma250": 0.8536,
       "amountRankPct": 66.2698,
-      "etfNormalized": 112.1387,
-      "benchmarkNormalized": 125.7476
+      "etfNormalized": 113.3178,
+      "benchmarkNormalized": 126.9177
     },
     {
       "date": "20250721",
@@ -1681,8 +1692,8 @@
       "ma60": 0.9382,
       "ma250": 0.8546,
       "amountRankPct": 57.1429,
-      "etfNormalized": 112.8324,
-      "benchmarkNormalized": 126.6009
+      "etfNormalized": 114.0187,
+      "benchmarkNormalized": 127.779
     },
     {
       "date": "20250722",
@@ -1691,8 +1702,8 @@
       "ma60": 0.9396,
       "ma250": 0.8556,
       "amountRankPct": 75.3968,
-      "etfNormalized": 113.9884,
-      "benchmarkNormalized": 127.2893
+      "etfNormalized": 115.1869,
+      "benchmarkNormalized": 128.4737
     },
     {
       "date": "20250723",
@@ -1701,8 +1712,8 @@
       "ma60": 0.9411,
       "ma250": 0.8566,
       "amountRankPct": 96.0317,
-      "etfNormalized": 114.5665,
-      "benchmarkNormalized": 129.3561
+      "etfNormalized": 115.771,
+      "benchmarkNormalized": 130.5598
     },
     {
       "date": "20250724",
@@ -1711,8 +1722,8 @@
       "ma60": 0.9426,
       "ma250": 0.8576,
       "amountRankPct": 95.6349,
-      "etfNormalized": 115.2601,
-      "benchmarkNormalized": 130.01
+      "etfNormalized": 116.472,
+      "benchmarkNormalized": 131.2198
     },
     {
       "date": "20250725",
@@ -1721,8 +1732,8 @@
       "ma60": 0.9439,
       "ma250": 0.8586,
       "amountRankPct": 65.0794,
-      "etfNormalized": 114.2197,
-      "benchmarkNormalized": 128.5977
+      "etfNormalized": 115.4206,
+      "benchmarkNormalized": 129.7944
     },
     {
       "date": "20250728",
@@ -1731,8 +1742,8 @@
       "ma60": 0.9452,
       "ma250": 0.8595,
       "amountRankPct": 49.2063,
-      "etfNormalized": 113.6416,
-      "benchmarkNormalized": 129.4779
+      "etfNormalized": 114.8364,
+      "benchmarkNormalized": 130.6828
     },
     {
       "date": "20250729",
@@ -1741,8 +1752,8 @@
       "ma60": 0.9467,
       "ma250": 0.8606,
       "amountRankPct": 74.6032,
-      "etfNormalized": 115.2601,
-      "benchmarkNormalized": 129.2871
+      "etfNormalized": 116.472,
+      "benchmarkNormalized": 130.4902
     },
     {
       "date": "20250730",
@@ -1751,8 +1762,8 @@
       "ma60": 0.948,
       "ma250": 0.8616,
       "amountRankPct": 82.9365,
-      "etfNormalized": 115.4913,
-      "benchmarkNormalized": 127.5268
+      "etfNormalized": 116.7056,
+      "benchmarkNormalized": 128.7135
     },
     {
       "date": "20250731",
@@ -1761,8 +1772,8 @@
       "ma60": 0.9489,
       "ma250": 0.8625,
       "amountRankPct": 83.7302,
-      "etfNormalized": 112.3699,
-      "benchmarkNormalized": 125.4825
+      "etfNormalized": 113.5514,
+      "benchmarkNormalized": 126.6502
     },
     {
       "date": "20250801",
@@ -1771,8 +1782,8 @@
       "ma60": 0.9499,
       "ma250": 0.8634,
       "amountRankPct": 64.6825,
-      "etfNormalized": 111.9075,
-      "benchmarkNormalized": 124.1376
+      "etfNormalized": 113.0841,
+      "benchmarkNormalized": 125.2927
     },
     {
       "date": "20250804",
@@ -1781,8 +1792,8 @@
       "ma60": 0.9508,
       "ma250": 0.8644,
       "amountRankPct": 40.873,
-      "etfNormalized": 112.0231,
-      "benchmarkNormalized": 125.2805
+      "etfNormalized": 113.2009,
+      "benchmarkNormalized": 126.4463
     },
     {
       "date": "20250805",
@@ -1791,8 +1802,8 @@
       "ma60": 0.9518,
       "ma250": 0.8655,
       "amountRankPct": 57.1429,
-      "etfNormalized": 112.948,
-      "benchmarkNormalized": 126.1369
+      "etfNormalized": 114.1355,
+      "benchmarkNormalized": 127.3107
     },
     {
       "date": "20250806",
@@ -1801,8 +1812,8 @@
       "ma60": 0.9528,
       "ma250": 0.8666,
       "amountRankPct": 52.381,
-      "etfNormalized": 113.4104,
-      "benchmarkNormalized": 126.1779
+      "etfNormalized": 114.6028,
+      "benchmarkNormalized": 127.3521
     },
     {
       "date": "20250807",
@@ -1811,8 +1822,8 @@
       "ma60": 0.9537,
       "ma250": 0.8678,
       "amountRankPct": 84.9206,
-      "etfNormalized": 114.6821,
-      "benchmarkNormalized": 127.0441
+      "etfNormalized": 115.8879,
+      "benchmarkNormalized": 128.2263
     },
     {
       "date": "20250808",
@@ -1821,8 +1832,8 @@
       "ma60": 0.9547,
       "ma250": 0.8689,
       "amountRankPct": 73.4127,
-      "etfNormalized": 114.4509,
-      "benchmarkNormalized": 125.9155
+      "etfNormalized": 115.6542,
+      "benchmarkNormalized": 127.0872
     },
     {
       "date": "20250811",
@@ -1831,8 +1842,8 @@
       "ma60": 0.9558,
       "ma250": 0.87,
       "amountRankPct": 58.7302,
-      "etfNormalized": 114.3353,
-      "benchmarkNormalized": 126.1586
+      "etfNormalized": 115.5374,
+      "benchmarkNormalized": 127.3326
     },
     {
       "date": "20250812",
@@ -1841,8 +1852,8 @@
       "ma60": 0.9569,
       "ma250": 0.8711,
       "amountRankPct": 43.6508,
-      "etfNormalized": 114.3353,
-      "benchmarkNormalized": 126.477
+      "etfNormalized": 115.5374,
+      "benchmarkNormalized": 127.654
     },
     {
       "date": "20250813",
@@ -1851,8 +1862,8 @@
       "ma60": 0.9581,
       "ma250": 0.8723,
       "amountRankPct": 78.9683,
-      "etfNormalized": 116.3006,
-      "benchmarkNormalized": 129.739
+      "etfNormalized": 117.5234,
+      "benchmarkNormalized": 130.9463
     },
     {
       "date": "20250814",
@@ -1861,8 +1872,8 @@
       "ma60": 0.9593,
       "ma250": 0.8735,
       "amountRankPct": 59.127,
-      "etfNormalized": 116.185,
-      "benchmarkNormalized": 129.2611
+      "etfNormalized": 117.4065,
+      "benchmarkNormalized": 130.4639
     },
     {
       "date": "20250815",
@@ -1871,8 +1882,8 @@
       "ma60": 0.9606,
       "ma250": 0.8748,
       "amountRankPct": 51.9841,
-      "etfNormalized": 116.4162,
-      "benchmarkNormalized": 127.9986
+      "etfNormalized": 117.6402,
+      "benchmarkNormalized": 129.1897
     },
     {
       "date": "20250818",
@@ -1881,8 +1892,8 @@
       "ma60": 0.9621,
       "ma250": 0.8761,
       "amountRankPct": 75.0,
-      "etfNormalized": 117.2254,
-      "benchmarkNormalized": 127.5264
+      "etfNormalized": 118.4579,
+      "benchmarkNormalized": 128.7131
     },
     {
       "date": "20250819",
@@ -1891,8 +1902,8 @@
       "ma60": 0.9637,
       "ma250": 0.8773,
       "amountRankPct": 78.1746,
-      "etfNormalized": 118.2659,
-      "benchmarkNormalized": 127.2531
+      "etfNormalized": 119.5093,
+      "benchmarkNormalized": 128.4373
     },
     {
       "date": "20250820",
@@ -1901,8 +1912,8 @@
       "ma60": 0.9655,
       "ma250": 0.8787,
       "amountRankPct": 93.6508,
-      "etfNormalized": 120.578,
-      "benchmarkNormalized": 127.4711
+      "etfNormalized": 121.8458,
+      "benchmarkNormalized": 128.6573
     },
     {
       "date": "20250821",
@@ -1911,8 +1922,8 @@
       "ma60": 0.9672,
       "ma250": 0.88,
       "amountRankPct": 83.7302,
-      "etfNormalized": 120.2312,
-      "benchmarkNormalized": 127.1605
+      "etfNormalized": 121.4953,
+      "benchmarkNormalized": 128.3438
     },
     {
       "date": "20250822",
@@ -1921,8 +1932,8 @@
       "ma60": 0.9688,
       "ma250": 0.8814,
       "amountRankPct": 69.4444,
-      "etfNormalized": 120.9249,
-      "benchmarkNormalized": 128.3484
+      "etfNormalized": 122.1963,
+      "benchmarkNormalized": 129.5428
     },
     {
       "date": "20250825",
@@ -1931,8 +1942,8 @@
       "ma60": 0.9712,
       "ma250": 0.8828,
       "amountRankPct": 94.0476,
-      "etfNormalized": 124.1618,
-      "benchmarkNormalized": 130.8343
+      "etfNormalized": 125.4673,
+      "benchmarkNormalized": 132.0518
     },
     {
       "date": "20250826",
@@ -1941,8 +1952,8 @@
       "ma60": 0.9733,
       "ma250": 0.8843,
       "amountRankPct": 92.8571,
-      "etfNormalized": 123.6994,
-      "benchmarkNormalized": 129.2895
+      "etfNormalized": 125.0,
+      "benchmarkNormalized": 130.4926
     },
     {
       "date": "20250827",
@@ -1951,8 +1962,8 @@
       "ma60": 0.9749,
       "ma250": 0.8857,
       "amountRankPct": 91.6667,
-      "etfNormalized": 121.1561,
-      "benchmarkNormalized": 127.6526
+      "etfNormalized": 122.4299,
+      "benchmarkNormalized": 128.8405
     },
     {
       "date": "20250828",
@@ -1961,8 +1972,8 @@
       "ma60": 0.9765,
       "ma250": 0.887,
       "amountRankPct": 87.6984,
-      "etfNormalized": 120.3468,
-      "benchmarkNormalized": 126.6246
+      "etfNormalized": 121.6121,
+      "benchmarkNormalized": 127.803
     },
     {
       "date": "20250829",
@@ -1971,8 +1982,8 @@
       "ma60": 0.9782,
       "ma250": 0.8883,
       "amountRankPct": 97.2222,
-      "etfNormalized": 120.8092,
-      "benchmarkNormalized": 127.0238
+      "etfNormalized": 122.0794,
+      "benchmarkNormalized": 128.2058
     },
     {
       "date": "20250901",
@@ -1981,8 +1992,8 @@
       "ma60": 0.9795,
       "ma250": 0.8897,
       "amountRankPct": 83.7302,
-      "etfNormalized": 119.6532,
-      "benchmarkNormalized": 129.758
+      "etfNormalized": 120.9112,
+      "benchmarkNormalized": 130.9655
     },
     {
       "date": "20250902",
@@ -1991,8 +2002,8 @@
       "ma60": 0.9805,
       "ma250": 0.891,
       "amountRankPct": 93.254,
-      "etfNormalized": 118.6127,
-      "benchmarkNormalized": 129.1458
+      "etfNormalized": 119.8598,
+      "benchmarkNormalized": 130.3475
     },
     {
       "date": "20250903",
@@ -2001,8 +2012,8 @@
       "ma60": 0.9815,
       "ma250": 0.8922,
       "amountRankPct": 72.619,
-      "etfNormalized": 118.0347,
-      "benchmarkNormalized": 128.3702
+      "etfNormalized": 119.2757,
+      "benchmarkNormalized": 129.5647
     },
     {
       "date": "20250904",
@@ -2011,8 +2022,8 @@
       "ma60": 0.9824,
       "ma250": 0.8934,
       "amountRankPct": 67.8571,
-      "etfNormalized": 117.6879,
-      "benchmarkNormalized": 126.927
+      "etfNormalized": 118.9252,
+      "benchmarkNormalized": 128.1081
     },
     {
       "date": "20250905",
@@ -2021,8 +2032,8 @@
       "ma60": 0.9837,
       "ma250": 0.8947,
       "amountRankPct": 82.1429,
-      "etfNormalized": 119.422,
-      "benchmarkNormalized": 128.7478
+      "etfNormalized": 120.6776,
+      "benchmarkNormalized": 129.9458
     },
     {
       "date": "20250908",
@@ -2031,8 +2042,8 @@
       "ma60": 0.985,
       "ma250": 0.8959,
       "amountRankPct": 80.9524,
-      "etfNormalized": 119.5376,
-      "benchmarkNormalized": 129.8415
+      "etfNormalized": 120.7944,
+      "benchmarkNormalized": 131.0498
     },
     {
       "date": "20250909",
@@ -2041,8 +2052,8 @@
       "ma60": 0.9865,
       "ma250": 0.8972,
       "amountRankPct": 78.5714,
-      "etfNormalized": 119.6532,
-      "benchmarkNormalized": 131.3825
+      "etfNormalized": 120.9112,
+      "benchmarkNormalized": 132.605
     },
     {
       "date": "20250910",
@@ -2051,8 +2062,8 @@
       "ma60": 0.988,
       "ma250": 0.8985,
       "amountRankPct": 84.127,
-      "etfNormalized": 119.7688,
-      "benchmarkNormalized": 132.7102
+      "etfNormalized": 121.028,
+      "benchmarkNormalized": 133.9451
     },
     {
       "date": "20250911",
@@ -2061,8 +2072,8 @@
       "ma60": 0.9902,
       "ma250": 0.8997,
       "amountRankPct": 95.2381,
-      "etfNormalized": 120.1156,
-      "benchmarkNormalized": 132.1331
+      "etfNormalized": 121.3785,
+      "benchmarkNormalized": 133.3626
     },
     {
       "date": "20250912",
@@ -2071,8 +2082,8 @@
       "ma60": 0.9922,
       "ma250": 0.9009,
       "amountRankPct": 90.873,
-      "etfNormalized": 119.1908,
-      "benchmarkNormalized": 133.662
+      "etfNormalized": 120.4439,
+      "benchmarkNormalized": 134.9058
     },
     {
       "date": "20250915",
@@ -2081,8 +2092,8 @@
       "ma60": 0.994,
       "ma250": 0.9021,
       "amountRankPct": 76.9841,
-      "etfNormalized": 118.1503,
-      "benchmarkNormalized": 133.9578
+      "etfNormalized": 119.3925,
+      "benchmarkNormalized": 135.2043
     },
     {
       "date": "20250916",
@@ -2091,8 +2102,8 @@
       "ma60": 0.9955,
       "ma250": 0.9034,
       "amountRankPct": 83.7302,
-      "etfNormalized": 118.7283,
-      "benchmarkNormalized": 133.917
+      "etfNormalized": 119.9766,
+      "benchmarkNormalized": 135.1632
     },
     {
       "date": "20250917",
@@ -2101,8 +2112,8 @@
       "ma60": 0.9971,
       "ma250": 0.9046,
       "amountRankPct": 96.4286,
-      "etfNormalized": 120.0,
-      "benchmarkNormalized": 136.297
+      "etfNormalized": 121.2617,
+      "benchmarkNormalized": 137.5654
     },
     {
       "date": "20250918",
@@ -2111,8 +2122,8 @@
       "ma60": 0.9985,
       "ma250": 0.9059,
       "amountRankPct": 93.6508,
-      "etfNormalized": 118.6127,
-      "benchmarkNormalized": 134.4556
+      "etfNormalized": 119.8598,
+      "benchmarkNormalized": 135.7068
     },
     {
       "date": "20250919",
@@ -2121,8 +2132,8 @@
       "ma60": 1.0002,
       "ma250": 0.9072,
       "amountRankPct": 83.7302,
-      "etfNormalized": 120.2312,
-      "benchmarkNormalized": 134.4569
+      "etfNormalized": 121.4953,
+      "benchmarkNormalized": 135.7081
     },
     {
       "date": "20250922",
@@ -2131,8 +2142,8 @@
       "ma60": 1.0014,
       "ma250": 0.9085,
       "amountRankPct": 77.381,
-      "etfNormalized": 118.7283,
-      "benchmarkNormalized": 133.439
+      "etfNormalized": 119.9766,
+      "benchmarkNormalized": 134.6807
     },
     {
       "date": "20250923",
@@ -2141,8 +2152,8 @@
       "ma60": 1.0024,
       "ma250": 0.9097,
       "amountRankPct": 68.254,
-      "etfNormalized": 116.6474,
-      "benchmarkNormalized": 132.5018
+      "etfNormalized": 117.8738,
+      "benchmarkNormalized": 133.7348
     },
     {
       "date": "20250924",
@@ -2151,8 +2162,8 @@
       "ma60": 1.0033,
       "ma250": 0.911,
       "amountRankPct": 51.9841,
-      "etfNormalized": 116.8786,
-      "benchmarkNormalized": 134.3229
+      "etfNormalized": 118.1075,
+      "benchmarkNormalized": 135.5729
     },
     {
       "date": "20250925",
@@ -2161,8 +2172,8 @@
       "ma60": 1.0041,
       "ma250": 0.9122,
       "amountRankPct": 55.9524,
-      "etfNormalized": 115.7225,
-      "benchmarkNormalized": 134.1509
+      "etfNormalized": 116.9393,
+      "benchmarkNormalized": 135.3992
     },
     {
       "date": "20250926",
@@ -2171,8 +2182,8 @@
       "ma60": 1.005,
       "ma250": 0.9133,
       "amountRankPct": 61.9048,
-      "etfNormalized": 115.7225,
-      "benchmarkNormalized": 132.3452
+      "etfNormalized": 116.9393,
+      "benchmarkNormalized": 133.5767
     },
     {
       "date": "20250929",
@@ -2181,8 +2192,8 @@
       "ma60": 1.0061,
       "ma250": 0.9145,
       "amountRankPct": 74.6032,
-      "etfNormalized": 116.8786,
-      "benchmarkNormalized": 134.8509
+      "etfNormalized": 118.1075,
+      "benchmarkNormalized": 136.1057
     },
     {
       "date": "20250930",
@@ -2191,8 +2202,8 @@
       "ma60": 1.007,
       "ma250": 0.9156,
       "amountRankPct": 67.0635,
-      "etfNormalized": 116.9942,
-      "benchmarkNormalized": 136.0295
+      "etfNormalized": 118.2243,
+      "benchmarkNormalized": 137.2953
     },
     {
       "date": "20251009",
@@ -2201,8 +2212,8 @@
       "ma60": 1.0077,
       "ma250": 0.9166,
       "amountRankPct": 82.5397,
-      "etfNormalized": 115.1445,
-      "benchmarkNormalized": 135.5079
+      "etfNormalized": 116.3551,
+      "benchmarkNormalized": 136.7689
     },
     {
       "date": "20251010",
@@ -2211,8 +2222,8 @@
       "ma60": 1.0083,
       "ma250": 0.9175,
       "amountRankPct": 84.127,
-      "etfNormalized": 114.9133,
-      "benchmarkNormalized": 133.1664
+      "etfNormalized": 116.1215,
+      "benchmarkNormalized": 134.4056
     },
     {
       "date": "20251013",
@@ -2221,8 +2232,8 @@
       "ma60": 1.0088,
       "ma250": 0.9184,
       "amountRankPct": 89.2857,
-      "etfNormalized": 113.9884,
-      "benchmarkNormalized": 131.136
+      "etfNormalized": 115.1869,
+      "benchmarkNormalized": 132.3563
     },
     {
       "date": "20251014",
@@ -2231,8 +2242,8 @@
       "ma60": 1.009,
       "ma250": 0.919,
       "amountRankPct": 76.5873,
-      "etfNormalized": 112.4855,
-      "benchmarkNormalized": 128.8662
+      "etfNormalized": 113.6682,
+      "benchmarkNormalized": 130.0653
     },
     {
       "date": "20251015",
@@ -2241,8 +2252,8 @@
       "ma60": 1.0096,
       "ma250": 0.9195,
       "amountRankPct": 71.4286,
-      "etfNormalized": 114.6821,
-      "benchmarkNormalized": 131.243
+      "etfNormalized": 115.8879,
+      "benchmarkNormalized": 132.4643
     },
     {
       "date": "20251016",
@@ -2251,8 +2262,8 @@
       "ma60": 1.0102,
       "ma250": 0.9198,
       "amountRankPct": 97.619,
-      "etfNormalized": 115.4913,
-      "benchmarkNormalized": 131.1311
+      "etfNormalized": 116.7056,
+      "benchmarkNormalized": 132.3514
     },
     {
       "date": "20251017",
@@ -2261,8 +2272,8 @@
       "ma60": 1.0105,
       "ma250": 0.9202,
       "amountRankPct": 63.4921,
-      "etfNormalized": 113.526,
-      "benchmarkNormalized": 127.8822
+      "etfNormalized": 114.7196,
+      "benchmarkNormalized": 129.0722
     },
     {
       "date": "20251020",
@@ -2271,8 +2282,8 @@
       "ma60": 1.0109,
       "ma250": 0.9208,
       "amountRankPct": 45.2381,
-      "etfNormalized": 114.7977,
-      "benchmarkNormalized": 130.9808
+      "etfNormalized": 116.0047,
+      "benchmarkNormalized": 132.1996
     },
     {
       "date": "20251021",
@@ -2281,8 +2292,8 @@
       "ma60": 1.0113,
       "ma250": 0.9212,
       "amountRankPct": 51.9841,
-      "etfNormalized": 115.3757,
-      "benchmarkNormalized": 131.8354
+      "etfNormalized": 116.5888,
+      "benchmarkNormalized": 133.0622
     },
     {
       "date": "20251022",
@@ -2291,8 +2302,8 @@
       "ma60": 1.0113,
       "ma250": 0.9217,
       "amountRankPct": 44.8413,
-      "etfNormalized": 114.4509,
-      "benchmarkNormalized": 130.5905
+      "etfNormalized": 115.6542,
+      "benchmarkNormalized": 131.8057
     },
     {
       "date": "20251023",
@@ -2301,8 +2312,8 @@
       "ma60": 1.0113,
       "ma250": 0.9222,
       "amountRankPct": 36.1111,
-      "etfNormalized": 114.2197,
-      "benchmarkNormalized": 131.5337
+      "etfNormalized": 115.4206,
+      "benchmarkNormalized": 132.7576
     },
     {
       "date": "20251024",
@@ -2311,8 +2322,8 @@
       "ma60": 1.0111,
       "ma250": 0.9228,
       "amountRankPct": 40.873,
-      "etfNormalized": 114.104,
-      "benchmarkNormalized": 132.507
+      "etfNormalized": 115.3037,
+      "benchmarkNormalized": 133.7401
     },
     {
       "date": "20251027",
@@ -2321,8 +2332,8 @@
       "ma60": 1.0112,
       "ma250": 0.9234,
       "amountRankPct": 54.3651,
-      "etfNormalized": 114.6821,
-      "benchmarkNormalized": 133.8926
+      "etfNormalized": 115.8879,
+      "benchmarkNormalized": 135.1386
     },
     {
       "date": "20251028",
@@ -2331,8 +2342,8 @@
       "ma60": 1.011,
       "ma250": 0.924,
       "amountRankPct": 72.619,
-      "etfNormalized": 112.2543,
-      "benchmarkNormalized": 133.4491
+      "etfNormalized": 113.4346,
+      "benchmarkNormalized": 134.6909
     },
     {
       "date": "20251029",
@@ -2341,7 +2352,7 @@
       "ma60": 1.0106,
       "ma250": 0.9245,
       "amountRankPct": 19.0476,
-      "etfNormalized": 112.6012,
+      "etfNormalized": 113.785,
       "benchmarkNormalized": null
     },
     {
@@ -2351,8 +2362,8 @@
       "ma60": 1.0099,
       "ma250": 0.925,
       "amountRankPct": 78.1746,
-      "etfNormalized": 110.5202,
-      "benchmarkNormalized": 133.1277
+      "etfNormalized": 111.6822,
+      "benchmarkNormalized": 134.3666
     },
     {
       "date": "20251031",
@@ -2361,8 +2372,8 @@
       "ma60": 1.0096,
       "ma250": 0.9254,
       "amountRankPct": 48.8095,
-      "etfNormalized": 110.289,
-      "benchmarkNormalized": 131.223
+      "etfNormalized": 111.4486,
+      "benchmarkNormalized": 132.4441
     },
     {
       "date": "20251103",
@@ -2371,8 +2382,8 @@
       "ma60": 1.0094,
       "ma250": 0.9258,
       "amountRankPct": 43.254,
-      "etfNormalized": 110.5202,
-      "benchmarkNormalized": 132.498
+      "etfNormalized": 111.6822,
+      "benchmarkNormalized": 133.7309
     },
     {
       "date": "20251104",
@@ -2381,8 +2392,8 @@
       "ma60": 1.0091,
       "ma250": 0.9262,
       "amountRankPct": 44.0476,
-      "etfNormalized": 109.711,
-      "benchmarkNormalized": 131.4547
+      "etfNormalized": 110.8645,
+      "benchmarkNormalized": 132.678
     },
     {
       "date": "20251105",
@@ -2391,8 +2402,8 @@
       "ma60": 1.0086,
       "ma250": 0.9266,
       "amountRankPct": 48.8095,
-      "etfNormalized": 109.5954,
-      "benchmarkNormalized": 131.3687
+      "etfNormalized": 110.7477,
+      "benchmarkNormalized": 132.5911
     },
     {
       "date": "20251106",
@@ -2401,8 +2412,8 @@
       "ma60": 1.0081,
       "ma250": 0.927,
       "amountRankPct": 29.3651,
-      "etfNormalized": 110.1734,
-      "benchmarkNormalized": 134.157
+      "etfNormalized": 111.3318,
+      "benchmarkNormalized": 135.4054
     },
     {
       "date": "20251107",
@@ -2411,8 +2422,8 @@
       "ma60": 1.0073,
       "ma250": 0.9274,
       "amountRankPct": 31.3492,
-      "etfNormalized": 109.4798,
-      "benchmarkNormalized": 132.9208
+      "etfNormalized": 110.6308,
+      "benchmarkNormalized": 134.1577
     },
     {
       "date": "20251110",
@@ -2421,8 +2432,8 @@
       "ma60": 1.0072,
       "ma250": 0.9279,
       "amountRankPct": 99.6032,
-      "etfNormalized": 113.4104,
-      "benchmarkNormalized": 134.9835
+      "etfNormalized": 114.6028,
+      "benchmarkNormalized": 136.2396
     },
     {
       "date": "20251111",
@@ -2431,8 +2442,8 @@
       "ma60": 1.007,
       "ma250": 0.9285,
       "amountRankPct": 100.0,
-      "etfNormalized": 113.1792,
-      "benchmarkNormalized": 135.2233
+      "etfNormalized": 114.3692,
+      "benchmarkNormalized": 136.4816
     },
     {
       "date": "20251112",
@@ -2441,8 +2452,8 @@
       "ma60": 1.0071,
       "ma250": 0.9291,
       "amountRankPct": 96.0317,
-      "etfNormalized": 115.0289,
-      "benchmarkNormalized": 136.3697
+      "etfNormalized": 116.2383,
+      "benchmarkNormalized": 137.6387
     },
     {
       "date": "20251113",
@@ -2451,8 +2462,8 @@
       "ma60": 1.007,
       "ma250": 0.9297,
       "amountRankPct": 86.9048,
-      "etfNormalized": 115.4913,
-      "benchmarkNormalized": 137.131
+      "etfNormalized": 116.7056,
+      "benchmarkNormalized": 138.4071
     },
     {
       "date": "20251114",
@@ -2461,8 +2472,8 @@
       "ma60": 1.0067,
       "ma250": 0.9302,
       "amountRankPct": 69.0476,
-      "etfNormalized": 113.9884,
-      "benchmarkNormalized": 134.5955
+      "etfNormalized": 115.1869,
+      "benchmarkNormalized": 135.848
     },
     {
       "date": "20251117",
@@ -2471,8 +2482,8 @@
       "ma60": 1.0062,
       "ma250": 0.9307,
       "amountRankPct": 86.5079,
-      "etfNormalized": 112.948,
-      "benchmarkNormalized": 133.6423
+      "etfNormalized": 114.1355,
+      "benchmarkNormalized": 134.8859
     },
     {
       "date": "20251118",
@@ -2481,8 +2492,8 @@
       "ma60": 1.0053,
       "ma250": 0.931,
       "amountRankPct": 86.5079,
-      "etfNormalized": 111.2139,
-      "benchmarkNormalized": 131.3414
+      "etfNormalized": 112.3832,
+      "benchmarkNormalized": 132.5636
     },
     {
       "date": "20251119",
@@ -2491,8 +2502,8 @@
       "ma60": 1.0043,
       "ma250": 0.9313,
       "amountRankPct": 73.4127,
-      "etfNormalized": 111.0983,
-      "benchmarkNormalized": 130.8381
+      "etfNormalized": 112.2664,
+      "benchmarkNormalized": 132.0556
     },
     {
       "date": "20251120",
@@ -2501,8 +2512,8 @@
       "ma60": 1.003,
       "ma250": 0.9316,
       "amountRankPct": 52.381,
-      "etfNormalized": 111.3295,
-      "benchmarkNormalized": 130.863
+      "etfNormalized": 112.5,
+      "benchmarkNormalized": 132.0807
     },
     {
       "date": "20251121",
@@ -2511,8 +2522,8 @@
       "ma60": 1.0015,
       "ma250": 0.932,
       "amountRankPct": 92.8571,
-      "etfNormalized": 110.4046,
-      "benchmarkNormalized": 127.7451
+      "etfNormalized": 111.5654,
+      "benchmarkNormalized": 128.9338
     },
     {
       "date": "20251124",
@@ -2521,8 +2532,8 @@
       "ma60": 1.0001,
       "ma250": 0.9325,
       "amountRankPct": 61.5079,
-      "etfNormalized": 110.9827,
-      "benchmarkNormalized": 130.2599
+      "etfNormalized": 112.1495,
+      "benchmarkNormalized": 131.472
     },
     {
       "date": "20251125",
@@ -2531,8 +2542,8 @@
       "ma60": 0.9982,
       "ma250": 0.933,
       "amountRankPct": 55.1587,
-      "etfNormalized": 110.6358,
-      "benchmarkNormalized": 131.1617
+      "etfNormalized": 111.7991,
+      "benchmarkNormalized": 132.3822
     },
     {
       "date": "20251126",
@@ -2541,8 +2552,8 @@
       "ma60": 0.9964,
       "ma250": 0.9335,
       "amountRankPct": 56.3492,
-      "etfNormalized": 111.6763,
-      "benchmarkNormalized": 131.3316
+      "etfNormalized": 112.8505,
+      "benchmarkNormalized": 132.5537
     },
     {
       "date": "20251127",
@@ -2551,8 +2562,8 @@
       "ma60": 0.9952,
       "ma250": 0.9341,
       "amountRankPct": 95.2381,
-      "etfNormalized": 112.7168,
-      "benchmarkNormalized": 131.422
+      "etfNormalized": 113.9019,
+      "benchmarkNormalized": 132.6449
     },
     {
       "date": "20251128",
@@ -2561,8 +2572,8 @@
       "ma60": 0.994,
       "ma250": 0.9346,
       "amountRankPct": 46.0317,
-      "etfNormalized": 112.2543,
-      "benchmarkNormalized": 130.9811
+      "etfNormalized": 113.4346,
+      "benchmarkNormalized": 132.1999
     },
     {
       "date": "20251201",
@@ -2571,8 +2582,8 @@
       "ma60": 0.9928,
       "ma250": 0.9351,
       "amountRankPct": 61.9048,
-      "etfNormalized": 112.3699,
-      "benchmarkNormalized": 131.8643
+      "etfNormalized": 113.5514,
+      "benchmarkNormalized": 133.0914
     },
     {
       "date": "20251202",
@@ -2581,8 +2592,8 @@
       "ma60": 0.9919,
       "ma250": 0.9356,
       "amountRankPct": 41.6667,
-      "etfNormalized": 113.1792,
-      "benchmarkNormalized": 132.1773
+      "etfNormalized": 114.3692,
+      "benchmarkNormalized": 133.4073
     },
     {
       "date": "20251203",
@@ -2591,8 +2602,8 @@
       "ma60": 0.991,
       "ma250": 0.9362,
       "amountRankPct": 35.3175,
-      "etfNormalized": 112.4855,
-      "benchmarkNormalized": 130.4839
+      "etfNormalized": 113.6682,
+      "benchmarkNormalized": 131.6981
     },
     {
       "date": "20251204",
@@ -2601,8 +2612,8 @@
       "ma60": 0.9901,
       "ma250": 0.9368,
       "amountRankPct": 36.5079,
-      "etfNormalized": 111.6763,
-      "benchmarkNormalized": 131.3712
+      "etfNormalized": 112.8505,
+      "benchmarkNormalized": 132.5936
     },
     {
       "date": "20251205",
@@ -2611,8 +2622,8 @@
       "ma60": 0.9892,
       "ma250": 0.9373,
       "amountRankPct": 31.746,
-      "etfNormalized": 111.5607,
-      "benchmarkNormalized": 132.1268
+      "etfNormalized": 112.7336,
+      "benchmarkNormalized": 133.3563
     },
     {
       "date": "20251208",
@@ -2621,8 +2632,8 @@
       "ma60": 0.9878,
       "ma250": 0.9377,
       "amountRankPct": 79.3651,
-      "etfNormalized": 109.4798,
-      "benchmarkNormalized": 130.5073
+      "etfNormalized": 110.6308,
+      "benchmarkNormalized": 131.7218
     },
     {
       "date": "20251209",
@@ -2631,8 +2642,8 @@
       "ma60": 0.9861,
       "ma250": 0.9381,
       "amountRankPct": 48.8095,
-      "etfNormalized": 107.6301,
-      "benchmarkNormalized": 128.8301
+      "etfNormalized": 108.7617,
+      "benchmarkNormalized": 130.0289
     },
     {
       "date": "20251210",
@@ -2641,8 +2652,8 @@
       "ma60": 0.9843,
       "ma250": 0.9384,
       "amountRankPct": 75.7937,
-      "etfNormalized": 107.6301,
-      "benchmarkNormalized": 129.3698
+      "etfNormalized": 108.7617,
+      "benchmarkNormalized": 130.5736
     },
     {
       "date": "20251211",
@@ -2651,8 +2662,8 @@
       "ma60": 0.9826,
       "ma250": 0.9387,
       "amountRankPct": 61.1111,
-      "etfNormalized": 107.5145,
-      "benchmarkNormalized": 129.3178
+      "etfNormalized": 108.6449,
+      "benchmarkNormalized": 130.5211
     },
     {
       "date": "20251212",
@@ -2661,8 +2672,8 @@
       "ma60": 0.981,
       "ma250": 0.939,
       "amountRankPct": 84.9206,
-      "etfNormalized": 109.1329,
-      "benchmarkNormalized": 131.5783
+      "etfNormalized": 110.2804,
+      "benchmarkNormalized": 132.8027
     },
     {
       "date": "20251215",
@@ -2671,8 +2682,8 @@
       "ma60": 0.9795,
       "ma250": 0.9393,
       "amountRankPct": 69.0476,
-      "etfNormalized": 109.0173,
-      "benchmarkNormalized": 129.816
+      "etfNormalized": 110.1636,
+      "benchmarkNormalized": 131.024
     },
     {
       "date": "20251216",
@@ -2681,8 +2692,8 @@
       "ma60": 0.978,
       "ma250": 0.9396,
       "amountRankPct": 57.9365,
-      "etfNormalized": 107.9769,
-      "benchmarkNormalized": 127.823
+      "etfNormalized": 109.1121,
+      "benchmarkNormalized": 129.0125
     },
     {
       "date": "20251217",
@@ -2691,8 +2702,8 @@
       "ma60": 0.9767,
       "ma250": 0.9399,
       "amountRankPct": 52.7778,
-      "etfNormalized": 109.0173,
-      "benchmarkNormalized": 129.0051
+      "etfNormalized": 110.1636,
+      "benchmarkNormalized": 130.2056
     },
     {
       "date": "20251218",
@@ -2701,8 +2712,8 @@
       "ma60": 0.975,
       "ma250": 0.9401,
       "amountRankPct": 30.9524,
-      "etfNormalized": 108.4393,
-      "benchmarkNormalized": 129.1538
+      "etfNormalized": 109.5794,
+      "benchmarkNormalized": 130.3556
     },
     {
       "date": "20251219",
@@ -2711,8 +2722,8 @@
       "ma60": 0.9737,
       "ma250": 0.9403,
       "amountRankPct": 43.254,
-      "etfNormalized": 109.3642,
-      "benchmarkNormalized": 130.1283
+      "etfNormalized": 110.514,
+      "benchmarkNormalized": 131.3392
     },
     {
       "date": "20251222",
@@ -2721,8 +2732,8 @@
       "ma60": 0.9721,
       "ma250": 0.9406,
       "amountRankPct": 44.4444,
-      "etfNormalized": 109.8266,
-      "benchmarkNormalized": 130.6918
+      "etfNormalized": 110.9813,
+      "benchmarkNormalized": 131.9079
     },
     {
       "date": "20251223",
@@ -2731,8 +2742,8 @@
       "ma60": 0.9709,
       "ma250": 0.9407,
       "amountRankPct": 84.127,
-      "etfNormalized": 109.8266,
-      "benchmarkNormalized": 130.5518
+      "etfNormalized": 110.9813,
+      "benchmarkNormalized": 131.7667
     },
     {
       "date": "20251224",
@@ -2741,8 +2752,8 @@
       "ma60": 0.9698,
       "ma250": 0.9409,
       "amountRankPct": 24.6032,
-      "etfNormalized": 109.3642,
-      "benchmarkNormalized": 130.7787
+      "etfNormalized": 110.514,
+      "benchmarkNormalized": 131.9957
     },
     {
       "date": "20251225",
@@ -2751,7 +2762,7 @@
       "ma60": 0.9688,
       "ma250": 0.9411,
       "amountRankPct": 10.7143,
-      "etfNormalized": 109.4798,
+      "etfNormalized": 110.6308,
       "benchmarkNormalized": null
     },
     {
@@ -2761,7 +2772,7 @@
       "ma60": 0.9679,
       "ma250": 0.9414,
       "amountRankPct": 14.6825,
-      "etfNormalized": 109.9422,
+      "etfNormalized": 111.0981,
       "benchmarkNormalized": null
     },
     {
@@ -2771,8 +2782,8 @@
       "ma60": 0.9668,
       "ma250": 0.9416,
       "amountRankPct": 57.5397,
-      "etfNormalized": 108.0925,
-      "benchmarkNormalized": 129.8482
+      "etfNormalized": 109.229,
+      "benchmarkNormalized": 131.0565
     },
     {
       "date": "20251230",
@@ -2781,8 +2792,8 @@
       "ma60": 0.9654,
       "ma250": 0.9417,
       "amountRankPct": 63.4921,
-      "etfNormalized": 106.7052,
-      "benchmarkNormalized": 130.9594
+      "etfNormalized": 107.8271,
+      "benchmarkNormalized": 132.178
     },
     {
       "date": "20251231",
@@ -2791,8 +2802,8 @@
       "ma60": 0.9637,
       "ma250": 0.9419,
       "amountRankPct": 29.7619,
-      "etfNormalized": 105.5491,
-      "benchmarkNormalized": 129.8244
+      "etfNormalized": 106.6589,
+      "benchmarkNormalized": 131.0325
     },
     {
       "date": "20260105",
@@ -2801,8 +2812,8 @@
       "ma60": 0.9626,
       "ma250": 0.9421,
       "amountRankPct": 75.7937,
-      "etfNormalized": 107.2832,
-      "benchmarkNormalized": 133.4547
+      "etfNormalized": 108.4112,
+      "benchmarkNormalized": 134.6966
     },
     {
       "date": "20260106",
@@ -2811,8 +2822,8 @@
       "ma60": 0.9616,
       "ma250": 0.9423,
       "amountRankPct": 85.3175,
-      "etfNormalized": 108.4393,
-      "benchmarkNormalized": 135.2944
+      "etfNormalized": 109.5794,
+      "benchmarkNormalized": 136.5534
     },
     {
       "date": "20260107",
@@ -2821,8 +2832,8 @@
       "ma60": 0.9609,
       "ma250": 0.9425,
       "amountRankPct": 56.3492,
-      "etfNormalized": 108.5549,
-      "benchmarkNormalized": 134.0205
+      "etfNormalized": 109.6963,
+      "benchmarkNormalized": 135.2677
     },
     {
       "date": "20260108",
@@ -2831,8 +2842,8 @@
       "ma60": 0.9602,
       "ma250": 0.9427,
       "amountRankPct": 45.6349,
-      "etfNormalized": 107.9769,
-      "benchmarkNormalized": 132.4521
+      "etfNormalized": 109.1121,
+      "benchmarkNormalized": 133.6847
     },
     {
       "date": "20260109",
@@ -2841,8 +2852,8 @@
       "ma60": 0.9593,
       "ma250": 0.943,
       "amountRankPct": 45.2381,
-      "etfNormalized": 108.3237,
-      "benchmarkNormalized": 132.8699
+      "etfNormalized": 109.4626,
+      "benchmarkNormalized": 134.1063
     },
     {
       "date": "20260112",
@@ -2851,8 +2862,8 @@
       "ma60": 0.9584,
       "ma250": 0.9433,
       "amountRankPct": 45.2381,
-      "etfNormalized": 109.1329,
-      "benchmarkNormalized": 134.7779
+      "etfNormalized": 110.2804,
+      "benchmarkNormalized": 136.0321
     },
     {
       "date": "20260113",
@@ -2861,8 +2872,8 @@
       "ma60": 0.9576,
       "ma250": 0.9436,
       "amountRankPct": 70.6349,
-      "etfNormalized": 108.4393,
-      "benchmarkNormalized": 135.9935
+      "etfNormalized": 109.5794,
+      "benchmarkNormalized": 137.259
     },
     {
       "date": "20260114",
@@ -2871,8 +2882,8 @@
       "ma60": 0.9568,
       "ma250": 0.9439,
       "amountRankPct": 63.0952,
-      "etfNormalized": 109.3642,
-      "benchmarkNormalized": 136.7601
+      "etfNormalized": 110.514,
+      "benchmarkNormalized": 138.0327
     },
     {
       "date": "20260115",
@@ -2881,8 +2892,8 @@
       "ma60": 0.956,
       "ma250": 0.9443,
       "amountRankPct": 50.0,
-      "etfNormalized": 109.4798,
-      "benchmarkNormalized": 136.3742
+      "etfNormalized": 110.6308,
+      "benchmarkNormalized": 137.6432
     },
     {
       "date": "20260116",
@@ -2891,8 +2902,8 @@
       "ma60": 0.9552,
       "ma250": 0.9447,
       "amountRankPct": 34.127,
-      "etfNormalized": 109.0173,
-      "benchmarkNormalized": 135.9758
+      "etfNormalized": 110.1636,
+      "benchmarkNormalized": 137.2411
     },
     {
       "date": "20260119",
@@ -2901,8 +2912,8 @@
       "ma60": 0.9544,
       "ma250": 0.9451,
       "amountRankPct": 21.0317,
-      "etfNormalized": 108.5549,
-      "benchmarkNormalized": 134.5521
+      "etfNormalized": 109.6963,
+      "benchmarkNormalized": 135.8042
     },
     {
       "date": "20260120",
@@ -2911,8 +2922,8 @@
       "ma60": 0.9539,
       "ma250": 0.9456,
       "amountRankPct": 94.4444,
-      "etfNormalized": 110.8671,
-      "benchmarkNormalized": 134.1652
+      "etfNormalized": 112.0327,
+      "benchmarkNormalized": 135.4137
     },
     {
       "date": "20260121",
@@ -2921,8 +2932,8 @@
       "ma60": 0.9532,
       "ma250": 0.9461,
       "amountRankPct": 69.8413,
-      "etfNormalized": 109.711,
-      "benchmarkNormalized": 134.6593
+      "etfNormalized": 110.8645,
+      "benchmarkNormalized": 135.9124
     },
     {
       "date": "20260122",
@@ -2931,8 +2942,8 @@
       "ma60": 0.9531,
       "ma250": 0.9466,
       "amountRankPct": 92.8571,
-      "etfNormalized": 111.2139,
-      "benchmarkNormalized": 134.8867
+      "etfNormalized": 112.3832,
+      "benchmarkNormalized": 136.1419
     },
     {
       "date": "20260123",
@@ -2941,8 +2952,8 @@
       "ma60": 0.9529,
       "ma250": 0.9472,
       "amountRankPct": 48.8095,
-      "etfNormalized": 111.7919,
-      "benchmarkNormalized": 135.4923
+      "etfNormalized": 112.9673,
+      "benchmarkNormalized": 136.7531
     },
     {
       "date": "20260126",
@@ -2951,8 +2962,8 @@
       "ma60": 0.953,
       "ma250": 0.9477,
       "amountRankPct": 15.873,
-      "etfNormalized": 110.9827,
-      "benchmarkNormalized": 135.5734
+      "etfNormalized": 112.1495,
+      "benchmarkNormalized": 136.835
     },
     {
       "date": "20260127",
@@ -2961,8 +2972,8 @@
       "ma60": 0.9532,
       "ma250": 0.9483,
       "amountRankPct": 34.9206,
-      "etfNormalized": 111.7919,
-      "benchmarkNormalized": 137.4041
+      "etfNormalized": 112.9673,
+      "benchmarkNormalized": 138.6827
     },
     {
       "date": "20260128",
@@ -2971,8 +2982,8 @@
       "ma60": 0.9536,
       "ma250": 0.9488,
       "amountRankPct": 36.1111,
-      "etfNormalized": 112.7168,
-      "benchmarkNormalized": 140.9496
+      "etfNormalized": 113.9019,
+      "benchmarkNormalized": 142.2612
     },
     {
       "date": "20260129",
@@ -2981,8 +2992,8 @@
       "ma60": 0.9542,
       "ma250": 0.9494,
       "amountRankPct": 59.127,
-      "etfNormalized": 114.2197,
-      "benchmarkNormalized": 141.6647
+      "etfNormalized": 115.4206,
+      "benchmarkNormalized": 142.9829
     },
     {
       "date": "20260130",
@@ -2991,8 +3002,8 @@
       "ma60": 0.9545,
       "ma250": 0.9499,
       "amountRankPct": 58.3333,
-      "etfNormalized": 111.7919,
-      "benchmarkNormalized": 138.7219
+      "etfNormalized": 112.9673,
+      "benchmarkNormalized": 140.0128
     },
     {
       "date": "20260202",
@@ -3001,8 +3012,8 @@
       "ma60": 0.9545,
       "ma250": 0.9502,
       "amountRankPct": 70.6349,
-      "etfNormalized": 109.9422,
-      "benchmarkNormalized": 135.6243
+      "etfNormalized": 111.0981,
+      "benchmarkNormalized": 136.8863
     },
     {
       "date": "20260203",
@@ -3011,8 +3022,8 @@
       "ma60": 0.9549,
       "ma250": 0.9507,
       "amountRankPct": 72.2222,
-      "etfNormalized": 112.7168,
-      "benchmarkNormalized": 135.9241
+      "etfNormalized": 113.9019,
+      "benchmarkNormalized": 137.189
     },
     {
       "date": "20260204",
@@ -3021,8 +3032,8 @@
       "ma60": 0.9551,
       "ma250": 0.9514,
       "amountRankPct": 84.127,
-      "etfNormalized": 114.4509,
-      "benchmarkNormalized": 135.9877
+      "etfNormalized": 115.6542,
+      "benchmarkNormalized": 137.2531
     },
     {
       "date": "20260205",
@@ -3031,8 +3042,8 @@
       "ma60": 0.9556,
       "ma250": 0.952,
       "amountRankPct": 98.4127,
-      "etfNormalized": 116.9942,
-      "benchmarkNormalized": 136.1798
+      "etfNormalized": 118.2243,
+      "benchmarkNormalized": 137.447
     },
     {
       "date": "20260206",
@@ -3041,8 +3052,8 @@
       "ma60": 0.9559,
       "ma250": 0.9526,
       "amountRankPct": 93.254,
-      "etfNormalized": 116.763,
-      "benchmarkNormalized": 134.5321
+      "etfNormalized": 117.9907,
+      "benchmarkNormalized": 135.784
     },
     {
       "date": "20260209",
@@ -3051,8 +3062,8 @@
       "ma60": 0.9563,
       "ma250": 0.9533,
       "amountRankPct": 78.1746,
-      "etfNormalized": 118.4971,
-      "benchmarkNormalized": 136.8986
+      "etfNormalized": 119.743,
+      "benchmarkNormalized": 138.1726
     },
     {
       "date": "20260210",
@@ -3061,8 +3072,8 @@
       "ma60": 0.957,
       "ma250": 0.954,
       "amountRankPct": 67.0635,
-      "etfNormalized": 118.4971,
-      "benchmarkNormalized": 137.6888
+      "etfNormalized": 119.743,
+      "benchmarkNormalized": 138.97
     },
     {
       "date": "20260211",
@@ -3071,8 +3082,8 @@
       "ma60": 0.9578,
       "ma250": 0.9546,
       "amountRankPct": 97.619,
-      "etfNormalized": 118.4971,
-      "benchmarkNormalized": 138.1103
+      "etfNormalized": 119.743,
+      "benchmarkNormalized": 139.3955
     },
     {
       "date": "20260212",
@@ -3081,8 +3092,8 @@
       "ma60": 0.9586,
       "ma250": 0.9551,
       "amountRankPct": 66.6667,
-      "etfNormalized": 116.9942,
-      "benchmarkNormalized": 136.9259
+      "etfNormalized": 118.2243,
+      "benchmarkNormalized": 138.2001
     },
     {
       "date": "20260213",
@@ -3091,8 +3102,8 @@
       "ma60": 0.9594,
       "ma250": 0.9557,
       "amountRankPct": 36.1111,
-      "etfNormalized": 116.6474,
-      "benchmarkNormalized": 134.5684
+      "etfNormalized": 117.8738,
+      "benchmarkNormalized": 135.8207
     },
     {
       "date": "20260224",
@@ -3101,8 +3112,8 @@
       "ma60": 0.9602,
       "ma250": 0.9563,
       "amountRankPct": 71.4286,
-      "etfNormalized": 116.6474,
-      "benchmarkNormalized": 134.686
+      "etfNormalized": 117.8738,
+      "benchmarkNormalized": 135.9393
     },
     {
       "date": "20260225",
@@ -3111,8 +3122,8 @@
       "ma60": 0.961,
       "ma250": 0.9568,
       "amountRankPct": 55.5556,
-      "etfNormalized": 116.3006,
-      "benchmarkNormalized": 135.5744
+      "etfNormalized": 117.5234,
+      "benchmarkNormalized": 136.836
     },
     {
       "date": "20260226",
@@ -3121,8 +3132,8 @@
       "ma60": 0.9616,
       "ma250": 0.9572,
       "amountRankPct": 34.9206,
-      "etfNormalized": 114.6821,
-      "benchmarkNormalized": 133.6258
+      "etfNormalized": 115.8879,
+      "benchmarkNormalized": 134.8693
     },
     {
       "date": "20260227",
@@ -3131,8 +3142,8 @@
       "ma60": 0.9622,
       "ma250": 0.9577,
       "amountRankPct": 21.4286,
-      "etfNormalized": 114.7977,
-      "benchmarkNormalized": 134.8897
+      "etfNormalized": 116.0047,
+      "benchmarkNormalized": 136.1449
     },
     {
       "date": "20260302",
@@ -3141,8 +3152,8 @@
       "ma60": 0.9624,
       "ma250": 0.9581,
       "amountRankPct": 69.4444,
-      "etfNormalized": 112.948,
-      "benchmarkNormalized": 131.999
+      "etfNormalized": 114.1355,
+      "benchmarkNormalized": 133.2273
     },
     {
       "date": "20260303",
@@ -3151,8 +3162,8 @@
       "ma60": 0.9619,
       "ma250": 0.9583,
       "amountRankPct": 90.873,
-      "etfNormalized": 109.9422,
-      "benchmarkNormalized": 130.5211
+      "etfNormalized": 111.0981,
+      "benchmarkNormalized": 131.7357
     },
     {
       "date": "20260304",
@@ -3161,8 +3172,8 @@
       "ma60": 0.9614,
       "ma250": 0.9586,
       "amountRankPct": 50.0,
-      "etfNormalized": 108.5549,
-      "benchmarkNormalized": 127.8943
+      "etfNormalized": 109.6963,
+      "benchmarkNormalized": 129.0844
     },
     {
       "date": "20260305",
@@ -3171,8 +3182,8 @@
       "ma60": 0.9608,
       "ma250": 0.9588,
       "amountRankPct": 73.0159,
-      "etfNormalized": 107.8613,
-      "benchmarkNormalized": 128.2583
+      "etfNormalized": 108.9953,
+      "benchmarkNormalized": 129.4518
     },
     {
       "date": "20260306",
@@ -3181,8 +3192,8 @@
       "ma60": 0.9604,
       "ma250": 0.9591,
       "amountRankPct": 72.619,
-      "etfNormalized": 110.5202,
-      "benchmarkNormalized": 130.4665
+      "etfNormalized": 111.6822,
+      "benchmarkNormalized": 131.6805
     },
     {
       "date": "20260309",
@@ -3191,8 +3202,8 @@
       "ma60": 0.9597,
       "ma250": 0.9593,
       "amountRankPct": 24.2063,
-      "etfNormalized": 107.9769,
-      "benchmarkNormalized": 128.6996
+      "etfNormalized": 109.1121,
+      "benchmarkNormalized": 129.8972
     },
     {
       "date": "20260310",
@@ -3201,8 +3212,8 @@
       "ma60": 0.9593,
       "ma250": 0.9595,
       "amountRankPct": 6.746,
-      "etfNormalized": 108.9017,
-      "benchmarkNormalized": 131.4927
+      "etfNormalized": 110.0467,
+      "benchmarkNormalized": 132.7163
     },
     {
       "date": "20260311",
@@ -3211,8 +3222,8 @@
       "ma60": 0.9589,
       "ma250": 0.9597,
       "amountRankPct": 6.3492,
-      "etfNormalized": 108.9017,
-      "benchmarkNormalized": 131.183
+      "etfNormalized": 110.0467,
+      "benchmarkNormalized": 132.4038
     },
     {
       "date": "20260312",
@@ -3221,8 +3232,8 @@
       "ma60": 0.9586,
       "ma250": 0.9599,
       "amountRankPct": 17.0635,
-      "etfNormalized": 107.2832,
-      "benchmarkNormalized": 130.2612
+      "etfNormalized": 108.4112,
+      "benchmarkNormalized": 131.4733
     },
     {
       "date": "20260313",
@@ -3231,8 +3242,8 @@
       "ma60": 0.9585,
       "ma250": 0.96,
       "amountRankPct": 26.5873,
-      "etfNormalized": 106.474,
-      "benchmarkNormalized": 128.989
+      "etfNormalized": 107.5935,
+      "benchmarkNormalized": 130.1893
     },
     {
       "date": "20260316",
@@ -3241,8 +3252,8 @@
       "ma60": 0.9585,
       "ma250": 0.9602,
       "amountRankPct": 48.4127,
-      "etfNormalized": 107.8613,
-      "benchmarkNormalized": 130.8551
+      "etfNormalized": 108.9953,
+      "benchmarkNormalized": 132.0728
     },
     {
       "date": "20260317",
@@ -3251,8 +3262,8 @@
       "ma60": 0.9586,
       "ma250": 0.9603,
       "amountRankPct": 55.1587,
-      "etfNormalized": 108.4393,
-      "benchmarkNormalized": 131.03
+      "etfNormalized": 109.5794,
+      "benchmarkNormalized": 132.2493
     },
     {
       "date": "20260318",
@@ -3261,8 +3272,8 @@
       "ma60": 0.9586,
       "ma250": 0.9604,
       "amountRankPct": 2.7778,
-      "etfNormalized": 108.5549,
-      "benchmarkNormalized": 131.8246
+      "etfNormalized": 109.6963,
+      "benchmarkNormalized": 133.0513
     },
     {
       "date": "20260319",
@@ -3271,8 +3282,8 @@
       "ma60": 0.9581,
       "ma250": 0.9603,
       "amountRankPct": 11.1111,
-      "etfNormalized": 105.7803,
-      "benchmarkNormalized": 129.1662
+      "etfNormalized": 106.8925,
+      "benchmarkNormalized": 130.3681
     },
     {
       "date": "20260320",
@@ -3281,8 +3292,8 @@
       "ma60": 0.9577,
       "ma250": 0.9603,
       "amountRankPct": 17.0635,
-      "etfNormalized": 105.2023,
-      "benchmarkNormalized": 128.0353
+      "etfNormalized": 106.3084,
+      "benchmarkNormalized": 129.2267
     },
     {
       "date": "20260323",
@@ -3291,8 +3302,8 @@
       "ma60": 0.9566,
       "ma250": 0.9601,
       "amountRankPct": 40.873,
-      "etfNormalized": 101.5029,
-      "benchmarkNormalized": 123.5027
+      "etfNormalized": 102.5701,
+      "benchmarkNormalized": 124.652
     },
     {
       "date": "20260324",
@@ -3301,8 +3312,8 @@
       "ma60": 0.9561,
       "ma250": 0.9601,
       "amountRankPct": 46.4286,
-      "etfNormalized": 105.2023,
-      "benchmarkNormalized": 126.9533
+      "etfNormalized": 106.3084,
+      "benchmarkNormalized": 128.1347
     },
     {
       "date": "20260325",
@@ -3311,8 +3322,8 @@
       "ma60": 0.9553,
       "ma250": 0.9601,
       "amountRankPct": 79.7619,
-      "etfNormalized": 103.815,
-      "benchmarkNormalized": 128.3323
+      "etfNormalized": 104.9065,
+      "benchmarkNormalized": 129.5265
     },
     {
       "date": "20260326",
@@ -3321,8 +3332,8 @@
       "ma60": 0.9541,
       "ma250": 0.9598,
       "amountRankPct": 25.0,
-      "etfNormalized": 101.0405,
-      "benchmarkNormalized": 125.9034
+      "etfNormalized": 102.1028,
+      "benchmarkNormalized": 127.075
     },
     {
       "date": "20260327",
@@ -3331,8 +3342,8 @@
       "ma60": 0.9529,
       "ma250": 0.9596,
       "amountRankPct": 19.8413,
-      "etfNormalized": 101.8497,
-      "benchmarkNormalized": 126.3869
+      "etfNormalized": 102.9206,
+      "benchmarkNormalized": 127.563
     },
     {
       "date": "20260330",
@@ -3341,8 +3352,8 @@
       "ma60": 0.9516,
       "ma250": 0.9592,
       "amountRankPct": 51.1905,
-      "etfNormalized": 100.1156,
-      "benchmarkNormalized": 125.3683
+      "etfNormalized": 101.1682,
+      "benchmarkNormalized": 126.5349
     },
     {
       "date": "20260331",
@@ -3351,8 +3362,8 @@
       "ma60": 0.9502,
       "ma250": 0.9589,
       "amountRankPct": 22.2222,
-      "etfNormalized": 99.7688,
-      "benchmarkNormalized": 125.5575
+      "etfNormalized": 100.8178,
+      "benchmarkNormalized": 126.7259
     },
     {
       "date": "20260401",
@@ -3361,8 +3372,8 @@
       "ma60": 0.9491,
       "ma250": 0.9587,
       "amountRankPct": 14.2857,
-      "etfNormalized": 102.5434,
-      "benchmarkNormalized": 128.12
+      "etfNormalized": 103.6215,
+      "benchmarkNormalized": 129.3122
     },
     {
       "date": "20260402",
@@ -3371,8 +3382,8 @@
       "ma60": 0.9481,
       "ma250": 0.9585,
       "amountRankPct": 3.9683,
-      "etfNormalized": 101.1561,
-      "benchmarkNormalized": 127.2209
+      "etfNormalized": 102.2196,
+      "benchmarkNormalized": 128.4047
     },
     {
       "date": "20260403",
@@ -3381,7 +3392,7 @@
       "ma60": 0.9473,
       "ma250": 0.9583,
       "amountRankPct": 0.3968,
-      "etfNormalized": 101.1561,
+      "etfNormalized": 102.2196,
       "benchmarkNormalized": null
     },
     {
@@ -3391,7 +3402,7 @@
       "ma60": 0.9467,
       "ma250": 0.9582,
       "amountRankPct": 0.7937,
-      "etfNormalized": 101.3873,
+      "etfNormalized": 102.4533,
       "benchmarkNormalized": null
     },
     {
@@ -3401,8 +3412,8 @@
       "ma60": 0.9462,
       "ma250": 0.9582,
       "amountRankPct": 6.746,
-      "etfNormalized": 103.5838,
-      "benchmarkNormalized": 131.154
+      "etfNormalized": 104.6729,
+      "benchmarkNormalized": 132.3744
     },
     {
       "date": "20260409",
@@ -3411,8 +3422,8 @@
       "ma60": 0.9455,
       "ma250": 0.958,
       "amountRankPct": 6.3492,
-      "etfNormalized": 103.5838,
-      "benchmarkNormalized": 130.4417
+      "etfNormalized": 104.6729,
+      "benchmarkNormalized": 131.6555
     },
     {
       "date": "20260410",
@@ -3421,8 +3432,8 @@
       "ma60": 0.9447,
       "ma250": 0.9578,
       "amountRankPct": 93.6508,
-      "etfNormalized": 103.237,
-      "benchmarkNormalized": 131.1566
+      "etfNormalized": 104.3224,
+      "benchmarkNormalized": 132.3771
     },
     {
       "date": "20260413",
@@ -3431,8 +3442,8 @@
       "ma60": 0.9438,
       "ma250": 0.9577,
       "amountRankPct": 75.3968,
-      "etfNormalized": 101.6185,
-      "benchmarkNormalized": 129.978
+      "etfNormalized": 102.6869,
+      "benchmarkNormalized": 131.1875
     },
     {
       "date": "20260414",
@@ -3441,8 +3452,8 @@
       "ma60": 0.943,
       "ma250": 0.9575,
       "amountRankPct": 13.0952,
-      "etfNormalized": 102.8902,
-      "benchmarkNormalized": 131.0491
+      "etfNormalized": 103.972,
+      "benchmarkNormalized": 132.2686
     },
     {
       "date": "20260415",
@@ -3451,8 +3462,8 @@
       "ma60": 0.9421,
       "ma250": 0.9573,
       "amountRankPct": 4.7619,
-      "etfNormalized": 102.5434,
-      "benchmarkNormalized": 131.429
+      "etfNormalized": 103.6215,
+      "benchmarkNormalized": 132.652
     },
     {
       "date": "20260416",
@@ -3461,8 +3472,8 @@
       "ma60": 0.9413,
       "ma250": 0.9572,
       "amountRankPct": 25.7937,
-      "etfNormalized": 102.8902,
-      "benchmarkNormalized": 133.6929
+      "etfNormalized": 103.972,
+      "benchmarkNormalized": 134.9369
     },
     {
       "date": "20260417",
@@ -3471,8 +3482,8 @@
       "ma60": 0.9401,
       "ma250": 0.9575,
       "amountRankPct": 1.5873,
-      "etfNormalized": 101.6185,
-      "benchmarkNormalized": 132.508
+      "etfNormalized": 102.6869,
+      "benchmarkNormalized": 133.741
     },
     {
       "date": "20260420",
@@ -3481,8 +3492,8 @@
       "ma60": 0.9393,
       "ma250": 0.9577,
       "amountRankPct": 64.2857,
-      "etfNormalized": 103.237,
-      "benchmarkNormalized": 133.5247
+      "etfNormalized": 104.3224,
+      "benchmarkNormalized": 134.7673
     },
     {
       "date": "20260421",
@@ -3491,8 +3502,8 @@
       "ma60": 0.9386,
       "ma250": 0.958,
       "amountRankPct": 24.6032,
-      "etfNormalized": 104.5087,
-      "benchmarkNormalized": 134.165
+      "etfNormalized": 105.6075,
+      "benchmarkNormalized": 135.4135
     },
     {
       "date": "20260422",
@@ -3501,8 +3512,8 @@
       "ma60": 0.9378,
       "ma250": 0.9581,
       "amountRankPct": 2.7778,
-      "etfNormalized": 103.1214,
-      "benchmarkNormalized": 132.5227
+      "etfNormalized": 104.2056,
+      "benchmarkNormalized": 133.7559
     },
     {
       "date": "20260423",
@@ -3511,8 +3522,8 @@
       "ma60": 0.9364,
       "ma250": 0.9581,
       "amountRankPct": 7.9365,
-      "etfNormalized": 101.2717,
-      "benchmarkNormalized": 131.2663
+      "etfNormalized": 102.3364,
+      "benchmarkNormalized": 132.4878
     },
     {
       "date": "20260424",
@@ -3521,8 +3532,8 @@
       "ma60": 0.9353,
       "ma250": 0.9581,
       "amountRankPct": 1.1905,
-      "etfNormalized": 101.7341,
-      "benchmarkNormalized": 131.5848
+      "etfNormalized": 102.8037,
+      "benchmarkNormalized": 132.8092
     },
     {
       "date": "20260427",
@@ -3531,8 +3542,8 @@
       "ma60": 0.9339,
       "ma250": 0.9581,
       "amountRankPct": 1.1905,
-      "etfNormalized": 101.3873,
-      "benchmarkNormalized": 131.3192
+      "etfNormalized": 102.4533,
+      "benchmarkNormalized": 132.5412
     },
     {
       "date": "20260428",
@@ -3541,8 +3552,8 @@
       "ma60": 0.9322,
       "ma250": 0.958,
       "amountRankPct": 1.9841,
-      "etfNormalized": 100.4624,
-      "benchmarkNormalized": 130.0739
+      "etfNormalized": 101.5187,
+      "benchmarkNormalized": 131.2843
     },
     {
       "date": "20260429",
@@ -3551,8 +3562,8 @@
       "ma60": 0.9309,
       "ma250": 0.958,
       "amountRankPct": 5.1587,
-      "etfNormalized": 101.6185,
-      "benchmarkNormalized": 132.2623
+      "etfNormalized": 102.6869,
+      "benchmarkNormalized": 133.4931
     },
     {
       "date": "20260430",
@@ -3561,8 +3572,8 @@
       "ma60": 0.9293,
       "ma250": 0.958,
       "amountRankPct": 45.2381,
-      "etfNormalized": 100.9249,
-      "benchmarkNormalized": 130.5639
+      "etfNormalized": 101.986,
+      "benchmarkNormalized": 131.7789
     },
     {
       "date": "20260506",
@@ -3571,8 +3582,8 @@
       "ma60": 0.9275,
       "ma250": 0.958,
       "amountRankPct": 5.5556,
-      "etfNormalized": 100.3468,
-      "benchmarkNormalized": 132.7787
+      "etfNormalized": 101.4019,
+      "benchmarkNormalized": 134.0143
     },
     {
       "date": "20260507",
@@ -3581,8 +3592,8 @@
       "ma60": 0.9259,
       "ma250": 0.958,
       "amountRankPct": 45.6349,
-      "etfNormalized": 102.659,
-      "benchmarkNormalized": 134.8681
+      "etfNormalized": 103.7383,
+      "benchmarkNormalized": 136.1231
     },
     {
       "date": "20260508",
@@ -3591,8 +3602,8 @@
       "ma60": 0.9245,
       "ma250": 0.9579,
       "amountRankPct": 2.381,
-      "etfNormalized": 102.0809,
-      "benchmarkNormalized": 133.6901
+      "etfNormalized": 103.1542,
+      "benchmarkNormalized": 134.9341
     },
     {
       "date": "20260511",
@@ -3601,8 +3612,8 @@
       "ma60": 0.9233,
       "ma250": 0.9578,
       "amountRankPct": 5.1587,
-      "etfNormalized": 101.6185,
-      "benchmarkNormalized": 133.7566
+      "etfNormalized": 102.6869,
+      "benchmarkNormalized": 135.0013
     },
     {
       "date": "20260512",
@@ -3611,8 +3622,8 @@
       "ma60": 0.9216,
       "ma250": 0.9577,
       "amountRankPct": 26.9841,
-      "etfNormalized": 101.1561,
-      "benchmarkNormalized": 133.4581
+      "etfNormalized": 102.2196,
+      "benchmarkNormalized": 134.7
     },
     {
       "date": "20260513",
@@ -3621,8 +3632,8 @@
       "ma60": 0.9196,
       "ma250": 0.9575,
       "amountRankPct": 3.5714,
-      "etfNormalized": 100.9249,
-      "benchmarkNormalized": 133.6634
+      "etfNormalized": 101.986,
+      "benchmarkNormalized": 134.9072
     },
     {
       "date": "20260514",
@@ -3631,8 +3642,8 @@
       "ma60": 0.9172,
       "ma250": 0.9574,
       "amountRankPct": 4.7619,
-      "etfNormalized": 99.8844,
-      "benchmarkNormalized": 133.6664
+      "etfNormalized": 100.9346,
+      "benchmarkNormalized": 134.9103
     },
     {
       "date": "20260515",
@@ -3641,8 +3652,8 @@
       "ma60": 0.9146,
       "ma250": 0.9571,
       "amountRankPct": 3.5714,
-      "etfNormalized": 98.9595,
-      "benchmarkNormalized": 131.5071
+      "etfNormalized": 100.0,
+      "benchmarkNormalized": 132.7308
     },
     {
       "date": "20260518",
@@ -3651,8 +3662,8 @@
       "ma60": 0.9116,
       "ma250": 0.9568,
       "amountRankPct": 73.0159,
-      "etfNormalized": 97.5723,
-      "benchmarkNormalized": 130.0506
+      "etfNormalized": 98.5981,
+      "benchmarkNormalized": 131.2607
     },
     {
       "date": "20260519",
@@ -3661,8 +3672,8 @@
       "ma60": 0.9086,
       "ma250": 0.9566,
       "amountRankPct": 3.9683,
-      "etfNormalized": 97.6879,
-      "benchmarkNormalized": 130.6719
+      "etfNormalized": 98.715,
+      "benchmarkNormalized": 131.8879
     },
     {
       "date": "20260520",
@@ -3671,8 +3682,8 @@
       "ma60": 0.9056,
       "ma250": 0.9563,
       "amountRankPct": 2.381,
-      "etfNormalized": 97.4566,
-      "benchmarkNormalized": 129.9287
+      "etfNormalized": 98.4813,
+      "benchmarkNormalized": 131.1377
     },
     {
       "date": "20260521",
@@ -3681,8 +3692,8 @@
       "ma60": 0.9027,
       "ma250": 0.956,
       "amountRankPct": 16.6667,
-      "etfNormalized": 96.9942,
-      "benchmarkNormalized": 128.5884
+      "etfNormalized": 98.014,
+      "benchmarkNormalized": 129.785
     },
     {
       "date": "20260522",
@@ -3691,8 +3702,8 @@
       "ma60": 0.8997,
       "ma250": 0.9556,
       "amountRankPct": 49.2063,
-      "etfNormalized": 96.3006,
-      "benchmarkNormalized": 129.7003
+      "etfNormalized": 97.3131,
+      "benchmarkNormalized": 130.9072
     },
     {
       "date": "20260525",
@@ -3701,7 +3712,7 @@
       "ma60": 0.8968,
       "ma250": 0.9553,
       "amountRankPct": 1.5873,
-      "etfNormalized": 95.8382,
+      "etfNormalized": 96.8458,
       "benchmarkNormalized": null
     },
     {
@@ -3711,8 +3722,8 @@
       "ma60": 0.8938,
       "ma250": 0.9548,
       "amountRankPct": 71.0317,
-      "etfNormalized": 95.4913,
-      "benchmarkNormalized": 129.667
+      "etfNormalized": 96.4953,
+      "benchmarkNormalized": 130.8736
     },
     {
       "date": "20260527",
@@ -3721,8 +3732,8 @@
       "ma60": 0.8908,
       "ma250": 0.9544,
       "amountRankPct": 31.3492,
-      "etfNormalized": 94.2197,
-      "benchmarkNormalized": 128.2932
+      "etfNormalized": 95.2103,
+      "benchmarkNormalized": 129.487
     },
     {
       "date": "20260528",
@@ -3731,8 +3742,8 @@
       "ma60": 0.8877,
       "ma250": 0.9539,
       "amountRankPct": 93.6508,
-      "etfNormalized": 93.1792,
-      "benchmarkNormalized": 126.6618
+      "etfNormalized": 94.1589,
+      "benchmarkNormalized": 127.8405
     },
     {
       "date": "20260529",
@@ -3741,8 +3752,8 @@
       "ma60": 0.8852,
       "ma250": 0.9535,
       "amountRankPct": 75.3968,
-      "etfNormalized": 95.6069,
-      "benchmarkNormalized": 127.5545
+      "etfNormalized": 96.6121,
+      "benchmarkNormalized": 128.7414
     },
     {
       "date": "20260601",
@@ -3751,8 +3762,8 @@
       "ma60": 0.8834,
       "ma250": 0.9532,
       "amountRankPct": 32.5397,
-      "etfNormalized": 97.341,
-      "benchmarkNormalized": 128.6475
+      "etfNormalized": 98.3645,
+      "benchmarkNormalized": 129.8446
     },
     {
       "date": "20260602",
@@ -3761,8 +3772,8 @@
       "ma60": 0.8818,
       "ma250": 0.9528,
       "amountRankPct": 41.2698,
-      "etfNormalized": 97.4566,
-      "benchmarkNormalized": 131.8899
+      "etfNormalized": 98.4813,
+      "benchmarkNormalized": 133.1173
     },
     {
       "date": "20260603",
@@ -3771,8 +3782,8 @@
       "ma60": 0.8802,
       "ma250": 0.9524,
       "amountRankPct": 20.2381,
-      "etfNormalized": 96.8786,
-      "benchmarkNormalized": 129.838
+      "etfNormalized": 97.8972,
+      "benchmarkNormalized": 131.0462
     },
     {
       "date": "20260604",
@@ -3781,8 +3792,8 @@
       "ma60": 0.8782,
       "ma250": 0.9521,
       "amountRankPct": 8.3333,
-      "etfNormalized": 96.6474,
-      "benchmarkNormalized": 127.9142
+      "etfNormalized": 97.6636,
+      "benchmarkNormalized": 129.1045
     },
     {
       "date": "20260605",
@@ -3791,8 +3802,8 @@
       "ma60": 0.8764,
       "ma250": 0.9517,
       "amountRankPct": 26.1905,
-      "etfNormalized": 95.6069,
-      "benchmarkNormalized": 126.4379
+      "etfNormalized": 96.6121,
+      "benchmarkNormalized": 127.6145
     },
     {
       "date": "20260608",
@@ -3801,8 +3812,8 @@
       "ma60": 0.8744,
       "ma250": 0.9512,
       "amountRankPct": 10.3175,
-      "etfNormalized": 94.7977,
-      "benchmarkNormalized": 124.8936
+      "etfNormalized": 95.7944,
+      "benchmarkNormalized": 126.0558
     },
     {
       "date": "20260609",
@@ -3811,8 +3822,8 @@
       "ma60": 0.8723,
       "ma250": 0.9508,
       "amountRankPct": 2.381,
-      "etfNormalized": 94.9133,
-      "benchmarkNormalized": 124.4318
+      "etfNormalized": 95.9112,
+      "benchmarkNormalized": 125.5897
     },
     {
       "date": "20260610",
@@ -3821,8 +3832,8 @@
       "ma60": 0.8706,
       "ma250": 0.9502,
       "amountRankPct": 16.2698,
-      "etfNormalized": 95.0289,
-      "benchmarkNormalized": 123.6318
+      "etfNormalized": 96.028,
+      "benchmarkNormalized": 124.7823
     },
     {
       "date": "20260611",
@@ -3831,8 +3842,8 @@
       "ma60": 0.869,
       "ma250": 0.9498,
       "amountRankPct": 10.3175,
-      "etfNormalized": 95.4913,
-      "benchmarkNormalized": 122.8281
+      "etfNormalized": 96.4953,
+      "benchmarkNormalized": 123.9711
     },
     {
       "date": "20260612",
@@ -3841,8 +3852,8 @@
       "ma60": 0.8675,
       "ma250": 0.9494,
       "amountRankPct": 8.7302,
-      "etfNormalized": 97.4566,
-      "benchmarkNormalized": 125.2027
+      "etfNormalized": 98.4813,
+      "benchmarkNormalized": 126.3678
     },
     {
       "date": "20260615",
@@ -3851,8 +3862,8 @@
       "ma60": 0.8659,
       "ma250": 0.949,
       "amountRankPct": 6.746,
-      "etfNormalized": 97.4566,
-      "benchmarkNormalized": 125.8337
+      "etfNormalized": 98.4813,
+      "benchmarkNormalized": 127.0047
     },
     {
       "date": "20260616",
@@ -3861,8 +3872,8 @@
       "ma60": 0.864,
       "ma250": 0.9485,
       "amountRankPct": 1.1905,
-      "etfNormalized": 95.4913,
-      "benchmarkNormalized": 124.0674
+      "etfNormalized": 96.4953,
+      "benchmarkNormalized": 125.2219
     },
     {
       "date": "20260617",
@@ -3871,8 +3882,8 @@
       "ma60": 0.8624,
       "ma250": 0.948,
       "amountRankPct": 7.1429,
-      "etfNormalized": 94.2197,
-      "benchmarkNormalized": 123.1466
+      "etfNormalized": 95.2103,
+      "benchmarkNormalized": 124.2925
     },
     {
       "date": "20260618",
@@ -3881,8 +3892,8 @@
       "ma60": 0.8605,
       "ma250": 0.9474,
       "amountRankPct": 5.5556,
-      "etfNormalized": 92.0231,
-      "benchmarkNormalized": 121.1845
+      "etfNormalized": 92.9907,
+      "benchmarkNormalized": 122.3122
     },
     {
       "date": "20260622",
@@ -3891,8 +3902,8 @@
       "ma60": 0.8591,
       "ma250": 0.9467,
       "amountRankPct": 20.2381,
-      "etfNormalized": 91.7919,
-      "benchmarkNormalized": 120.3929
+      "etfNormalized": 92.757,
+      "benchmarkNormalized": 121.5132
     },
     {
       "date": "20260623",
@@ -3901,8 +3912,8 @@
       "ma60": 0.8569,
       "ma250": 0.9459,
       "amountRankPct": 11.5079,
-      "etfNormalized": 89.8266,
-      "benchmarkNormalized": 118.2035
+      "etfNormalized": 90.771,
+      "benchmarkNormalized": 119.3035
     },
     {
       "date": "20260624",
@@ -3911,8 +3922,8 @@
       "ma60": 0.8549,
       "ma250": 0.9452,
       "amountRankPct": 4.3651,
-      "etfNormalized": 90.1734,
-      "benchmarkNormalized": 118.588
+      "etfNormalized": 91.1215,
+      "benchmarkNormalized": 119.6915
     },
     {
       "date": "20260625",
@@ -3921,8 +3932,8 @@
       "ma60": 0.8534,
       "ma250": 0.9445,
       "amountRankPct": 10.3175,
-      "etfNormalized": 90.5202,
-      "benchmarkNormalized": 116.8897
+      "etfNormalized": 91.472,
+      "benchmarkNormalized": 117.9775
     },
     {
       "date": "20260626",
@@ -3931,8 +3942,8 @@
       "ma60": 0.8517,
       "ma250": 0.9438,
       "amountRankPct": 6.3492,
-      "etfNormalized": 90.0578,
-      "benchmarkNormalized": 114.8381
+      "etfNormalized": 91.0047,
+      "benchmarkNormalized": 115.9067
     },
     {
       "date": "20260629",
@@ -3941,8 +3952,8 @@
       "ma60": 0.8505,
       "ma250": 0.9432,
       "amountRankPct": 21.4286,
-      "etfNormalized": 91.9075,
-      "benchmarkNormalized": 116.6353
+      "etfNormalized": 92.8738,
+      "benchmarkNormalized": 117.7207
     },
     {
       "date": "20260630",
@@ -3951,8 +3962,8 @@
       "ma60": 0.849,
       "ma250": 0.9425,
       "amountRankPct": 28.5714,
-      "etfNormalized": 89.5954,
-      "benchmarkNormalized": 115.8975
+      "etfNormalized": 90.5374,
+      "benchmarkNormalized": 116.976
     },
     {
       "date": "20260701",
@@ -3961,7 +3972,7 @@
       "ma60": 0.8471,
       "ma250": 0.942,
       "amountRankPct": 2.7778,
-      "etfNormalized": 89.5954,
+      "etfNormalized": 90.5374,
       "benchmarkNormalized": null
     },
     {
@@ -3971,8 +3982,8 @@
       "ma60": 0.8457,
       "ma250": 0.9415,
       "amountRankPct": 25.0,
-      "etfNormalized": 90.8671,
-      "benchmarkNormalized": 116.7789
+      "etfNormalized": 91.8224,
+      "benchmarkNormalized": 117.8656
     },
     {
       "date": "20260703",
@@ -3981,8 +3992,8 @@
       "ma60": 0.8445,
       "ma250": 0.941,
       "amountRankPct": 21.0317,
-      "etfNormalized": 92.7168,
-      "benchmarkNormalized": 118.2732
+      "etfNormalized": 93.6916,
+      "benchmarkNormalized": 119.3737
     },
     {
       "date": "20260706",
@@ -3991,8 +4002,8 @@
       "ma60": 0.8432,
       "ma250": 0.9405,
       "amountRankPct": 8.3333,
-      "etfNormalized": 92.948,
-      "benchmarkNormalized": 119.622
+      "etfNormalized": 93.9252,
+      "benchmarkNormalized": 120.7351
     },
     {
       "date": "20260707",
@@ -4001,8 +4012,8 @@
       "ma60": 0.8416,
       "ma250": 0.9399,
       "amountRankPct": 6.3492,
-      "etfNormalized": 92.1387,
-      "benchmarkNormalized": 119.017
+      "etfNormalized": 93.1075,
+      "benchmarkNormalized": 120.1245
     },
     {
       "date": "20260708",
@@ -4011,8 +4022,8 @@
       "ma60": 0.84,
       "ma250": 0.9394,
       "amountRankPct": 11.5079,
-      "etfNormalized": 92.948,
-      "benchmarkNormalized": 122.5757
+      "etfNormalized": 93.9252,
+      "benchmarkNormalized": 123.7163
     },
     {
       "date": "20260709",
@@ -4021,8 +4032,8 @@
       "ma60": 0.8383,
       "ma250": 0.9388,
       "amountRankPct": 7.9365,
-      "etfNormalized": 91.2139,
-      "benchmarkNormalized": 121.7183
+      "etfNormalized": 92.1729,
+      "benchmarkNormalized": 122.8509
     },
     {
       "date": "20260710",
@@ -4031,8 +4042,8 @@
       "ma60": 0.8369,
       "ma250": 0.9381,
       "amountRankPct": 5.9524,
-      "etfNormalized": 92.0231,
-      "benchmarkNormalized": 122.4524
+      "etfNormalized": 92.9907,
+      "benchmarkNormalized": 123.5919
     },
     {
       "date": "20260713",
@@ -4041,8 +4052,8 @@
       "ma60": 0.8354,
       "ma250": 0.9375,
       "amountRankPct": 1.5873,
-      "etfNormalized": 92.1387,
-      "benchmarkNormalized": 122.6479
+      "etfNormalized": 93.1075,
+      "benchmarkNormalized": 123.7892
     },
     {
       "date": "20260714",
@@ -4051,8 +4062,8 @@
       "ma60": 0.834,
       "ma250": 0.9369,
       "amountRankPct": 5.5556,
-      "etfNormalized": 92.948,
-      "benchmarkNormalized": 123.2913
+      "etfNormalized": 93.9252,
+      "benchmarkNormalized": 124.4386
     },
     {
       "date": "20260715",
@@ -4061,8 +4072,8 @@
       "ma60": 0.8328,
       "ma250": 0.9364,
       "amountRankPct": 23.4127,
-      "etfNormalized": 94.3353,
-      "benchmarkNormalized": 125.0153
+      "etfNormalized": 95.3271,
+      "benchmarkNormalized": 126.1787
     },
     {
       "date": "20260716",
@@ -4071,8 +4082,8 @@
       "ma60": 0.8319,
       "ma250": 0.9359,
       "amountRankPct": 20.6349,
-      "etfNormalized": 95.8382,
-      "benchmarkNormalized": 126.6742
+      "etfNormalized": 96.8458,
+      "benchmarkNormalized": 127.853
     },
     {
       "date": "20260717",
@@ -4081,8 +4092,8 @@
       "ma60": 0.8306,
       "ma250": 0.9354,
       "amountRankPct": 36.9048,
-      "etfNormalized": 94.2197,
-      "benchmarkNormalized": 124.4133
+      "etfNormalized": 95.2103,
+      "benchmarkNormalized": 125.571
     },
     {
       "date": "20260720",
@@ -4091,8 +4102,8 @@
       "ma60": 0.8295,
       "ma250": 0.9349,
       "amountRankPct": 11.9048,
-      "etfNormalized": 96.4162,
-      "benchmarkNormalized": 127.3552
+      "etfNormalized": 97.4299,
+      "benchmarkNormalized": 128.5403
     },
     {
       "date": "20260721",
@@ -4101,8 +4112,8 @@
       "ma60": 0.8285,
       "ma250": 0.9344,
       "amountRankPct": 14.6825,
-      "etfNormalized": 96.4162,
-      "benchmarkNormalized": 127.3007
+      "etfNormalized": 97.4299,
+      "benchmarkNormalized": 128.4853
     },
     {
       "date": "20260722",
@@ -4111,8 +4122,8 @@
       "ma60": 0.8277,
       "ma250": 0.9339,
       "amountRankPct": 4.7619,
-      "etfNormalized": 95.6069,
-      "benchmarkNormalized": 126.0869
+      "etfNormalized": 96.6121,
+      "benchmarkNormalized": 127.2602
     },
     {
       "date": "20260723",
@@ -4121,8 +4132,8 @@
       "ma60": 0.8269,
       "ma250": 0.9334,
       "amountRankPct": 1.1905,
-      "etfNormalized": 96.4162,
-      "benchmarkNormalized": 127.6984
+      "etfNormalized": 97.4299,
+      "benchmarkNormalized": 128.8867
     },
     {
       "date": "20260724",
@@ -4131,8 +4142,8 @@
       "ma60": 0.8259,
       "ma250": 0.9328,
       "amountRankPct": 3.1746,
-      "etfNormalized": 94.2197,
-      "benchmarkNormalized": 126.4444
+      "etfNormalized": 95.2103,
+      "benchmarkNormalized": 127.621
     },
     {
       "date": "20260727",
@@ -4141,8 +4152,8 @@
       "ma60": 0.8252,
       "ma250": 0.9323,
       "amountRankPct": 1.5873,
-      "etfNormalized": 95.8382,
-      "benchmarkNormalized": 127.68
+      "etfNormalized": 96.8458,
+      "benchmarkNormalized": 128.8682
     },
     {
       "date": "20260728",
@@ -4151,8 +4162,8 @@
       "ma60": 0.8244,
       "ma250": 0.9318,
       "amountRankPct": 8.7302,
-      "etfNormalized": 95.8382,
-      "benchmarkNormalized": 128.2051
+      "etfNormalized": 96.8458,
+      "benchmarkNormalized": 129.3982
     },
     {
       "date": "20260729",
@@ -4161,8 +4172,18 @@
       "ma60": 0.8241,
       "ma250": 0.9313,
       "amountRankPct": 42.0635,
-      "etfNormalized": 99.1908,
-      "benchmarkNormalized": 130.7229
+      "etfNormalized": 100.2336,
+      "benchmarkNormalized": 131.9394
+    },
+    {
+      "date": "20260730",
+      "close": 0.858,
+      "ma20": 0.8185,
+      "ma60": 0.824,
+      "ma250": 0.9309,
+      "amountRankPct": 23.8095,
+      "etfNormalized": 100.2336,
+      "benchmarkNormalized": 132.1999
     }
   ],
   "constituents": [
@@ -4172,15 +4193,15 @@
       "englishName": "TECHTRONIC IND",
       "rank": 1,
       "weight": null,
-      "latestDate": "20260729",
+      "latestDate": "20260730",
       "dataFresh": true,
-      "latestClose": 131.3,
-      "pct1d": 2.5781,
-      "ret5d": 1.0778,
-      "ret20d": 1.39,
+      "latestClose": 130.2,
+      "pct1d": -0.8378,
+      "ret5d": -1.3636,
+      "ret20d": 1.9577,
       "aboveMa60": true,
       "aboveMa250": true,
-      "volumeRatio20": 0.9463
+      "volumeRatio20": 1.3435
     },
     {
       "code": "09987.HK",
@@ -4188,15 +4209,15 @@
       "englishName": "YUM CHINA",
       "rank": 2,
       "weight": null,
-      "latestDate": "20260729",
+      "latestDate": "20260730",
       "dataFresh": true,
-      "latestClose": 362.0,
-      "pct1d": 0.7795,
-      "ret5d": 8.0597,
-      "ret20d": 13.2666,
+      "latestClose": 365.8,
+      "pct1d": 1.0497,
+      "ret5d": 6.5851,
+      "ret20d": 12.2775,
       "aboveMa60": true,
       "aboveMa250": false,
-      "volumeRatio20": 0.9705
+      "volumeRatio20": 1.5206
     },
     {
       "code": "09992.HK",
@@ -4204,15 +4225,15 @@
       "englishName": "POP MART",
       "rank": 3,
       "weight": null,
-      "latestDate": "20260729",
+      "latestDate": "20260730",
       "dataFresh": true,
-      "latestClose": 166.4,
-      "pct1d": 2.2113,
-      "ret5d": 4.457,
-      "ret20d": 7.563,
+      "latestClose": 163.2,
+      "pct1d": -1.9231,
+      "ret5d": 0.7407,
+      "ret20d": 6.3885,
       "aboveMa60": true,
       "aboveMa250": false,
-      "volumeRatio20": 1.3213
+      "volumeRatio20": 1.3392
     },
     {
       "code": "02020.HK",
@@ -4220,15 +4241,15 @@
       "englishName": "ANTA SPORTS",
       "rank": 4,
       "weight": null,
-      "latestDate": "20260729",
+      "latestDate": "20260730",
       "dataFresh": true,
-      "latestClose": 79.65,
-      "pct1d": 3.3744,
-      "ret5d": 4.9407,
-      "ret20d": 12.1042,
+      "latestClose": 79.6,
+      "pct1d": -0.0628,
+      "ret5d": 3.5784,
+      "ret20d": 9.1158,
       "aboveMa60": true,
       "aboveMa250": false,
-      "volumeRatio20": 1.4878
+      "volumeRatio20": 1.2663
     },
     {
       "code": "09633.HK",
@@ -4236,15 +4257,15 @@
       "englishName": "NONGFU SPRING",
       "rank": 5,
       "weight": null,
-      "latestDate": "20260729",
+      "latestDate": "20260730",
       "dataFresh": true,
-      "latestClose": 44.9,
-      "pct1d": 7.2623,
-      "ret5d": 4.662,
-      "ret20d": 13.3266,
+      "latestClose": 45.56,
+      "pct1d": 1.4699,
+      "ret5d": 12.6607,
+      "ret20d": 12.6607,
       "aboveMa60": true,
       "aboveMa250": false,
-      "volumeRatio20": 2.1905
+      "volumeRatio20": 1.3925
     },
     {
       "code": "00288.HK",
@@ -4252,15 +4273,15 @@
       "englishName": "WH GROUP",
       "rank": 6,
       "weight": null,
-      "latestDate": "20260729",
+      "latestDate": "20260730",
       "dataFresh": true,
-      "latestClose": 8.51,
-      "pct1d": 1.3095,
-      "ret5d": 1.9162,
-      "ret20d": 2.6538,
+      "latestClose": 8.62,
+      "pct1d": 1.2926,
+      "ret5d": 2.619,
+      "ret20d": 0.9368,
       "aboveMa60": false,
       "aboveMa250": false,
-      "volumeRatio20": 0.9134
+      "volumeRatio20": 1.1845
     },
     {
       "code": "00300.HK",
@@ -4268,15 +4289,15 @@
       "englishName": "MIDEA GROUP",
       "rank": 7,
       "weight": null,
-      "latestDate": "20260729",
+      "latestDate": "20260730",
       "dataFresh": true,
-      "latestClose": 98.4,
-      "pct1d": 2.1277,
-      "ret5d": 3.6881,
-      "ret20d": 19.1283,
+      "latestClose": 98.9,
+      "pct1d": 0.5081,
+      "ret5d": 2.7532,
+      "ret20d": 15.0,
       "aboveMa60": true,
       "aboveMa250": true,
-      "volumeRatio20": 1.339
+      "volumeRatio20": 1.037
     },
     {
       "code": "02319.HK",
@@ -4284,15 +4305,15 @@
       "englishName": "MENGNIU DAIRY",
       "rank": 8,
       "weight": null,
-      "latestDate": "20260729",
+      "latestDate": "20260730",
       "dataFresh": true,
-      "latestClose": 19.32,
-      "pct1d": 3.4261,
-      "ret5d": 5.4585,
-      "ret20d": 20.0746,
+      "latestClose": 19.42,
+      "pct1d": 0.5176,
+      "ret5d": 6.5862,
+      "ret20d": 17.2705,
       "aboveMa60": true,
       "aboveMa250": true,
-      "volumeRatio20": 0.9758
+      "volumeRatio20": 1.1013
     },
     {
       "code": "06690.HK",
@@ -4300,15 +4321,15 @@
       "englishName": "HAIER SMARTHOME",
       "rank": 9,
       "weight": null,
-      "latestDate": "20260729",
+      "latestDate": "20260730",
       "dataFresh": true,
-      "latestClose": 22.5,
-      "pct1d": 3.3058,
-      "ret5d": 5.5347,
-      "ret20d": 12.6126,
+      "latestClose": 22.72,
+      "pct1d": 0.9778,
+      "ret5d": 5.4782,
+      "ret20d": 11.811,
       "aboveMa60": true,
       "aboveMa250": false,
-      "volumeRatio20": 1.6494
+      "volumeRatio20": 1.8712
     },
     {
       "code": "00291.HK",
@@ -4316,15 +4337,15 @@
       "englishName": "CHINA RES BEER",
       "rank": 10,
       "weight": null,
-      "latestDate": "20260729",
+      "latestDate": "20260730",
       "dataFresh": true,
       "latestClose": 24.54,
-      "pct1d": 3.5443,
-      "ret5d": 2.0799,
-      "ret20d": 15.3195,
+      "pct1d": 0.0,
+      "ret5d": 2.592,
+      "ret20d": 13.7164,
       "aboveMa60": true,
       "aboveMa250": false,
-      "volumeRatio20": 1.1472
+      "volumeRatio20": 1.1206
     }
   ],
   "leaderEvents": [
@@ -4336,13 +4357,13 @@
       "date": "20260729",
       "pct": 7.2623,
       "dynamicThreshold": 5.0,
-      "componentLatestDate": "20260729",
+      "componentLatestDate": "20260730",
       "dataFresh": true,
-      "continuationDate": null,
-      "continuationPct": null,
-      "continuationOk": false,
+      "continuationDate": "20260730",
+      "continuationPct": 1.4699,
+      "continuationOk": true,
       "latestRetained": true,
-      "qualified": false,
+      "qualified": true,
       "strictQualified": false
     }
   ],

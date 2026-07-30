@@ -1,4 +1,7 @@
 import Link from "next/link";
+import MovingAverageLifecycle, {
+  type MovingAverageLifecycleData,
+} from "./MovingAverageLifecycle";
 import StatusStrip from "./StatusStrip";
 
 
@@ -41,6 +44,7 @@ type DashboardData = {
   summary: {
     label: string;
     rhythmLabel: string;
+    maLifecycle: MovingAverageLifecycleData;
     conclusion: string;
     stagePassCount: number;
     ma60Gap: NullableNumber;
@@ -264,10 +268,13 @@ export default function HKQdiiDashboard({
         <div className="hero-status">
           <p>本期判断</p>
           <strong>{dashboardData.summary.label}</strong>
+          <small>均线阶段 · {dashboardData.summary.maLifecycle.label}</small>
           <small>短期节奏 · {dashboardData.summary.rhythmLabel}</small>
           <span>{dashboardData.summary.conclusion}</span>
         </div>
       </section>
+
+      <MovingAverageLifecycle lifecycle={dashboardData.summary.maLifecycle} />
 
       <section className="identity-grid shell">
         <article className="identity-card identity-main">

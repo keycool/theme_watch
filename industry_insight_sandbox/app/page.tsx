@@ -10,6 +10,7 @@ type OverviewData = typeof bundledOverviewData;
 type Target = OverviewData["targets"][number] & {
   absorptionRankPct?: number | null;
   rhythmLabel?: string;
+  maLifecycleLabel?: string;
   route?: string;
 };
 type StageState = Target["stageStates"][number] & { warning?: boolean };
@@ -65,6 +66,9 @@ function TargetRow({ target }: { target: Target }) {
       <div className="target-row-status">
         <span className={`overview-label ${labelClass(target.label)}`}>
           {target.label}
+        </span>
+        <span className="ma-lifecycle-label">
+          {target.maLifecycleLabel ?? "均线待更新"}
         </span>
         <span className="rhythm-label">
           {target.rhythmLabel ?? "节奏待更新"}
@@ -130,7 +134,7 @@ function DashboardHeader() {
     <div className="target-dashboard-head" aria-hidden="true">
       <span>标的</span>
       <span>判断指数</span>
-      <span>启动 / 短期</span>
+      <span>启动 / 均线 / 短期</span>
       <span>三层启动条件</span>
       <span>距MA250</span>
       <span>资金分位</span>
@@ -197,7 +201,7 @@ export default function Home() {
         return response.json() as Promise<OverviewData>;
       })
       .then((liveData) => {
-        if (!cancelled && liveData.meta?.targetCount === 23) {
+        if (!cancelled && liveData.meta?.targetCount === 25) {
           setOverviewData(liveData);
         }
       })
@@ -246,7 +250,7 @@ export default function Home() {
           </span>
           <div>
             <strong>Industry Watch Lab</strong>
-            <small>23 formal project targets</small>
+            <small>25 formal project targets</small>
           </div>
         </div>
         <StatusStrip
@@ -264,7 +268,7 @@ export default function Home() {
             <span>核心成分观察总览</span>
           </h1>
           <p>
-            23个正式标的集中在同一张启动观察表中，直接对照长期低位、MA60提前提示、
+            25个正式标的集中在同一张启动观察表中，直接对照长期低位、MA60提前提示、
             MA250与资金确认、权重龙头闭环。点击任一标的进入成分股专题。
           </p>
         </div>

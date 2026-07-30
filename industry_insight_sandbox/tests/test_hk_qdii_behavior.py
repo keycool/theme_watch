@@ -33,6 +33,13 @@ class HkQdiiStrategyBehaviorTests(unittest.TestCase):
             snapshot["summary"]["rhythmLabel"],
             {"短期转强", "低位反弹", "上升回踩", "短期转弱", "震荡整理"},
         )
+        self.assertIn(
+            snapshot["summary"]["maLifecycle"]["label"],
+            {"年线趋势确认", "初始启动", "短线转暖", "低位收敛", "未形成"},
+        )
+        self.assertFalse(
+            snapshot["summary"]["maLifecycle"]["strategyExecutesOrders"]
+        )
         self.assertEqual(len(snapshot["constituents"]), 10)
         self.assertTrue(
             all(row["weight"] > 0 for row in snapshot["constituents"])
@@ -59,8 +66,8 @@ class HkQdiiStrategyBehaviorTests(unittest.TestCase):
 
         merged = merge_overview(core_overview, configs, dashboards)
 
-        self.assertEqual(merged["meta"]["targetCount"], 23)
-        self.assertEqual(merged["meta"]["coreTargetCount"], 21)
+        self.assertEqual(merged["meta"]["targetCount"], 25)
+        self.assertEqual(merged["meta"]["coreTargetCount"], 23)
         self.assertEqual(merged["meta"]["hkQdiiCount"], 2)
         self.assertEqual(
             {row["route"] for row in merged["targets"] if row["kind"] == "hk_qdii"},
@@ -69,6 +76,7 @@ class HkQdiiStrategyBehaviorTests(unittest.TestCase):
         self.assertTrue(
             all(
                 row["rhythmLabel"]
+                and row["maLifecycleLabel"]
                 for row in merged["targets"]
                 if row["kind"] == "hk_qdii"
             )

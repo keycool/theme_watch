@@ -11,6 +11,13 @@ const rhythmLabels = new Set([
   "短期转弱",
   "震荡整理",
 ]);
+const lifecycleLabels = new Set([
+  "年线趋势确认",
+  "初始启动",
+  "短线转暖",
+  "低位收敛",
+  "未形成",
+]);
 
 async function readJson(path) {
   return JSON.parse(await readFile(new URL(path, root), "utf8"));
@@ -54,26 +61,42 @@ test("the unified target universe and generated datasets stay aligned", async ()
   const overviewCodes = overview.targets.map((item) => item.code).sort();
   const topicCodes = topics.map((item) => item.target.code).sort();
 
-  assert.equal(targets.length, 21);
+  assert.equal(targets.length, 23);
   assert.equal(hkTargets.length, 2);
-  assert.equal(targets.filter((item) => item.kind === "etf").length, 20);
+  assert.equal(targets.filter((item) => item.kind === "etf").length, 22);
   assert.equal(targets.filter((item) => item.kind === "index").length, 1);
   assert.ok(
-    ["159930.SZ", "159697.SZ", "515220.SH", "512400.SH"].every((code) =>
-      coreCodes.includes(code),
-    ),
+    [
+      "159930.SZ",
+      "159697.SZ",
+      "515220.SH",
+      "512400.SH",
+      "515880.SH",
+      "159611.SZ",
+    ].every((code) => coreCodes.includes(code)),
   );
   assert.deepEqual(overviewCodes, targetCodes);
   assert.deepEqual(topicCodes, coreCodes);
-  assert.equal(overview.meta.targetCount, 23);
+  assert.equal(overview.meta.targetCount, 25);
   assert.equal(overview.meta.hkQdiiCount, 2);
-  assert.equal(new Set(overview.targets.map((item) => item.slug)).size, 23);
+  assert.equal(new Set(overview.targets.map((item) => item.slug)).size, 25);
   assert.ok(
     overview.targets.every((item) => rhythmLabels.has(item.rhythmLabel)),
+  );
+  assert.ok(
+    overview.targets.every((item) =>
+      lifecycleLabels.has(item.maLifecycleLabel),
+    ),
   );
   const nonferrous = topics.find((item) => item.target.code === "512400.SH");
   assert.equal(nonferrous?.target.indexCode, "000819.SH");
   assert.equal(nonferrous?.target.indexName, "中证有色金属");
+  const communication = topics.find((item) => item.target.code === "515880.SH");
+  assert.equal(communication?.target.indexCode, "931160.CSI");
+  assert.equal(communication?.target.indexName, "中证通信设备");
+  const electricPower = topics.find((item) => item.target.code === "159611.SZ");
+  assert.equal(electricPower?.target.indexCode, "H30199.CSI");
+  assert.equal(electricPower?.target.indexName, "中证电力指数");
   for (const target of overview.targets.filter((item) =>
     coreCodes.includes(item.code),
   )) {
@@ -90,6 +113,15 @@ test("the unified target universe and generated datasets stay aligned", async ()
     assert.equal(typeof topic.summary.belowMa250FiveDays, "number");
     assert.equal(typeof topic.summary.ma60Near, "boolean");
     assert.ok(rhythmLabels.has(topic.summary.rhythmLabel));
+    assert.ok(lifecycleLabels.has(topic.summary.maLifecycle.label));
+    assert.equal(
+      typeof topic.summary.maLifecycle.safetyMarginPassed,
+      "boolean",
+    );
+    assert.equal(
+      topic.summary.maLifecycle.strategyExecutesOrders,
+      false,
+    );
     assert.ok(topic.chart.length >= 250, `${topic.target.code} chart is too short`);
     assert.ok(
       topic.chart.every((row) => Object.hasOwn(row, "ma20")),
@@ -126,17 +158,17 @@ test("server-renders the overview and links every unified target", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>ETF与主题指数核心成分观察总览<\/title>/);
-  assert.match(html, /23 formal project targets/);
+  assert.match(html, /25 formal project targets/);
   assert.match(html, />LIVE</);
   assert.match(html, /数据截止/);
   assert.match(html, /生成于/);
   assert.doesNotMatch(html, /封闭沙盒 · 不接入生产/);
-  assert.match(html, /23个正式标的集中在同一张启动观察表中/);
+  assert.match(html, /25个正式标的集中在同一张启动观察表中/);
   assert.match(html, /低位收敛/);
   assert.match(html, /带量突破年线/);
   assert.match(html, /权重龙头确认/);
   assert.match(html, /全部标的启动观察/);
-  assert.match(html, /启动 \/ 短期/);
+  assert.match(html, /启动 \/ 均线 \/ 短期/);
   assert.doesNotMatch(html, /当前标签分布/);
   assert.doesNotMatch(html, /最接近闭环的目标/);
 
@@ -174,7 +206,7 @@ test("orders the overview by startup status before secondary metrics", async () 
   );
 });
 
-test("server-renders all 21 independent topic pages", async () => {
+test("server-renders all 23 independent topic pages", async () => {
   const topics = await readJson("data/all_topics.json");
 
   for (const topic of topics) {
@@ -192,6 +224,8 @@ test("server-renders all 21 independent topic pages", async () => {
     assert.match(html, /带量突破年线/);
     assert.match(html, /权重龙头确认/);
     assert.match(html, /MA20/);
+    assert.match(html, /均线启动生命周期/);
+    assert.match(html, /外部资金接口/);
     assert.match(html, /主要成分股权重/);
     assert.match(html, /核心成分状态矩阵/);
     assert.match(html, /返回全部专题/);
@@ -217,6 +251,9 @@ test("server-renders the production-integrated 513970 HK QDII strategy page", as
   assert.equal(dashboard.meta.productionIntegrated, true);
   assert.equal(typeof dashboard.chart.at(-1)?.ma20, "number");
   assert.ok(rhythmLabels.has(dashboard.summary.rhythmLabel));
+  assert.ok(lifecycleLabels.has(dashboard.summary.maLifecycle.label));
+  assert.equal(dashboard.summary.maLifecycle.strategyExecutesOrders, false);
+  assert.match(html, /均线启动生命周期/);
   assert.match(html, /短期节奏/);
   assert.match(html, /MA20/);
   assert.equal(dashboard.constituents.length, 10);
@@ -250,6 +287,9 @@ test("server-renders 017832 through its 513230 tracking-index strategy", async (
   assert.equal(dashboard.target.indexCode, "931454.CSI");
   assert.equal(typeof dashboard.chart.at(-1)?.ma20, "number");
   assert.ok(rhythmLabels.has(dashboard.summary.rhythmLabel));
+  assert.ok(lifecycleLabels.has(dashboard.summary.maLifecycle.label));
+  assert.equal(dashboard.summary.maLifecycle.strategyExecutesOrders, false);
+  assert.match(html, /均线启动生命周期/);
   assert.match(html, /短期节奏/);
   assert.match(html, /MA20/);
   assert.equal(dashboard.constituents.length, 10);

@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "1.9.0"
+  version: "2.1.0"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -33,6 +33,7 @@ sop:
 authority:
   on_conflict: "halt_with_SOP_DRIFT_DETECTED"
   strategy_engine: "industry_insight_sandbox/generate_dashboard_data.py"
+  moving_average_lifecycle_engine: "industry_insight_sandbox/moving_average_lifecycle.py"
   target_universe: "industry_insight_sandbox/targets.json"
   hk_qdii_target_universe: "industry_insight_sandbox/hk_qdii_targets.json"
   hk_qdii_strategy_engines:
@@ -62,11 +63,11 @@ invariants:
   forbidden_data_paths:
     - ".cache_scan_v2"
     - "reports/theme_watch"
-  target_count: 23
-  core_target_count: 21
+  target_count: 25
+  core_target_count: 23
   hk_qdii_target_count: 2
   target_kind_counts:
-    etf_total: 22
+    etf_total: 24
     index: 1
     hk_qdii_etf: 2
   stage_count: 3
@@ -74,6 +75,7 @@ invariants:
     - "structure"
     - "breakout"
     - "leader"
+  moving_average_lifecycle_is_independent_from_primary_label: true
   benchmark_code: "000300.SH"
   history_start: "20240101"
   production_url: "https://etf-core-constituent-watch.vercel.app"
@@ -234,6 +236,53 @@ strategy:
         condition: "latest_close < latest_ma20 AND NOT ma20_rising"
       - label: "震荡整理"
         condition: "otherwise_or_missing_indicator"
+
+  moving_average_lifecycle:
+    output_field: "maLifecycle"
+    role: "independent_startup_timing_signal"
+    affects_stage_or_primary_label: false
+    lookahead_allowed: false
+    calculation_object: "same_price_series_used_for_ma20_ma60_ma250"
+    safety_margin:
+      formula: "(ma250 - ma60) / ma250"
+      eligible_regime: "ma60 < ma250"
+      historical_window_trade_days: 500
+      historical_rows: "strictly_before_signal_date"
+      minimum_eligible_observations: 120
+      dynamic_percentile_threshold: 0.70
+      absolute_minimum_separation: 0.05
+      pass_formula: "separation >= 0.05 AND prior_history_percentile_rank >= 0.70"
+    predecessor_path:
+      death_cross_required: true
+      death_cross_formula: "previous_ma60 >= previous_ma250 AND current_ma60 < current_ma250"
+      death_cross_lookback_trade_days: 500
+      convergence_window_trade_days: 30
+      convergence_required_days: 20
+      convergence_day_formula: "close < ma20 AND ma20 < ma60"
+      warm_up_cross_formula: "previous_close < previous_ma20 AND current_close >= current_ma20"
+      warm_up_must_precede_initial_start: true
+      warm_up_lookback_trade_days: 20
+    events:
+      warm_up:
+        label: "短线转暖"
+        role: "observation_only"
+      initial_start:
+        label: "初始启动"
+        formula: "predecessor_path_passed AND safety_margin_passed AND previous_close < previous_ma60 AND current_close >= current_ma60"
+        capital_interface: "starter_position_eligible"
+      trend_confirmation:
+        label: "年线趋势确认"
+        formula: "after_initial_start AND previous_close < previous_ma250 AND current_close >= current_ma250"
+        confirmation_timing: "same_trade_day_as_ma250_upward_cross"
+        capital_interface: "scale_in_eligible"
+    state_activity:
+      initial_start_active: "valid_initial_start_exists AND latest_close >= latest_ma60 AND NOT trend_confirmed_active"
+      trend_confirmed_active: "valid_trend_confirmation_exists AND latest_close >= latest_ma250"
+      invalidated_initial_start: "valid_initial_start_exists AND latest_close < latest_ma60 AND NOT trend_confirmed_active"
+    capital_execution:
+      owner: "external_monitor"
+      strategy_executes_orders: false
+      observe_only_interface: "observe_only"
 
   stage_structure:
     id: "structure"
@@ -535,10 +584,10 @@ validation:
     failed_status_exit_code: 1
     skipped_status_exit_code: 0
   generated_data_checks:
-    target_count: 23
-    core_target_count: 21
+    target_count: 25
+    core_target_count: 23
     hk_qdii_count: 2
-    etf_count: 22
+    etf_count: 24
     index_count: 1
     overview_codes_equal_unified_target_codes: true
     core_topic_codes_equal_core_target_codes: true
@@ -567,12 +616,13 @@ validation:
       - "权重龙头确认"
   site_test:
     command: "cd industry_insight_sandbox && npm test"
-    expected_python_behavior_test_count: 45
+    expected_python_behavior_test_count: 50
     expected_node_render_test_count: 11
     behavior_test_files:
       - "industry_insight_sandbox/tests/test_strategy_behavior.py"
       - "industry_insight_sandbox/tests/test_readiness_behavior.py"
       - "industry_insight_sandbox/tests/test_publication_guards.py"
+      - "industry_insight_sandbox/tests/test_moving_average_lifecycle.py"
     required_behavior_cases:
       - "stale_component_own_tail_event_excluded"
       - "stale_latest_component_unqualified"
@@ -607,6 +657,11 @@ validation:
       - "readiness_includes_hk_etfs_tracking_index_and_global_benchmark"
       - "hk_qdii_targets_merge_into_unified_overview"
       - "ma20_rhythm_five_state_boundaries"
+      - "ma20_cross_is_warm_up_only"
+      - "ma60_cross_with_dynamic_safety_margin_starts_initial_signal"
+      - "ma250_cross_confirms_trend_on_same_day"
+      - "moving_average_lifecycle_has_no_lookahead"
+      - "absolute_five_percent_safety_floor"
   vercel_build_test:
     command: "cd industry_insight_sandbox && npm run build:vercel"
   required_outputs:
@@ -639,6 +694,13 @@ output_schema:
       - "indexName"
       - "label"
       - "rhythmLabel"
+      - "maLifecycleLabel"
+      - "maSafetyMarginPassed"
+      - "maSeparationPct"
+      - "maSeparationRankPct"
+      - "initialStartToday"
+      - "trendConfirmedToday"
+      - "capitalInterface"
       - "latestDate"
       - "weightDate"
       - "ma250Gap"
@@ -672,6 +734,27 @@ output_schema:
     required_summary_fields:
       - "label"
       - "rhythmLabel"
+      - "maLifecycle"
+    ma_lifecycle_required_fields:
+      - "label"
+      - "separationPct"
+      - "separationRankPct"
+      - "dynamicThresholdPct"
+      - "separationObservationCount"
+      - "safetyMarginPassed"
+      - "convergenceDays"
+      - "deathCrossDate"
+      - "warmUpDate"
+      - "initialStartDate"
+      - "trendConfirmedDate"
+      - "initialStartToday"
+      - "trendConfirmedToday"
+      - "initialStartActive"
+      - "trendConfirmedActive"
+      - "initialStartInvalidated"
+      - "capitalInterface"
+      - "executionOwner"
+      - "strategyExecutesOrders"
     chart_required_fields:
       - "date"
       - "close"
@@ -701,7 +784,7 @@ publication:
     build_command: "npm run build:vercel"
     client_data_source: "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/overview.json"
     live_fetch_cache: "no-store"
-    live_data_accept_condition: "meta.targetCount == 23 AND meta.hkQdiiCount == 2"
+    live_data_accept_condition: "meta.targetCount == 25 AND meta.hkQdiiCount == 2"
     live_fetch_failure_fallback: "bundled_build_snapshot"
   artifacts:
     logs_name: "etf-constituent-workflow-logs"

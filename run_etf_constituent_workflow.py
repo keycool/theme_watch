@@ -25,7 +25,7 @@ OVERVIEW_PATH = SANDBOX_DIR / "data" / "overview.json"
 ALL_TOPICS_PATH = SANDBOX_DIR / "data" / "all_topics.json"
 TOPIC_DIR = SANDBOX_DIR / "data" / "topics"
 SUMMARY_DIR = ROOT / "logs" / "etf_constituent_workflow"
-CORE_TARGET_COUNT = 21
+CORE_TARGET_COUNT = 23
 HK_TARGET_COUNT = 2
 TOTAL_TARGET_COUNT = CORE_TARGET_COUNT + HK_TARGET_COUNT
 
@@ -332,6 +332,68 @@ def _validate_hk_topic(
     return issues
 
 
+def _validate_ma_lifecycle(topic: dict[str, Any]) -> list[str]:
+    code = topic.get("target", {}).get("code", "unknown")
+    lifecycle = topic.get("summary", {}).get("maLifecycle")
+    if not isinstance(lifecycle, dict):
+        return [f"{code}: maLifecycle is missing or invalid."]
+
+    required_fields = {
+        "label",
+        "separationPct",
+        "separationRankPct",
+        "dynamicThresholdPct",
+        "separationObservationCount",
+        "safetyMarginPassed",
+        "convergenceDays",
+        "deathCrossDate",
+        "warmUpDate",
+        "initialStartDate",
+        "trendConfirmedDate",
+        "initialStartToday",
+        "trendConfirmedToday",
+        "initialStartActive",
+        "trendConfirmedActive",
+        "initialStartInvalidated",
+        "capitalInterface",
+        "executionOwner",
+        "strategyExecutesOrders",
+    }
+    missing = sorted(required_fields.difference(lifecycle))
+    issues = [
+        f"{code}: maLifecycle is missing fields {', '.join(missing)}."
+    ] if missing else []
+    if lifecycle.get("label") not in {
+        "年线趋势确认",
+        "初始启动",
+        "短线转暖",
+        "低位收敛",
+        "未形成",
+    }:
+        issues.append(f"{code}: maLifecycle label is invalid.")
+    if lifecycle.get("capitalInterface") not in {
+        "observe_only",
+        "starter_position_eligible",
+        "scale_in_eligible",
+    }:
+        issues.append(f"{code}: maLifecycle capitalInterface is invalid.")
+    if lifecycle.get("executionOwner") != "external_monitor":
+        issues.append(f"{code}: maLifecycle executionOwner is invalid.")
+    if lifecycle.get("strategyExecutesOrders") is not False:
+        issues.append(f"{code}: maLifecycle must not execute orders.")
+    for field in [
+        "safetyMarginPassed",
+        "initialStartToday",
+        "trendConfirmedToday",
+        "initialStartActive",
+        "trendConfirmedActive",
+        "initialStartInvalidated",
+    ]:
+        if not isinstance(lifecycle.get(field), bool):
+            issues.append(f"{code}: maLifecycle {field} must be boolean.")
+    return issues
+
+
 def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
     issues: list[str] = []
     required = [TARGETS_PATH, HK_TARGETS_PATH, OVERVIEW_PATH, ALL_TOPICS_PATH]
@@ -381,8 +443,8 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
         issues.append(f"Overview coreTargetCount is not {CORE_TARGET_COUNT}.")
     if meta.get("hkQdiiCount") != HK_TARGET_COUNT:
         issues.append(f"Overview hkQdiiCount is not {HK_TARGET_COUNT}.")
-    if meta.get("etfCount") != 22 or meta.get("indexCount") != 1:
-        issues.append("Overview ETF/index counts are not 22/1.")
+    if meta.get("etfCount") != 24 or meta.get("indexCount") != 1:
+        issues.append("Overview ETF/index counts are not 24/1.")
 
     overview_dates = {
         item.get("latestDate") for item in overview.get("targets", [])
@@ -392,6 +454,19 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
             f"Overview latest dates are {sorted(str(x) for x in overview_dates)}, "
             f"expected only {end_date}."
         )
+    for item in overview.get("targets", []):
+        code = item.get("code", "unknown")
+        for field in [
+            "maLifecycleLabel",
+            "maSafetyMarginPassed",
+            "maSeparationPct",
+            "maSeparationRankPct",
+            "initialStartToday",
+            "trendConfirmedToday",
+            "capitalInterface",
+        ]:
+            if field not in item:
+                issues.append(f"{code}: overview is missing {field}.")
 
     expected_stage_titles = ["低位收敛", "带量突破年线", "权重龙头确认"]
     fresh_component_count = 0
@@ -412,6 +487,7 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
             issues.append(f"{code}: fewer than 3 core components.")
         if topic.get("summary", {}).get("coreCount") != len(components):
             issues.append(f"{code}: coreCount does not match component rows.")
+        issues.extend(_validate_ma_lifecycle(topic))
         issues.extend(_validate_topic_freshness(topic))
         fresh_component_count += sum(
             component.get("dataFresh") is True for component in components
@@ -434,6 +510,7 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
             issues.append(f"Missing HK target output: {config['dataFile']}.")
             continue
         hk_topic = _read_json(data_path)
+        issues.extend(_validate_ma_lifecycle(hk_topic))
         issues.extend(
             _validate_hk_topic(
                 hk_topic,

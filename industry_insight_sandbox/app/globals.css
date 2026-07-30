@@ -433,6 +433,12 @@ main {
   white-space: nowrap;
 }
 
+.ma-lifecycle-label {
+  color: var(--gold);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
 .target-row-stages {
   display: flex;
   align-items: center;
@@ -621,6 +627,71 @@ main {
   color: #aeb9c8;
   font-size: 14px;
   line-height: 1.7;
+}
+
+.ma-lifecycle {
+  margin-bottom: 32px;
+  border: 1px solid var(--line);
+  background: rgba(9, 18, 31, 0.72);
+}
+
+.ma-lifecycle-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 26px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ma-lifecycle-heading h2 {
+  margin: 5px 0 0;
+  font-size: 22px;
+}
+
+.ma-lifecycle-heading > span {
+  padding: 7px 10px;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ma-lifecycle-heading > span.passed {
+  border-color: rgba(244, 201, 107, 0.5);
+  color: var(--gold);
+}
+
+.ma-lifecycle-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.ma-lifecycle-grid article {
+  min-width: 0;
+  padding: 20px 24px;
+  border-right: 1px solid var(--line);
+}
+
+.ma-lifecycle-grid article:last-child {
+  border-right: 0;
+}
+
+.ma-lifecycle-grid small,
+.ma-lifecycle-grid p {
+  color: var(--muted);
+}
+
+.ma-lifecycle-grid strong {
+  display: block;
+  margin: 10px 0;
+  color: #eef3f8;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.ma-lifecycle-grid p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.6;
 }
 
 .identity-grid {
@@ -1321,6 +1392,18 @@ tbody tr:last-child td {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .ma-lifecycle-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ma-lifecycle-grid article:nth-child(2) {
+    border-right: 0;
+  }
+
+  .ma-lifecycle-grid article:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+
   .stage-grid,
   .analytics,
   .holdings {
@@ -1490,8 +1573,25 @@ tbody tr:last-child td {
   }
 
   .identity-grid,
-  .method-grid {
+  .method-grid,
+  .ma-lifecycle-grid {
     grid-template-columns: 1fr;
+  }
+
+  .ma-lifecycle-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .ma-lifecycle-grid article,
+  .ma-lifecycle-grid article:nth-child(2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .ma-lifecycle-grid article:last-child {
+    border-bottom: 0;
   }
 
   .identity-main {

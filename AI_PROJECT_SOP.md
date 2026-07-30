@@ -13,12 +13,12 @@ project:
   id: theme_watch
   default_branch: main
   repository: keycool/theme_watch
-  current_release: etf-watch-v2.1.0
+  current_release: etf-watch-v2.2.0
 
 systems:
   etf_constituent_watch:
     status: primary_scheduled_production
-    description: 23标的ETF、指数与港股QDII核心成分启动观察
+    description: 25标的ETF、指数与港股QDII核心成分启动观察
     read_order:
       - industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md
       - industry_insight_sandbox/README.md
@@ -26,7 +26,7 @@ systems:
       when: task涉及513970.SH、513230.SH、017832.OF或港股QDII
       file: industry_insight_sandbox/HK_QDII_WATCH_MACHINE_SOP.md
     target_sources:
-      core_21: industry_insight_sandbox/targets.json
+      core_23: industry_insight_sandbox/targets.json
       hk_qdii_2: industry_insight_sandbox/hk_qdii_targets.json
     local_orchestrator: run_etf_constituent_workflow.py
     ci_orchestrator: .github/workflows/etf-constituent-daily.yml
@@ -51,8 +51,8 @@ mandatory_invariants:
   preserve_user_worktree: true
   secrets_must_not_be_logged_or_committed: true
   etf_and_legacy_cache_must_not_mix: true
-  etf_unified_target_count: 23
-  etf_core_target_count: 21
+  etf_unified_target_count: 25
+  etf_core_target_count: 23
   hk_qdii_target_count: 2
   publish_date_must_not_regress_without_explicit_confirmation: true
   vercel_success_required_before_live_data_publish: true
@@ -83,10 +83,10 @@ change_routing:
 统一ETF生产链路的固定顺序是：
 
 1. 检查线上是否已经包含目标日期。
-2. 检查21个核心目标、2个港股ETF、可用真实跟踪指数和恒生基准是否就绪。
-3. 运行21目标核心生成器。
+2. 检查23个核心目标、2个港股ETF、可用真实跟踪指数和恒生基准是否就绪。
+3. 运行23目标核心生成器。
 4. 分别运行513970与513230港股专用生成器。
-5. 合并为23标的统一总览。
+5. 合并为25标的统一总览。
 6. 校验目标数量、日期、新鲜度、标签闭环和输出文件。
 7. 运行Python测试、页面测试、lint与Vercel构建。
 8. 检查生产日期不得隐式回退。
@@ -116,7 +116,7 @@ npm run build:vercel
 
 - 解析GitHub Actions YAML。
 - 解析机器SOP YAML。
-- 验证`overview.json`恰有23个标的且日期唯一。
+- 验证`overview.json`恰有25个标的且日期唯一。
 - 验证所有总览行都具有可访问路由。
 - 验证候选生产日期不早于线上日期。
 

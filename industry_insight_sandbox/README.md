@@ -1,8 +1,8 @@
 # ETF 与主题指数核心成分启动观察
 
-这是统一生产运行的 ETF 与指数核心成分观察站点，共 23 个对象：
+这是统一生产运行的 ETF 与指数核心成分观察站点，共 25 个对象：
 
-- 20 只 A 股 ETF
+- 22 只 A 股 ETF
 - 1 个主题指数
 - 2 只港股消费 QDII ETF
 - 4 个项目分组
@@ -54,6 +54,22 @@ MA60 的 `-3%` 观察窗口，才能进入“观察中”。只有低位结构�
 5个交易日方向，分为“短期转强、低位反弹、上升回踩、短期转弱、震荡整理”。
 该标签只用于解释短线节奏，不参与三层条件、主启动标签或总览排序。
 
+页面同时新增一条独立的“均线启动生命周期”，不改变原有三层条件和主标签：
+
+1. MA60 已经从上向下穿过 MA250，并在其下方运行；
+2. 触发日前 30 个交易日至少 20 日满足“收盘 < MA20 < MA60”；
+3. MA20 在 MA60 上穿前 20 个交易日内先向上穿越，只作为短线转暖；
+4. MA60 与 MA250 的距离采用动态安全边际：只使用信号日前 500 个交易日中
+   MA60 低于 MA250 的历史，至少要有 120 个样本；当前距离既要达到历史
+   70% 分位，也不能低于绝对 5%；
+5. 收盘从 MA60 下方向上穿越时记为“初始启动”，可由外部监测口衔接小比例
+   初始资金；此后收盘向上穿越 MA250 的当天即记为“年线趋势确认”，可由
+   外部监测口衔接趋势确认资金。
+
+策略本身只输出 `observe_only`、`starter_position_eligible` 或
+`scale_in_eligible` 机器接口，不执行下单或资金分配。动态分位只使用信号日
+之前的数据，禁止前视。
+
 核心成分优先累计覆盖指数权重 60%，最多取 20 只。申万二级只作为成分股行业文字参照，不参与专题启动标签。
 
 ## 刷新数据
@@ -68,8 +84,8 @@ py -B .\generate_dashboard_data.py
 py -B .\generate_dashboard_data.py --end-date 20260717
 ```
 
-生产刷新应从仓库根目录运行统一编排器；它会依次生成21个核心专题、2个港股专题，
-再合并为23标的总览：
+生产刷新应从仓库根目录运行统一编排器；它会依次生成23个核心专题、2个港股专题，
+再合并为25标的总览：
 
 ```powershell
 py -B ..\run_etf_constituent_workflow.py --end-date 20260717
@@ -79,7 +95,7 @@ py -B ..\run_etf_constituent_workflow.py --end-date 20260717
 
 - `data/overview.json`：总览数据
 - `data/all_topics.json`：全部专题合集
-- `data/topics/<slug>.json`：21 个独立专题数据
+- `data/topics/<slug>.json`：23 个独立专题数据
 - `data/hk_qdii/*.json`：2 个港股 QDII 专题数据
 
 ## 本地查看
@@ -106,7 +122,7 @@ http://localhost:3000/topic/<slug>
 npm test
 ```
 
-测试会核对23标的统一总览、21个核心专题和2个港股专题，并逐个执行服务端渲染。
+测试会核对25标的统一总览、23个核心专题和2个港股专题，并逐个执行服务端渲染。
 
 ## 统一 workflow
 
@@ -125,7 +141,7 @@ py -B .\run_etf_constituent_workflow.py --end-date 20260724 --validate-only
 GitHub Actions 配置为 `.github/workflows/etf-constituent-daily.yml`，工作日北京时间
 22:25 自动运行。定时任务会先检查线上是否已经发布当日数据；未发布时，再检查全部正式ETF、
 全部真实跟踪指数及直接观察指数的当日数据。数据不完整时会在同一任务内最多检查3次、
-每次间隔约10分钟，全部就绪后才进入正式计算；也支持手动指定交易日。运行产物包括 workflow 日志、23 个标的数据、
+每次间隔约10分钟，全部就绪后才进入正式计算；也支持手动指定交易日。运行产物包括 workflow 日志、25 个标的数据、
 总览数据和站点构建结果。计算完成后还会复用仓库现有的
 `Theme_Watch_FEISHU_WEBHOOK_URL` 与 `Theme_Watch_FEISHU_WEBHOOK_SECRET`
 发送统一的 ETF 核心成分观察摘要。
@@ -141,7 +157,7 @@ GitHub Actions 配置为 `.github/workflows/etf-constituent-daily.yml`，工作�
 https://etf-core-constituent-watch.vercel.app
 ```
 
-workflow 每次成功计算后，会把最新总览、21个核心专题和2个港股专题 JSON 发布到专用
+workflow 每次成功计算后，会把最新总览、23个核心专题和2个港股专题 JSON 发布到专用
 `etf-watch-data` 分支。网页启动后从该分支读取最新数据，失败时才回退到内置快照，
 因此日常更新不需要覆盖原有主题报告的 GitHub Pages。
 

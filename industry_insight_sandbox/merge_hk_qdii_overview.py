@@ -34,6 +34,13 @@ def build_overview_row(config: dict[str, Any], dashboard: dict[str, Any]) -> dic
         "indexName": target["indexName"],
         "label": summary["label"],
         "rhythmLabel": summary["rhythmLabel"],
+        "maLifecycleLabel": summary["maLifecycle"]["label"],
+        "maSafetyMarginPassed": summary["maLifecycle"]["safetyMarginPassed"],
+        "maSeparationPct": summary["maLifecycle"]["separationPct"],
+        "maSeparationRankPct": summary["maLifecycle"]["separationRankPct"],
+        "initialStartToday": summary["maLifecycle"]["initialStartToday"],
+        "trendConfirmedToday": summary["maLifecycle"]["trendConfirmedToday"],
+        "capitalInterface": summary["maLifecycle"]["capitalInterface"],
         "latestDate": meta["latestDate"],
         "weightDate": meta["constituentDate"],
         "latestClose": target["latestClose"],
@@ -68,8 +75,8 @@ def merge_overview(
     if len(configs) != len(dashboards):
         raise RuntimeError("HK QDII target and dashboard counts differ.")
     core_rows = overview.get("targets", [])
-    if len(core_rows) != 21:
-        raise RuntimeError(f"Expected 21 core targets before merge, found {len(core_rows)}.")
+    if len(core_rows) != 23:
+        raise RuntimeError(f"Expected 23 core targets before merge, found {len(core_rows)}.")
     for row in core_rows:
         row["route"] = f"/topic/{row['slug']}"
 

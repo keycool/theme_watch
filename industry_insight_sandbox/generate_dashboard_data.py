@@ -9,6 +9,8 @@ from typing import Callable
 
 import pandas as pd
 
+from moving_average_lifecycle import evaluate_moving_average_lifecycle
+
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
@@ -547,6 +549,7 @@ def build_topic(
     )
     latest = index_daily.iloc[-1]
     rhythm_label = evaluate_short_term_rhythm(index_daily)
+    ma_lifecycle = evaluate_moving_average_lifecycle(index_daily)
     last_120 = index_daily.tail(120).copy()
     structure_state = evaluate_structure_state(index_daily)
     below_ma250_days = structure_state["belowMa250Days"]
@@ -803,6 +806,7 @@ def build_topic(
         "summary": {
             "label": final_label,
             "rhythmLabel": rhythm_label,
+            "maLifecycle": ma_lifecycle,
             "conclusion": conclusion,
             "coreCount": len(component_rows),
             "coreCoverage": as_float(sum(usable_core_weights)),
@@ -1030,8 +1034,8 @@ def main(end_date: str | None = None) -> None:
         raise RuntimeError("Tushare token is not configured.")
     pro = ts.pro_api(token)
     targets = json.loads(TARGETS_PATH.read_text(encoding="utf-8"))
-    if len(targets) != 21:
-        raise RuntimeError(f"Expected 21 formal targets, found {len(targets)}.")
+    if len(targets) != 23:
+        raise RuntimeError(f"Expected 23 formal targets, found {len(targets)}.")
 
     end_date = end_date or date.today().strftime("%Y%m%d")
     try:
@@ -1246,6 +1250,25 @@ def main(end_date: str | None = None) -> None:
                 "indexName": topic["target"]["indexName"],
                 "label": topic["summary"]["label"],
                 "rhythmLabel": topic["summary"]["rhythmLabel"],
+                "maLifecycleLabel": topic["summary"]["maLifecycle"]["label"],
+                "maSafetyMarginPassed": topic["summary"]["maLifecycle"][
+                    "safetyMarginPassed"
+                ],
+                "maSeparationPct": topic["summary"]["maLifecycle"][
+                    "separationPct"
+                ],
+                "maSeparationRankPct": topic["summary"]["maLifecycle"][
+                    "separationRankPct"
+                ],
+                "initialStartToday": topic["summary"]["maLifecycle"][
+                    "initialStartToday"
+                ],
+                "trendConfirmedToday": topic["summary"]["maLifecycle"][
+                    "trendConfirmedToday"
+                ],
+                "capitalInterface": topic["summary"]["maLifecycle"][
+                    "capitalInterface"
+                ],
                 "conclusion": topic["summary"]["conclusion"],
                 "latestDate": topic["meta"]["latestDate"],
                 "weightDate": topic["meta"]["weightDate"],

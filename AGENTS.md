@@ -13,8 +13,8 @@ AI agents must read [AI_PROJECT_SOP.md](AI_PROJECT_SOP.md) first before reading 
 
 ## Durable rules
 
-- 当前ETF生产版本为`ETF Watch v2.1.0`，统一总览必须包含23个标的。
-- 21个核心专题与2个港股专题使用不同计算引擎，只在编排、总览、校验和发布层合并。
+- 当前ETF生产版本为`ETF Watch v2.2.0`，统一总览必须包含25个标的。
+- 23个核心专题与2个港股专题使用不同计算引擎，只在编排、总览、校验和发布层合并。
 - 生产发布只允许从`main`执行；不得绕过日期不回退、并发、测试或Vercel前置保护。
 - 不得把`.cache_scan_v2`、`reports/theme_watch/`或申万二级标签引入ETF核心成分策略。
 - 保留用户已有的未提交变更；提交前只暂存与当前任务直接相关的文件。

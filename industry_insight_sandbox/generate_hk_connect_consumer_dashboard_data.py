@@ -27,6 +27,7 @@ from generate_hk_qdii_dashboard_data import (
     rolling_percentile,
     stage_item,
 )
+from moving_average_lifecycle import evaluate_moving_average_lifecycle
 
 
 ROOT = Path(__file__).resolve().parent
@@ -141,6 +142,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
     previous = index_daily.iloc[-2]
     latest_etf = etf_daily.iloc[-1]
     rhythm_label = evaluate_short_term_rhythm(index_daily)
+    ma_lifecycle = evaluate_moving_average_lifecycle(index_daily)
     ma60_above = bool(latest["close"] > latest["ma60"])
     ma250_confirmed = bool(
         latest["close"] > latest["ma250"]
@@ -446,6 +448,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
         "summary": {
             "label": label,
             "rhythmLabel": rhythm_label,
+            "maLifecycle": ma_lifecycle,
             "conclusion": conclusion,
             "stagePassCount": stage_pass_count,
             "lowWarning": low_state["warning"],
