@@ -4,6 +4,13 @@ import test from "node:test";
 
 
 const root = new URL("../", import.meta.url);
+const rhythmLabels = new Set([
+  "短期转强",
+  "低位反弹",
+  "上升回踩",
+  "短期转弱",
+  "震荡整理",
+]);
 
 async function readJson(path) {
   return JSON.parse(await readFile(new URL(path, root), "utf8"));
@@ -61,6 +68,9 @@ test("the unified target universe and generated datasets stay aligned", async ()
   assert.equal(overview.meta.targetCount, 23);
   assert.equal(overview.meta.hkQdiiCount, 2);
   assert.equal(new Set(overview.targets.map((item) => item.slug)).size, 23);
+  assert.ok(
+    overview.targets.every((item) => rhythmLabels.has(item.rhythmLabel)),
+  );
   const nonferrous = topics.find((item) => item.target.code === "512400.SH");
   assert.equal(nonferrous?.target.indexCode, "000819.SH");
   assert.equal(nonferrous?.target.indexName, "中证有色金属");
@@ -79,7 +89,13 @@ test("the unified target universe and generated datasets stay aligned", async ()
     assert.ok(topic.target.indexName);
     assert.equal(typeof topic.summary.belowMa250FiveDays, "number");
     assert.equal(typeof topic.summary.ma60Near, "boolean");
+    assert.ok(rhythmLabels.has(topic.summary.rhythmLabel));
     assert.ok(topic.chart.length >= 250, `${topic.target.code} chart is too short`);
+    assert.ok(
+      topic.chart.every((row) => Object.hasOwn(row, "ma20")),
+      `${topic.target.code} chart is missing MA20`,
+    );
+    assert.equal(typeof topic.chart.at(-1)?.ma20, "number");
     assert.ok(
       topic.components.length >= 3,
       `${topic.target.code} has too few core components`,
@@ -120,6 +136,7 @@ test("server-renders the overview and links every unified target", async () => {
   assert.match(html, /带量突破年线/);
   assert.match(html, /权重龙头确认/);
   assert.match(html, /全部标的启动观察/);
+  assert.match(html, /启动 \/ 短期/);
   assert.doesNotMatch(html, /当前标签分布/);
   assert.doesNotMatch(html, /最接近闭环的目标/);
 
@@ -174,6 +191,7 @@ test("server-renders all 21 independent topic pages", async () => {
     assert.match(html, /低位收敛/);
     assert.match(html, /带量突破年线/);
     assert.match(html, /权重龙头确认/);
+    assert.match(html, /MA20/);
     assert.match(html, /主要成分股权重/);
     assert.match(html, /核心成分状态矩阵/);
     assert.match(html, /返回全部专题/);
@@ -197,6 +215,10 @@ test("server-renders the production-integrated 513970 HK QDII strategy page", as
   assert.match(html, /港股权重龙头确认/);
   assert.match(html, /恒生消费指数前十大成分状态/);
   assert.equal(dashboard.meta.productionIntegrated, true);
+  assert.equal(typeof dashboard.chart.at(-1)?.ma20, "number");
+  assert.ok(rhythmLabels.has(dashboard.summary.rhythmLabel));
+  assert.match(html, /短期节奏/);
+  assert.match(html, /MA20/);
   assert.equal(dashboard.constituents.length, 10);
   assert.ok(
     dashboard.constituents.every(
@@ -226,6 +248,10 @@ test("server-renders 017832 through its 513230 tracking-index strategy", async (
   assert.equal(dashboard.meta.productionIntegrated, true);
   assert.equal(dashboard.target.feederCode, "017832.OF");
   assert.equal(dashboard.target.indexCode, "931454.CSI");
+  assert.equal(typeof dashboard.chart.at(-1)?.ma20, "number");
+  assert.ok(rhythmLabels.has(dashboard.summary.rhythmLabel));
+  assert.match(html, /短期节奏/);
+  assert.match(html, /MA20/);
   assert.equal(dashboard.constituents.length, 10);
   assert.ok(
     dashboard.constituents.every(
@@ -276,6 +302,11 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
     generator,
     /if \(structure_passed or structure_warning\) and ma60_near:[\s\S]*return "观察中"/,
   );
+  const labelStateSource = generator.slice(
+    generator.indexOf("def evaluate_strategy_label"),
+    generator.indexOf("def evaluate_short_term_rhythm"),
+  );
+  assert.doesNotMatch(labelStateSource, /ma20/i);
   assert.match(generator, /last_three_funding_ranks >= FUNDING_CONFIRM_PERCENTILE/);
   assert.match(generator, /observation_clues\.append\("连续2日站上MA250"\)/);
   assert.match(
@@ -297,7 +328,7 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
   assert.match(dashboard, /成分股数据未更新到专题截止日/);
   assert.match(
     dashboard,
-    /aria-label="跟踪指数收盘价、MA60、MA250及跟踪指数成交额占全A成交额历史分位图"/,
+    /aria-label="跟踪指数收盘价、MA20、MA60、MA250及跟踪指数成交额占全A成交额历史分位图"/,
   );
   assert.doesNotMatch(dashboard, /核心成分成交额图/);
   assert.match(dashboard, /前三权重近5日、其余前十大权重近3日没有有效涨停事件/);

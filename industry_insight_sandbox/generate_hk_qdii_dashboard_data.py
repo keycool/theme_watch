@@ -73,6 +73,7 @@ def normalize_daily(frame: pd.DataFrame) -> pd.DataFrame:
     )
     if "pct_chg" not in result or result["pct_chg"].isna().all():
         result["pct_chg"] = result["close"].pct_change() * 100
+    result["ma20"] = result["close"].rolling(20).mean()
     result["ma60"] = result["close"].rolling(60).mean()
     result["ma250"] = result["close"].rolling(250).mean()
     return result
@@ -92,6 +93,37 @@ def evaluate_low_position(
         or below_ma250_ten_days >= LOW_DEEP_10_WARNING_DAYS
     )
     return {"passed": passed, "warning": warning}
+
+
+def evaluate_short_term_rhythm(daily: pd.DataFrame) -> str:
+    if len(daily) < 6:
+        return "震荡整理"
+
+    latest = daily.iloc[-1]
+    five_days_ago = daily.iloc[-6]
+    values = [
+        latest.get("close"),
+        latest.get("ma20"),
+        latest.get("ma60"),
+        five_days_ago.get("ma20"),
+    ]
+    if any(pd.isna(value) for value in values):
+        return "震荡整理"
+
+    close = float(latest["close"])
+    ma20 = float(latest["ma20"])
+    ma60 = float(latest["ma60"])
+    ma20_rising = ma20 > float(five_days_ago["ma20"])
+
+    if close >= ma20 and ma20 >= ma60 and ma20_rising:
+        return "短期转强"
+    if close >= ma20 and ma20 < ma60:
+        return "低位反弹"
+    if close < ma20 and ma20 >= ma60 and ma20_rising:
+        return "上升回踩"
+    if close < ma20 and not ma20_rising:
+        return "短期转弱"
+    return "震荡整理"
 
 
 def evaluate_hk_breadth(component_rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -348,6 +380,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
 
     latest = fund.iloc[-1]
     previous = fund.iloc[-2]
+    rhythm_label = evaluate_short_term_rhythm(fund)
     ma60_above = bool(latest["close"] > latest["ma60"])
     ma60_breakout_today = bool(
         latest["close"] > latest["ma60"]
@@ -462,6 +495,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
         [
             "trade_date",
             "close",
+            "ma20",
             "ma60",
             "ma250",
             "amountRank",
@@ -644,6 +678,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
         },
         "summary": {
             "label": label,
+            "rhythmLabel": rhythm_label,
             "conclusion": conclusion,
             "stagePassCount": stage_pass_count,
             "lowWarning": low_state["warning"],
@@ -669,6 +704,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
             {
                 "date": str(row["trade_date"]),
                 "close": as_float(row["close"]),
+                "ma20": as_float(row["ma20"]),
                 "ma60": as_float(row["ma60"]),
                 "ma250": as_float(row["ma250"]),
                 "amountRankPct": (

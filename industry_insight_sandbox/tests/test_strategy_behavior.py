@@ -13,6 +13,7 @@ sys.path.insert(0, str(SANDBOX_DIR))
 from generate_dashboard_data import (
     evaluate_breakout_state,
     evaluate_limit_event,
+    evaluate_short_term_rhythm,
     evaluate_strategy_label,
     evaluate_structure_state,
     limit_threshold,
@@ -426,6 +427,37 @@ class StrategyLabelBehaviorTest(unittest.TestCase):
             ),
             "启动确认",
         )
+
+
+class ShortTermRhythmBehaviorTest(unittest.TestCase):
+    def rhythm(
+        self,
+        *,
+        close: float,
+        ma20: float,
+        ma60: float,
+        prior_ma20: float,
+    ) -> str:
+        frame = pd.DataFrame(
+            {
+                "close": [close] * 6,
+                "ma20": [prior_ma20] * 5 + [ma20],
+                "ma60": [ma60] * 6,
+            }
+        )
+        return evaluate_short_term_rhythm(frame)
+
+    def test_classifies_ma20_as_a_diagnostic_rhythm_label(self) -> None:
+        cases = {
+            "短期转强": dict(close=105, ma20=103, ma60=100, prior_ma20=99),
+            "低位反弹": dict(close=100, ma20=99, ma60=102, prior_ma20=100),
+            "上升回踩": dict(close=100, ma20=102, ma60=101, prior_ma20=100),
+            "短期转弱": dict(close=95, ma20=98, ma60=100, prior_ma20=100),
+            "震荡整理": dict(close=99, ma20=100, ma60=102, prior_ma20=99),
+        }
+        for expected, inputs in cases.items():
+            with self.subTest(expected=expected):
+                self.assertEqual(self.rhythm(**inputs), expected)
 
 
 if __name__ == "__main__":

@@ -40,6 +40,7 @@ type DashboardData = {
   };
   summary: {
     label: string;
+    rhythmLabel: string;
     conclusion: string;
     stagePassCount: number;
     ma60Gap: NullableNumber;
@@ -66,6 +67,7 @@ type DashboardData = {
   chart: {
     date: string;
     close: NullableNumber;
+    ma20: NullableNumber;
     ma60: NullableNumber;
     ma250: NullableNumber;
     amountRankPct: NullableNumber;
@@ -130,7 +132,7 @@ function statusText(passed: boolean, warning: boolean) {
 
 function pathFor(
   rows: DashboardData["chart"],
-  key: "close" | "ma60" | "ma250" | "etfNormalized" | "benchmarkNormalized",
+  key: "close" | "ma20" | "ma60" | "ma250" | "etfNormalized" | "benchmarkNormalized",
   min: number,
   max: number,
 ) {
@@ -163,7 +165,7 @@ function LineChart({
 }) {
   const keys = comparison
     ? (["etfNormalized", "benchmarkNormalized"] as const)
-    : (["close", "ma60", "ma250"] as const);
+    : (["close", "ma20", "ma60", "ma250"] as const);
   const values = rows
     .flatMap((row) => keys.map((key) => row[key]))
     .filter((value): value is number => value !== null);
@@ -171,14 +173,14 @@ function LineChart({
   const max = Math.max(...values);
   const colors = comparison
     ? ["#f4c96b", "#7f91aa"]
-    : ["#f4c96b", "#63d6bf", "#6da4ff"];
+    : ["#f4c96b", "#e88ccf", "#63d6bf", "#6da4ff"];
 
   return (
     <svg
       aria-label={
         comparison
           ? `${primaryName}与${benchmarkName}归一化走势`
-          : `${primaryName}收盘、MA60与MA250走势`
+          : `${primaryName}收盘、MA20、MA60与MA250走势`
       }
       className="hk-line-chart"
       role="img"
@@ -262,6 +264,7 @@ export default function HKQdiiDashboard({
         <div className="hero-status">
           <p>本期判断</p>
           <strong>{dashboardData.summary.label}</strong>
+          <small>短期节奏 · {dashboardData.summary.rhythmLabel}</small>
           <span>{dashboardData.summary.conclusion}</span>
         </div>
       </section>
@@ -400,7 +403,7 @@ export default function HKQdiiDashboard({
                   ? "TRACKING INDEX STRUCTURE"
                   : "ETF PRICE PROXY"}
               </p>
-              <h2>{dashboardData.meta.structureObjectName}、MA60与MA250</h2>
+              <h2>{dashboardData.meta.structureObjectName}、MA20、MA60与MA250</h2>
             </div>
           </div>
           <div className="chart-legend">
@@ -408,6 +411,7 @@ export default function HKQdiiDashboard({
               <i style={{ background: "#f4c96b" }} />
               {dashboardData.meta.structureObjectName}
             </span>
+            <span><i style={{ background: "#e88ccf" }} />MA20</span>
             <span><i style={{ background: "#63d6bf" }} />MA60</span>
             <span><i style={{ background: "#6da4ff" }} />MA250</span>
           </div>
@@ -417,7 +421,7 @@ export default function HKQdiiDashboard({
             rows={chartRows}
           />
           <p className="chart-footnote">
-            {dashboardData.meta.chartFootnote}
+            {dashboardData.meta.chartFootnote} MA20仅生成短期节奏标签，不参与三层条件与主启动标签判定。
           </p>
         </article>
         <article className="panel">

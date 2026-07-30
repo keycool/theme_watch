@@ -28,6 +28,11 @@ class HkQdiiStrategyBehaviorTests(unittest.TestCase):
         self.assertEqual(snapshot["target"]["feederCode"], "017832.OF")
         self.assertEqual(snapshot["target"]["code"], "513230.SH")
         self.assertEqual(snapshot["target"]["indexCode"], "931454.CSI")
+        self.assertIsInstance(snapshot["chart"][-1]["ma20"], (int, float))
+        self.assertIn(
+            snapshot["summary"]["rhythmLabel"],
+            {"短期转强", "低位反弹", "上升回踩", "短期转弱", "震荡整理"},
+        )
         self.assertEqual(len(snapshot["constituents"]), 10)
         self.assertTrue(
             all(row["weight"] > 0 for row in snapshot["constituents"])
@@ -60,6 +65,13 @@ class HkQdiiStrategyBehaviorTests(unittest.TestCase):
         self.assertEqual(
             {row["route"] for row in merged["targets"] if row["kind"] == "hk_qdii"},
             {"/hk-qdii/513970-sh", "/hk-qdii/513230-sh"},
+        )
+        self.assertTrue(
+            all(
+                row["rhythmLabel"]
+                for row in merged["targets"]
+                if row["kind"] == "hk_qdii"
+            )
         )
 
     def test_low_position_passes_on_long_stay_below_ma250(self) -> None:

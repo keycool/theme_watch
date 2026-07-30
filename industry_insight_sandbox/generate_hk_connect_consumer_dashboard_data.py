@@ -20,6 +20,7 @@ from generate_hk_qdii_dashboard_data import (
     evaluate_hk_breadth,
     evaluate_hk_leader_event,
     evaluate_low_position,
+    evaluate_short_term_rhythm,
     fetch_tencent_daily,
     normalize_daily,
     return_over_period,
@@ -139,6 +140,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
     latest = index_daily.iloc[-1]
     previous = index_daily.iloc[-2]
     latest_etf = etf_daily.iloc[-1]
+    rhythm_label = evaluate_short_term_rhythm(index_daily)
     ma60_above = bool(latest["close"] > latest["ma60"])
     ma250_confirmed = bool(
         latest["close"] > latest["ma250"]
@@ -253,7 +255,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
         conclusion = "指数低位、量价与权重龙头尚未形成可验证的启动链路。"
 
     chart = index_daily.tail(400)[
-        ["trade_date", "close", "ma60", "ma250", "amountRank"]
+        ["trade_date", "close", "ma20", "ma60", "ma250", "amountRank"]
     ].merge(
         benchmark[["trade_date", "close"]].rename(
             columns={"close": "benchmarkClose"}
@@ -443,6 +445,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
         },
         "summary": {
             "label": label,
+            "rhythmLabel": rhythm_label,
             "conclusion": conclusion,
             "stagePassCount": stage_pass_count,
             "lowWarning": low_state["warning"],
@@ -464,6 +467,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
             {
                 "date": str(row["trade_date"]),
                 "close": as_float(row["close"]),
+                "ma20": as_float(row["ma20"]),
                 "ma60": as_float(row["ma60"]),
                 "ma250": as_float(row["ma250"]),
                 "amountRankPct": (

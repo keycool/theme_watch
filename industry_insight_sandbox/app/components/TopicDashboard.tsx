@@ -8,6 +8,7 @@ import StatusStrip from "./StatusStrip";
 type ChartRow = {
   date: string;
   close: number | null;
+  ma20: number | null;
   ma60: number | null;
   ma250: number | null;
   amountRatio20: number | null;
@@ -72,6 +73,7 @@ type DashboardData = {
   };
   summary: {
     label: string;
+    rhythmLabel: string;
     conclusion: string;
     coreCount: number;
     coreCoverage: number | null;
@@ -139,6 +141,7 @@ const COLORS = {
   grid: "rgba(148, 163, 184, 0.14)",
   text: "#8090a6",
   close: "#f4c96b",
+  ma20: "#e88ccf",
   ma60: "#63d6bf",
   ma250: "#6da4ff",
   amount: "rgba(109, 164, 255, 0.24)",
@@ -183,7 +186,7 @@ function canvasSize(canvas: HTMLCanvasElement) {
 function drawPath(
   context: CanvasRenderingContext2D,
   rows: ChartRow[],
-  key: "close" | "ma60" | "ma250" | "themeNormalized" | "benchmarkNormalized",
+  key: "close" | "ma20" | "ma60" | "ma250" | "themeNormalized" | "benchmarkNormalized",
   x: (index: number) => number,
   y: (value: number) => number,
   color: string,
@@ -225,7 +228,7 @@ function PriceChart({ rows }: { rows: ChartRow[] }) {
       const amountHeight = 54;
       const plotBottom = height - padding.bottom - amountHeight;
       const values = rows
-        .flatMap((row) => [row.close, row.ma60, row.ma250])
+        .flatMap((row) => [row.close, row.ma20, row.ma60, row.ma250])
         .filter((value): value is number => value !== null);
       const min = Math.min(...values);
       const max = Math.max(...values);
@@ -297,6 +300,7 @@ function PriceChart({ rows }: { rows: ChartRow[] }) {
 
       drawPath(context, rows, "ma250", x, y, COLORS.ma250, 1.6);
       drawPath(context, rows, "ma60", x, y, COLORS.ma60, 1.6);
+      drawPath(context, rows, "ma20", x, y, COLORS.ma20, 1.6);
       drawPath(context, rows, "close", x, y, COLORS.close, 2.3);
 
       const labelIndexes = [0, Math.floor(rows.length / 2), rows.length - 1];
@@ -322,7 +326,7 @@ function PriceChart({ rows }: { rows: ChartRow[] }) {
     <canvas
       ref={canvasRef}
       className="chart-canvas chart-canvas-large"
-      aria-label="跟踪指数收盘价、MA60、MA250及跟踪指数成交额占全A成交额历史分位图"
+      aria-label="跟踪指数收盘价、MA20、MA60、MA250及跟踪指数成交额占全A成交额历史分位图"
     />
   );
 }
@@ -560,6 +564,7 @@ export default function TopicDashboard({
         <div className="hero-status">
           <p>本期判断</p>
           <strong>{dashboardData.summary.label}</strong>
+          <small>短期节奏 · {dashboardData.summary.rhythmLabel}</small>
           <span>{dashboardData.summary.conclusion}</span>
         </div>
       </section>
@@ -646,6 +651,7 @@ export default function TopicDashboard({
           </div>
           <div className="chart-legend">
             <span><i style={{ background: COLORS.close }} />收盘</span>
+            <span><i style={{ background: COLORS.ma20 }} />MA20</span>
             <span><i style={{ background: COLORS.ma60 }} />MA60</span>
             <span><i style={{ background: COLORS.ma250 }} />MA250</span>
             <span><i className="bar-legend" />指数成交额占全A成交额的历史分位</span>
@@ -653,7 +659,8 @@ export default function TopicDashboard({
           <PriceChart rows={visibleChart} />
           <p className="chart-footnote">
             成交柱为资金占比在过去252个交易日的历史分位；80%用于资金确认，
-            95%用于过热提示。数据截至 {formatDate(dashboardData.meta.latestDate)}。
+            95%用于过热提示。MA20仅生成短期节奏标签，不参与三层条件与主启动标签判定。
+            数据截至 {formatDate(dashboardData.meta.latestDate)}。
           </p>
         </article>
 

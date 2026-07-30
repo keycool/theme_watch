@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "1.7.0"
+  version: "1.9.0"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -27,7 +27,7 @@ sop:
     - "secrets"
     - "failure_contract"
   last_verified:
-    date: "2026-07-29"
+    date: "2026-07-30"
     implementation_baseline_ref: "same_git_commit_as_this_file"
 
 authority:
@@ -180,6 +180,12 @@ strategy:
     null_indicator_policy: "condition_false"
 
   indicators:
+    ma20:
+      input: "tracking_index.close"
+      window_trade_days: 20
+      function: "simple_moving_average"
+      role: "diagnostic_and_auxiliary_label"
+      affects_stage_or_primary_label: false
     ma60:
       input: "tracking_index.close"
       window_trade_days: 60
@@ -210,6 +216,24 @@ strategy:
       formula: "pct_change_1d >= 5.0 OR return_5d >= 5.0"
     close_to_high_120:
       formula: "latest_tracking_index_close / max(tracking_index_close_last_120)"
+
+  short_term_rhythm:
+    output_field: "rhythmLabel"
+    role: "auxiliary_label_only"
+    affects_stage_or_primary_label: false
+    ma20_rising_formula: "latest_ma20 > ma20_5_trade_days_ago"
+    evaluation_mode: "first_match_wins"
+    states_in_priority_order:
+      - label: "短期转强"
+        condition: "latest_close >= latest_ma20 AND latest_ma20 >= latest_ma60 AND ma20_rising"
+      - label: "低位反弹"
+        condition: "latest_close >= latest_ma20 AND latest_ma20 < latest_ma60"
+      - label: "上升回踩"
+        condition: "latest_close < latest_ma20 AND latest_ma20 >= latest_ma60 AND ma20_rising"
+      - label: "短期转弱"
+        condition: "latest_close < latest_ma20 AND NOT ma20_rising"
+      - label: "震荡整理"
+        condition: "otherwise_or_missing_indicator"
 
   stage_structure:
     id: "structure"
@@ -543,7 +567,7 @@ validation:
       - "权重龙头确认"
   site_test:
     command: "cd industry_insight_sandbox && npm test"
-    expected_python_behavior_test_count: 44
+    expected_python_behavior_test_count: 45
     expected_node_render_test_count: 11
     behavior_test_files:
       - "industry_insight_sandbox/tests/test_strategy_behavior.py"
@@ -582,6 +606,7 @@ validation:
       - "stale_component_cannot_create_startup_confirmation"
       - "readiness_includes_hk_etfs_tracking_index_and_global_benchmark"
       - "hk_qdii_targets_merge_into_unified_overview"
+      - "ma20_rhythm_five_state_boundaries"
   vercel_build_test:
     command: "cd industry_insight_sandbox && npm run build:vercel"
   required_outputs:
@@ -613,6 +638,7 @@ output_schema:
       - "indexCode"
       - "indexName"
       - "label"
+      - "rhythmLabel"
       - "latestDate"
       - "weightDate"
       - "ma250Gap"
@@ -643,6 +669,15 @@ output_schema:
       - "components"
       - "limitEvents"
       - "notes"
+    required_summary_fields:
+      - "label"
+      - "rhythmLabel"
+    chart_required_fields:
+      - "date"
+      - "close"
+      - "ma20"
+      - "ma60"
+      - "ma250"
     core_topic_summary_additional_required_fields:
       - "belowMa250FiveDays"
       - "ma60Near"

@@ -3,7 +3,7 @@
 ```yaml
 contract:
   id: hk_qdii_watch
-  version: 2.0.0
+  version: 2.2.0
   mode: production_extension
   production_integrated: true
   unified_overview_target_count: 23
@@ -86,6 +86,23 @@ freshness:
     - 缺少字段或不足250条成分日线时生成失败
 
 strategy:
+  chart_indicators:
+    ma20:
+      window: 20
+      function: simple_moving_average
+      role: diagnostic_and_auxiliary_label
+      affects_stage_or_primary_label: false
+  short_term_rhythm:
+    output_field: rhythmLabel
+    role: auxiliary_label_only
+    affects_stage_or_primary_label: false
+    ma20_rising: latest_MA20 > MA20_5_trade_days_ago
+    first_match:
+      - 短期转强: latest_close >= latest_MA20 AND latest_MA20 >= latest_MA60 AND ma20_rising
+      - 低位反弹: latest_close >= latest_MA20 AND latest_MA20 < latest_MA60
+      - 上升回踩: latest_close < latest_MA20 AND latest_MA20 >= latest_MA60 AND ma20_rising
+      - 短期转弱: latest_close < latest_MA20 AND NOT ma20_rising
+      - 震荡整理: otherwise_or_missing_indicator
   stage_1:
     name: 低位收敛
     object_by_target:
@@ -167,7 +184,7 @@ execution:
 
 ## Machine invariants
 
-- This contract extends the 20-target A-share core into one 22-target production overview.
+- This contract extends the 21-target A-share core into one 23-target production overview.
 - Keep HK calculation engines separate from the A-share generator; unify only at orchestration, overview, validation and publication layers.
 - Treat 017832.OF as a feeder display identity; calculate its strategy from 513230.SH and 931454.CSI.
 - Never interpret ETF proxy values as official Hang Seng Consumption Index points.
@@ -175,5 +192,6 @@ execution:
 - For 513230.SH, use official `index_weight` values and never replace them with market-cap guesses.
 - Never use a rank 4-10 event as strict leader confirmation.
 - Never allow a stale constituent to confirm an event or breadth.
+- Treat `rhythmLabel` as an MA20 diagnostic label only; it must not alter any stage or the primary startup label.
 - Both HK outputs must set `meta.productionIntegrated=true` before overview merge or publication.
 - Publish `data/hk_qdii/**` only after the same main-branch, date monotonicity, test and Vercel guards used by the core workflow pass.

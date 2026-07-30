@@ -33,6 +33,7 @@ def build_overview_row(config: dict[str, Any], dashboard: dict[str, Any]) -> dic
         "indexCode": target["indexCode"],
         "indexName": target["indexName"],
         "label": summary["label"],
+        "rhythmLabel": summary["rhythmLabel"],
         "latestDate": meta["latestDate"],
         "weightDate": meta["constituentDate"],
         "latestClose": target["latestClose"],

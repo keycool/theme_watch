@@ -303,6 +303,37 @@ def evaluate_strategy_label(
     return "未启动"
 
 
+def evaluate_short_term_rhythm(index_daily: pd.DataFrame) -> str:
+    if len(index_daily) < 6:
+        return "震荡整理"
+
+    latest = index_daily.iloc[-1]
+    five_days_ago = index_daily.iloc[-6]
+    values = [
+        latest.get("close"),
+        latest.get("ma20"),
+        latest.get("ma60"),
+        five_days_ago.get("ma20"),
+    ]
+    if any(pd.isna(value) for value in values):
+        return "震荡整理"
+
+    close = float(latest["close"])
+    ma20 = float(latest["ma20"])
+    ma60 = float(latest["ma60"])
+    ma20_rising = ma20 > float(five_days_ago["ma20"])
+
+    if close >= ma20 and ma20 >= ma60 and ma20_rising:
+        return "短期转强"
+    if close >= ma20 and ma20 < ma60:
+        return "低位反弹"
+    if close < ma20 and ma20 >= ma60 and ma20_rising:
+        return "上升回踩"
+    if close < ma20 and not ma20_rising:
+        return "短期转弱"
+    return "震荡整理"
+
+
 def evaluate_breakout_state(index_daily: pd.DataFrame) -> dict:
     latest = index_daily.iloc[-1]
     above_ma60 = bool(
@@ -493,6 +524,7 @@ def build_topic(
         aggregate_amount["core_amount"] / aggregate_amount["amount_ma20"]
     )
 
+    index_daily["ma20"] = index_daily["close"].rolling(20).mean()
     index_daily["ma60"] = index_daily["close"].rolling(60).mean()
     index_daily["ma250"] = index_daily["close"].rolling(250).mean()
     index_daily = index_daily.merge(
@@ -514,6 +546,7 @@ def build_topic(
         .rank(pct=True)
     )
     latest = index_daily.iloc[-1]
+    rhythm_label = evaluate_short_term_rhythm(index_daily)
     last_120 = index_daily.tail(120).copy()
     structure_state = evaluate_structure_state(index_daily)
     below_ma250_days = structure_state["belowMa250Days"]
@@ -769,6 +802,7 @@ def build_topic(
         },
         "summary": {
             "label": final_label,
+            "rhythmLabel": rhythm_label,
             "conclusion": conclusion,
             "coreCount": len(component_rows),
             "coreCoverage": as_float(sum(usable_core_weights)),
@@ -953,6 +987,7 @@ def build_topic(
             {
                 "date": str(row["trade_date"]),
                 "close": as_float(row["close"]),
+                "ma20": as_float(row["ma20"]),
                 "ma60": as_float(row["ma60"]),
                 "ma250": as_float(row["ma250"]),
                 "amountRatio20": as_float(row["amount_ratio20"]),
@@ -1210,6 +1245,7 @@ def main(end_date: str | None = None) -> None:
                 "indexCode": topic["target"]["indexCode"],
                 "indexName": topic["target"]["indexName"],
                 "label": topic["summary"]["label"],
+                "rhythmLabel": topic["summary"]["rhythmLabel"],
                 "conclusion": topic["summary"]["conclusion"],
                 "latestDate": topic["meta"]["latestDate"],
                 "weightDate": topic["meta"]["weightDate"],

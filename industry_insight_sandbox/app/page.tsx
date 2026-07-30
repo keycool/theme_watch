@@ -9,6 +9,7 @@ import StatusStrip from "./components/StatusStrip";
 type OverviewData = typeof bundledOverviewData;
 type Target = OverviewData["targets"][number] & {
   absorptionRankPct?: number | null;
+  rhythmLabel?: string;
   route?: string;
 };
 type StageState = Target["stageStates"][number] & { warning?: boolean };
@@ -61,9 +62,12 @@ function TargetRow({ target }: { target: Target }) {
         <strong>{target.indexName}</strong>
         <small className="mono">{target.indexCode}</small>
       </div>
-      <div>
+      <div className="target-row-status">
         <span className={`overview-label ${labelClass(target.label)}`}>
           {target.label}
+        </span>
+        <span className="rhythm-label">
+          {target.rhythmLabel ?? "节奏待更新"}
         </span>
       </div>
       <div className="target-row-stages">
@@ -126,7 +130,7 @@ function DashboardHeader() {
     <div className="target-dashboard-head" aria-hidden="true">
       <span>标的</span>
       <span>判断指数</span>
-      <span>启动状态</span>
+      <span>启动 / 短期</span>
       <span>三层启动条件</span>
       <span>距MA250</span>
       <span>资金分位</span>
