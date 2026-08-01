@@ -146,6 +146,10 @@ test("the unified target universe and generated datasets stay aligned", async ()
       topic.stages.map((stage) => stage.title),
       ["低位收敛", "带量突破年线", "权重龙头确认"],
     );
+    const fundingItem = topic.stages
+      .find((stage) => stage.id === "breakout")
+      ?.items.find((item) => item.title === "资金持续集中");
+    assert.match(fundingItem?.value ?? "", /（\d\/3达标）$/);
   }
 });
 

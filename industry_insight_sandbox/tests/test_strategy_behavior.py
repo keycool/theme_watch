@@ -323,6 +323,8 @@ class BreakoutBehaviorTest(unittest.TestCase):
 
         self.assertTrue(state["ma60Watch"])
         self.assertTrue(state["holdTwoDays"])
+        self.assertEqual(state["fundingRanks"], [0.80, 0.80, 0.80])
+        self.assertEqual(state["fundingQualifiedDays"], 3)
         self.assertTrue(state["fundingConfirmed"])
         self.assertTrue(state["confirmed"])
 
@@ -332,6 +334,8 @@ class BreakoutBehaviorTest(unittest.TestCase):
         )
 
         self.assertTrue(state["holdTwoDays"])
+        self.assertEqual(state["fundingRanks"], [0.80, 0.7999, 0.80])
+        self.assertEqual(state["fundingQualifiedDays"], 2)
         self.assertFalse(state["fundingConfirmed"])
         self.assertTrue(state["emerged"])
         self.assertFalse(state["confirmed"])

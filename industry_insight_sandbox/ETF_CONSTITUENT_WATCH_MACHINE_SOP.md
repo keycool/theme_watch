@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "2.1.0"
+  version: "2.1.1"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -328,6 +328,7 @@ strategy:
       formula: "last_3_trade_days_all(absorption_rank_pct >= 0.80)"
       percentile_threshold: 0.80
       consecutive_trade_days: 3
+      display_value: "last_3_absorption_rank_pct values joined by ' / ' plus qualified_day_count / 3"
     pass_formula: "price_confirmation AND funding_confirmation"
     emerged_formula: "price_confirmation OR funding_confirmation"
     warning_formula: "ma60_observation_window AND NOT pass"

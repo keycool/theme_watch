@@ -379,6 +379,14 @@ def evaluate_breakout_state(index_daily: pd.DataFrame) -> dict:
         else None
     )
     last_three_funding_ranks = index_daily.tail(3)["absorption_rank_pct"]
+    funding_ranks = [
+        float(rank) if pd.notna(rank) else None
+        for rank in last_three_funding_ranks.tolist()
+    ]
+    funding_qualified_days = sum(
+        rank is not None and rank >= FUNDING_CONFIRM_PERCENTILE
+        for rank in funding_ranks
+    )
     funding_confirmed = bool(
         len(last_three_funding_ranks) == 3
         and last_three_funding_ranks.notna().all()
@@ -402,6 +410,8 @@ def evaluate_breakout_state(index_daily: pd.DataFrame) -> dict:
         "amountRatioLatest": amount_ratio_latest,
         "holdTwoDays": hold_two_days_ok,
         "absorptionRankLatest": absorption_rank_latest,
+        "fundingRanks": funding_ranks,
+        "fundingQualifiedDays": funding_qualified_days,
         "fundingConfirmed": funding_confirmed,
         "crowdingHot": crowding_hot,
         "crowdingOverheated": crowding_overheated,
@@ -592,6 +602,8 @@ def build_topic(
     amount_ratio_latest = breakout_state["amountRatioLatest"]
     hold_two_days_ok = breakout_state["holdTwoDays"]
     absorption_rank_latest = breakout_state["absorptionRankLatest"]
+    funding_ranks = breakout_state["fundingRanks"]
+    funding_qualified_days = breakout_state["fundingQualifiedDays"]
     funding_confirmed = breakout_state["fundingConfirmed"]
     crowding_hot = breakout_state["crowdingHot"]
     crowding_overheated = breakout_state["crowdingOverheated"]
@@ -920,13 +932,16 @@ def build_topic(
                     condition(
                         "资金持续集中",
                         funding_confirmed,
-                        (
-                            "-"
-                            if absorption_rank_latest is None
-                            else f"{absorption_rank_latest:.0%}"
-                        ),
+                        " / ".join(
+                            [
+                                "-" if rank is None else f"{rank:.0%}"
+                                for rank in funding_ranks
+                            ]
+                            + ["-"] * (3 - len(funding_ranks))
+                        )
+                        + f"（{funding_qualified_days}/3达标）",
                         "指数成交额占全A成交额的历史分位连续3日 ≥ 80%",
-                        "使用过去252个交易日的自身历史分位判断增量资金。",
+                        "逐日展示最近3日分位；只有3日全部达到80%才完成资金确认。",
                     ),
                     condition(
                         "拥挤风险",
