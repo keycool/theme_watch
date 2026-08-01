@@ -27,7 +27,7 @@ sop:
     - "secrets"
     - "failure_contract"
   last_verified:
-    date: "2026-07-30"
+    date: "2026-08-01"
     implementation_baseline_ref: "same_git_commit_as_this_file"
 
 authority:
