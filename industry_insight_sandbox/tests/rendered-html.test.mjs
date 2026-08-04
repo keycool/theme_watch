@@ -413,7 +413,8 @@ test("keeps production publication on main and after Vercel succeeds", async () 
   );
 
   assert.match(workflow, /push:\s+branches:\s+- main/);
-  assert.match(workflow, /cron: "25 22 \* \* 1-5"\s+timezone: "Asia\/Shanghai"/);
+  assert.match(workflow, /cron: "5 21 \* \* 1-5"\s+timezone: "Asia\/Shanghai"/);
+  assert.match(workflow, /cron: "30 22 \* \* 1-5"\s+timezone: "Asia\/Shanghai"/);
   assert.doesNotMatch(workflow, /codex\/\*\*/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /group: etf-constituent-production/);
@@ -445,6 +446,8 @@ test("checks every formal target and resolved tracking index before schedule", a
   assert.match(workflow, /check_tushare_readiness\.py/);
   assert.match(workflow, /max_attempts=3/);
   assert.match(workflow, /wait_seconds=600/);
+  assert.match(workflow, /cron: "5 21 \* \* 1-5"/);
+  assert.match(workflow, /cron: "30 22 \* \* 1-5"/);
   assert.match(workflow, /sleep "\$wait_seconds"/);
   assert.match(workflow, /\$reason" != "daily_data_incomplete"/);
   assert.match(workflow, /\$already_current" == "true"/);
@@ -457,6 +460,8 @@ test("checks every formal target and resolved tracking index before schedule", a
   assert.match(workflow, /cp -R industry_insight_sandbox\/data\/hk_qdii/);
   assert.match(readiness, /pro\.etf_basic\(/);
   assert.match(readiness, /unresolved_etfs/);
+  assert.match(readiness, /completed_calendar_end/);
+  assert.match(readiness, /latest_unpublished_trade_date/);
   assert.match(readiness, /live_overview_is_current/);
   assert.match(readiness, /emit\("reason", "already_current"\)/);
 });

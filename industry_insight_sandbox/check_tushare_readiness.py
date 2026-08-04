@@ -12,6 +12,11 @@ from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 from guard_production_date import extract_latest_date
+from trading_calendar import (
+    calendar_start_date,
+    completed_calendar_end,
+    latest_unpublished_trade_date,
+)
 
 
 DEFAULT_TARGETS_PATH = Path(__file__).resolve().parent / "targets.json"
@@ -175,31 +180,18 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    target_date = args.target_date or datetime.now(
-        ZoneInfo("Asia/Shanghai")
-    ).strftime("%Y%m%d")
     targets = json.loads(args.targets.read_text(encoding="utf-8"))
     hk_targets = json.loads(args.hk_targets.read_text(encoding="utf-8"))
-    emit("end_date", target_date)
     emit("target_count", len(targets) + len(hk_targets))
 
+    live_latest_date: str | None = None
     try:
         live_overview = read_live_overview(args.live_overview_url)
         live_latest_date = extract_latest_date(live_overview)
-        already_current = live_overview_is_current(
-            live_overview,
-            target_date,
-        )
         emit("live_latest_date", live_latest_date)
-        emit("already_current", already_current)
-        if already_current:
-            emit("data_ready", False)
-            emit("reason", "already_current")
-            return 0
     except Exception as exc:
         print(f"Live overview check unavailable: {exc}", file=sys.stderr)
         emit("live_latest_date", "unavailable")
-        emit("already_current", False)
 
     token = os.environ.get("TUSHARE_TOKEN", "").strip()
     if not token:
@@ -208,6 +200,40 @@ def main() -> int:
     import tushare as ts
 
     pro = ts.pro_api(token)
+
+    now = datetime.now(ZoneInfo("Asia/Shanghai"))
+    calendar_end = completed_calendar_end(now)
+    if args.target_date:
+        target_date = args.target_date
+        calendar_start = target_date
+    else:
+        calendar_start = calendar_start_date(calendar_end, live_latest_date)
+        calendar = fetch_with_retry(
+            lambda: pro.trade_cal(
+                exchange="SSE",
+                start_date=calendar_start,
+                end_date=calendar_end,
+                fields="cal_date,is_open",
+            )
+        )
+        target_date = latest_unpublished_trade_date(
+            calendar.to_dict("records"),
+            live_latest_date,
+            now,
+        )
+
+    emit("end_date", target_date)
+    already_current = bool(
+        live_latest_date and live_overview_is_current(
+            {"targets": [{"latestDate": live_latest_date}]},
+            target_date,
+        )
+    )
+    emit("already_current", already_current)
+    if already_current:
+        emit("data_ready", False)
+        emit("reason", "already_current")
+        return 0
 
     calendar = fetch_with_retry(
         lambda: pro.trade_cal(

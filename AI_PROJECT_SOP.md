@@ -32,7 +32,9 @@ systems:
     ci_orchestrator: .github/workflows/etf-constituent-daily.yml
     schedule:
       timezone: Asia/Shanghai
-      cron: "25 22 * * 1-5"
+      crons:
+        - "5 21 * * 1-5"
+        - "30 22 * * 1-5"
     production_url: https://etf-core-constituent-watch.vercel.app
     live_data_branch: etf-watch-data
 

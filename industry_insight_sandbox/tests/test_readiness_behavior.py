@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import sys
 import unittest
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -16,6 +18,15 @@ from check_tushare_readiness import (
     frame_has_trade_date,
     live_overview_is_current,
 )
+from trading_calendar import (
+    completed_calendar_end,
+    latest_completed_trade_date,
+    latest_unpublished_trade_date,
+)
+
+ROOT_DIR = SANDBOX_DIR.parent
+sys.path.insert(0, str(ROOT_DIR))
+from run_etf_constituent_workflow import _default_end_date
 
 
 class ReadinessUniverseBehaviorTest(unittest.TestCase):
@@ -105,6 +116,14 @@ class ReadinessUniverseBehaviorTest(unittest.TestCase):
 
 
 class TradeDateBehaviorTest(unittest.TestCase):
+    CALENDAR = [
+        {"cal_date": "20260730", "is_open": 1},
+        {"cal_date": "20260731", "is_open": 1},
+        {"cal_date": "20260801", "is_open": 0},
+        {"cal_date": "20260802", "is_open": 0},
+        {"cal_date": "20260803", "is_open": 1},
+    ]
+
     def test_requires_target_date_and_minimum_row_count(self) -> None:
         frame = pd.DataFrame(
             {
@@ -118,6 +137,40 @@ class TradeDateBehaviorTest(unittest.TestCase):
         self.assertFalse(
             frame_has_trade_date(frame, "20260724", minimum_rows=3)
         )
+
+    def test_weekend_uses_previous_completed_trade_date(self) -> None:
+        saturday = datetime(2026, 8, 1, 0, 14, tzinfo=ZoneInfo("Asia/Shanghai"))
+
+        self.assertEqual(completed_calendar_end(saturday), "20260731")
+        self.assertEqual(
+            latest_completed_trade_date(self.CALENDAR, saturday),
+            "20260731",
+        )
+
+    def test_readiness_selects_latest_unpublished_trade_date(self) -> None:
+        monday_evening = datetime(2026, 8, 3, 22, 25, tzinfo=ZoneInfo("Asia/Shanghai"))
+
+        self.assertEqual(
+            latest_unpublished_trade_date(
+                self.CALENDAR,
+                "20260730",
+                monday_evening,
+            ),
+            "20260803",
+        )
+        self.assertEqual(
+            latest_unpublished_trade_date(
+                self.CALENDAR,
+                "20260731",
+                monday_evening,
+            ),
+            "20260803",
+        )
+
+    def test_orchestrator_default_date_uses_trade_calendar(self) -> None:
+        saturday = datetime(2026, 8, 1, 0, 14, tzinfo=ZoneInfo("Asia/Shanghai"))
+
+        self.assertEqual(_default_end_date(saturday, self.CALENDAR), "20260731")
 
 
 class LiveOverviewBehaviorTest(unittest.TestCase):

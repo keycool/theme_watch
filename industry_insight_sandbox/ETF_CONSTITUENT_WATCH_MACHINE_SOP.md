@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "2.1.1"
+  version: "2.1.3"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -27,7 +27,7 @@ sop:
     - "secrets"
     - "failure_contract"
   last_verified:
-    date: "2026-08-01"
+    date: "2026-08-04"
     implementation_baseline_ref: "same_git_commit_as_this_file"
 
 authority:
@@ -43,6 +43,7 @@ authority:
   local_orchestrator: "run_etf_constituent_workflow.py"
   ci_orchestrator: ".github/workflows/etf-constituent-daily.yml"
   scheduled_readiness_checker: "industry_insight_sandbox/check_tushare_readiness.py"
+  trade_date_selector: "industry_insight_sandbox/trading_calendar.py"
   production_date_guard: "industry_insight_sandbox/guard_production_date.py"
   rendered_page_tests: "industry_insight_sandbox/tests/rendered-html.test.mjs"
   overview_sorting: "industry_insight_sandbox/app/page.tsx"
@@ -426,8 +427,10 @@ execution:
     validate_only_command: "py -B ./run_etf_constituent_workflow.py --end-date ${end_date:YYYYMMDD} --validate-only"
     allow_non_trade_day_flag: "--allow-non-trade-day"
     default_end_date:
-      before_local_hour_16: "previous_calendar_day"
-      at_or_after_local_hour_16: "current_calendar_day"
+      selection: "latest_completed_SSE_trade_date"
+      before_local_hour_16: "latest_open_SSE_trade_date_before_current_calendar_day"
+      at_or_after_local_hour_16: "latest_open_SSE_trade_date_through_current_calendar_day"
+      weekend_and_holiday_safe: true
     trade_day_policy:
       calendar: "SSE"
       non_trade_day_without_override: "status_skipped_exit_0"
@@ -439,8 +442,10 @@ execution:
       contents: "write"
     triggers:
       schedule:
-        cron: "25 22 * * 1-5"
         timezone: "Asia/Shanghai"
+        crons:
+          - "5 21 * * 1-5"
+          - "30 22 * * 1-5"
       workflow_dispatch:
         inputs:
           end_date:
@@ -467,8 +472,11 @@ execution:
           - "industry_insight_sandbox/**"
     scheduled_data_readiness:
       applies_to_event: "schedule"
-      target_date_formula: "current_date_in_Asia/Shanghai"
-      non_trading_day_result: "data_ready_false"
+      target_date_formula: "latest_completed_SSE_trade_date_after_live_latest_date"
+      fallback_when_live_date_unavailable: "latest_completed_SSE_trade_date"
+      backlog_order: "latest_unpublished_trade_date_first"
+      current_day_cutoff: "before_local_hour_16_uses_previous_calendar_day; at_or_after_local_hour_16_uses_current_calendar_day"
+      non_trading_day_result: "not_selected_as_target_date"
       target_sources:
         - "industry_insight_sandbox/targets.json"
         - "industry_insight_sandbox/hk_qdii_targets.json"
@@ -617,7 +625,7 @@ validation:
       - "权重龙头确认"
   site_test:
     command: "cd industry_insight_sandbox && npm test"
-    expected_python_behavior_test_count: 50
+    expected_python_behavior_test_count: 53
     expected_node_render_test_count: 11
     behavior_test_files:
       - "industry_insight_sandbox/tests/test_strategy_behavior.py"
@@ -646,6 +654,9 @@ validation:
       - "readiness_requires_target_date_and_minimum_rows"
       - "same_day_live_overview_short_circuits_readiness"
       - "older_live_overview_does_not_short_circuit_readiness"
+      - "weekend_uses_previous_completed_trade_date"
+      - "readiness_selects_latest_unpublished_trade_date"
+      - "orchestrator_default_date_uses_trade_calendar"
       - "production_date_extracts_single_live_date"
       - "production_date_blocks_implicit_rollback"
       - "production_date_requires_exact_human_confirmation"

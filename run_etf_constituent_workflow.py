@@ -3,12 +3,19 @@ from __future__ import annotations
 import argparse
 import json
 import locale
+import os
 import subprocess
 import sys
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from industry_insight_sandbox.trading_calendar import (
+    calendar_start_date,
+    completed_calendar_end,
+    latest_completed_trade_date,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -30,11 +37,25 @@ HK_TARGET_COUNT = 2
 TOTAL_TARGET_COUNT = CORE_TARGET_COUNT + HK_TARGET_COUNT
 
 
-def _default_end_date() -> str:
-    now = datetime.now()
-    if now.hour < 16:
-        now -= timedelta(days=1)
-    return now.strftime("%Y%m%d")
+def _default_end_date(
+    now: datetime | None = None,
+    trade_calendar: list[dict[str, object]] | None = None,
+) -> str:
+    if trade_calendar is None:
+        import tushare as ts
+
+        token = os.environ.get("TUSHARE_TOKEN", "").strip() or ts.get_token()
+        if not token:
+            raise RuntimeError("TUSHARE_TOKEN is not configured.")
+        pro = ts.pro_api(token)
+        calendar_end = completed_calendar_end(now)
+        trade_calendar = pro.trade_cal(
+            exchange="SSE",
+            start_date=calendar_start_date(calendar_end),
+            end_date=calendar_end,
+            fields="cal_date,is_open",
+        ).to_dict("records")
+    return latest_completed_trade_date(trade_calendar, now)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -42,7 +63,7 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Run the isolated ETF/index constituent observation workflow."
     )
     parser.add_argument("--run-id", default="")
-    parser.add_argument("--end-date", default=_default_end_date())
+    parser.add_argument("--end-date")
     parser.add_argument("--trigger-type", default="manual")
     parser.add_argument("--allow-non-trade-day", action="store_true")
     parser.add_argument(
@@ -580,7 +601,7 @@ def _write_summary(
 
 def main() -> None:
     args = _build_parser().parse_args()
-    end_date = _validate_date(args.end_date)
+    end_date = _validate_date(args.end_date or _default_end_date())
     run_id = args.run_id or (
         f"{args.trigger_type}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     )
