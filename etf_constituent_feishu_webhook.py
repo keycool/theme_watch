@@ -9,7 +9,6 @@ import os
 import time
 import urllib.error
 import urllib.request
-from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -48,24 +47,9 @@ def _status_label(status: str) -> str:
     }.get(status, status or "未知")
 
 
-def _format_labels(labels: dict[str, Any]) -> str:
-    preferred = ["趋势延续", "观察中", "未启动", "启动确认"]
-    ordered = [
-        f"{label} {labels[label]}"
-        for label in preferred
-        if label in labels
-    ]
-    ordered.extend(
-        f"{label} {count}"
-        for label, count in labels.items()
-        if label not in preferred
-    )
-    return "｜".join(ordered) if ordered else "无"
-
-
 def _format_named_targets(overview: dict[str, Any], label: str) -> str:
     targets = [
-        f"{item.get('name', '')}({item.get('code', '')})"
+        str(item.get("name", ""))
         for item in overview.get("targets", [])
         if item.get("label") == label
     ]
@@ -109,15 +93,8 @@ def _build_text(
                 if item.get("weightDate")
             }
         ),
-        "labels": dict(
-            Counter(
-                item.get("label", "未知")
-                for item in overview_targets
-            )
-        ),
     }
     metrics = {**derived_metrics, **summary.get("metrics", {})}
-    labels = metrics.get("labels", {})
     issues = summary.get("issues", [])
     issues_text = "无" if not issues else "；".join(str(item) for item in issues[:5])
     weight_dates = metrics.get("weight_dates", [])
@@ -133,9 +110,10 @@ def _build_text(
             f"{metrics.get('target_count', 0)} 个"
             f"（ETF {metrics.get('etf_count', 0)}｜指数 {metrics.get('index_count', 0)}）"
         ),
-        f"标签分布：{_format_labels(labels)}",
         f"趋势延续：{_format_named_targets(overview, '趋势延续')}",
+        f"接近启动：{_format_named_targets(overview, '接近启动')}",
         f"观察中：{_format_named_targets(overview, '观察中')}",
+        f"未启动：{_format_named_targets(overview, '未启动')}",
         f"指数权重日：{weight_text}",
         f"问题：{issues_text}",
     ]
