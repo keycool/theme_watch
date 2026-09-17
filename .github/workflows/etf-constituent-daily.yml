@@ -194,8 +194,11 @@ jobs:
         shell: bash
         run: |
           if git fetch origin etf-watch-data --depth=1; then
-            git show FETCH_HEAD:signal_followup.json \
-              > industry_insight_sandbox/data/signal_followup.json || true
+            restored_file="$(mktemp)"
+            if git show FETCH_HEAD:signal_followup.json > "$restored_file"; then
+              cp "$restored_file" industry_insight_sandbox/data/signal_followup.json
+            fi
+            rm -f "$restored_file"
           fi
 
       - name: Calculate unified ETF and HK QDII observations

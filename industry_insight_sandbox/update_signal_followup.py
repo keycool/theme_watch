@@ -240,11 +240,9 @@ def main() -> None:
         json.loads((ROOT / target["dataFile"]).read_text(encoding="utf-8"))
         for target in hk_targets
     ]
-    previous = (
-        json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
-        if OUTPUT_PATH.exists()
-        else None
-    )
+    previous = None
+    if OUTPUT_PATH.exists() and OUTPUT_PATH.stat().st_size > 0:
+        previous = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
     followup = build_signal_followup(overview, core_topics, hk_topics, previous)
     OUTPUT_PATH.write_text(
         json.dumps(followup, ensure_ascii=False, indent=2), encoding="utf-8"
