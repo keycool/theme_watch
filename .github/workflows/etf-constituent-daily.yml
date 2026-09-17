@@ -209,16 +209,17 @@ jobs:
           if [[ "$WORKFLOW_ALLOW_NON_TRADE_DAY" == "true" ]]; then
             args+=(--allow-non-trade-day)
           fi
+          output_file="$(mktemp)"
           set +e
-          output="$("${args[@]}" 2>&1)"
-          exit_code=$?
+          "${args[@]}" 2>&1 | tee "$output_file"
+          exit_code=${PIPESTATUS[0]}
           set -e
-          printf '%s\n' "$output"
-          run_status="$(printf '%s\n' "$output" | awk -F= '$1 == "status" { print $2 }' | tail -n 1)"
+          run_status="$(awk -F= '$1 == "status" { print $2 }' "$output_file" | tail -n 1)"
           if [[ -z "$run_status" ]]; then
             run_status="failed"
           fi
           echo "run_status=$run_status" >> "$GITHUB_OUTPUT"
+          rm -f "$output_file"
           exit "$exit_code"
 
       - name: Build and verify all pages

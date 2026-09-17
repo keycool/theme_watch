@@ -107,6 +107,14 @@ def fetch_market_amount_history(
     amount_by_date = history.set_index("trade_date")["market_amount"].to_dict()
     latest_date = trade_dates[-1]
 
+    def persist_cache() -> None:
+        pd.DataFrame(
+            [
+                {"trade_date": trade_date, "market_amount": amount}
+                for trade_date, amount in sorted(amount_by_date.items())
+            ]
+        ).to_csv(path, index=False, encoding="utf-8-sig")
+
     for index, trade_date in enumerate(trade_dates, start=1):
         if trade_date in amount_by_date and trade_date != latest_date:
             continue
@@ -134,7 +142,11 @@ def fetch_market_amount_history(
             ) from last_error
         time.sleep(0.12)
         if index % 25 == 0:
-            print(f"  market amount history {index}/{len(trade_dates)}")
+            persist_cache()
+            print(
+                f"  market amount history {index}/{len(trade_dates)}",
+                flush=True,
+            )
 
     result = pd.DataFrame(
         [
@@ -143,7 +155,7 @@ def fetch_market_amount_history(
             if trade_date in amount_by_date
         ]
     )
-    result.to_csv(path, index=False, encoding="utf-8-sig")
+    persist_cache()
     return result
 
 

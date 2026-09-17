@@ -126,20 +126,28 @@ def _run_generators(end_date: str, log_path: Path) -> int:
     ]
     log_sections: list[str] = []
     for command in commands:
-        completed = subprocess.run(
+        process = subprocess.Popen(
             command,
             cwd=SANDBOX_DIR,
-            capture_output=True,
-            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
         )
-        output_bytes = completed.stdout or b""
-        if completed.stderr:
-            output_bytes += (b"\n" if output_bytes else b"") + completed.stderr
-        output = _decode_output(output_bytes)
+        output_lines: list[str] = []
+        assert process.stdout is not None
+        for line in process.stdout:
+            print(line, end="", flush=True)
+            output_lines.append(line.rstrip("\n"))
+        process.stdout.close()
+        returncode = process.wait()
+        output = "\n".join(output_lines)
         log_sections.append(f"$ {' '.join(command)}\n{output}".rstrip())
-        if completed.returncode:
-            log_path.write_text("\n\n".join(log_sections) + "\n", encoding="utf-8")
-            return completed.returncode
+        log_path.write_text("\n\n".join(log_sections) + "\n", encoding="utf-8")
+        if returncode:
+            return returncode
     log_path.write_text("\n\n".join(log_sections) + "\n", encoding="utf-8")
     return 0
 
