@@ -13,6 +13,7 @@ from generate_hk_qdii_dashboard_data import (
     CROWDING_HOT_PERCENTILE,
     FUNDING_CONFIRM_PERCENTILE,
     HISTORY_START,
+    LONG_CYCLE_MIN_TRADE_DAYS,
     LOW_BELOW_MA250_PASS_DAYS,
     LOW_DEEP_10_PASS_DAYS,
     as_float,
@@ -279,6 +280,12 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
         if pd.notna(latest["amountRank"])
         else None
     )
+    etf_amount_rank = etf_daily["amount"].rolling(252, min_periods=120).rank(pct=True)
+    etf_amount_rank_pct = (
+        as_float(float(etf_amount_rank.iloc[-1]) * 100)
+        if pd.notna(etf_amount_rank.iloc[-1])
+        else None
+    )
     feeder_latest = None
     feeder_latest_date = None
     if not feeder_nav.empty:
@@ -407,6 +414,14 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
             "latestDate": as_of,
             "constituentDate": weight_date,
             "dataStart": str(index_daily.iloc[0]["trade_date"]),
+            "historyTradeDayCount": len(index_daily),
+            "ma250ValidDayCount": int(index_daily["ma250"].notna().sum()),
+            "longCycleHistoryReady": bool(
+                len(index_daily) >= LONG_CYCLE_MIN_TRADE_DAYS
+                and int(index_daily["ma250"].notna().sum())
+                >= LONG_CYCLE_MIN_TRADE_DAYS - 249
+            ),
+            "longCycleMinimumTradeDays": LONG_CYCLE_MIN_TRADE_DAYS,
             "method": "中证港股通消费主题指数 + 正式月度权重前十大",
             "structureSource": "tracking_index",
             "structureObjectName": "港股通消费指数",
@@ -458,6 +473,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
             "ma60Gap": as_float(ma60_gap),
             "ma250Gap": as_float(ma250_gap),
             "amountRankPct": amount_rank_pct,
+            "etfAmountRankPct": etf_amount_rank_pct,
             "fundingConfirmed": funding_confirmed,
             "strictLeaderConfirmed": strict_leader_confirmed,
             "breadthConfirmed": breadth["confirmed"],

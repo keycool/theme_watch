@@ -16,6 +16,12 @@ from industry_insight_sandbox.trading_calendar import (
     completed_calendar_end,
     latest_completed_trade_date,
 )
+from industry_insight_sandbox.build_allocation_handoff import (
+    validate_allocation_handoff,
+)
+from industry_insight_sandbox.update_signal_followup import (
+    validate_signal_followup,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -26,10 +32,14 @@ HK_GENERATORS = [
     SANDBOX_DIR / "generate_hk_connect_consumer_dashboard_data.py",
 ]
 OVERVIEW_MERGER = SANDBOX_DIR / "merge_hk_qdii_overview.py"
+ALLOCATION_HANDOFF_BUILDER = SANDBOX_DIR / "build_allocation_handoff.py"
+SIGNAL_FOLLOWUP_BUILDER = SANDBOX_DIR / "update_signal_followup.py"
 TARGETS_PATH = SANDBOX_DIR / "targets.json"
 HK_TARGETS_PATH = SANDBOX_DIR / "hk_qdii_targets.json"
 OVERVIEW_PATH = SANDBOX_DIR / "data" / "overview.json"
 ALL_TOPICS_PATH = SANDBOX_DIR / "data" / "all_topics.json"
+ALLOCATION_HANDOFF_PATH = SANDBOX_DIR / "data" / "allocation_handoff.json"
+SIGNAL_FOLLOWUP_PATH = SANDBOX_DIR / "data" / "signal_followup.json"
 TOPIC_DIR = SANDBOX_DIR / "data" / "topics"
 SUMMARY_DIR = ROOT / "logs" / "etf_constituent_workflow"
 CORE_TARGET_COUNT = 23
@@ -111,6 +121,8 @@ def _run_generators(end_date: str, log_path: Path) -> int:
             for generator in HK_GENERATORS
         ],
         [sys.executable, str(OVERVIEW_MERGER)],
+        [sys.executable, str(ALLOCATION_HANDOFF_BUILDER)],
+        [sys.executable, str(SIGNAL_FOLLOWUP_BUILDER)],
     ]
     log_sections: list[str] = []
     for command in commands:
@@ -417,7 +429,14 @@ def _validate_ma_lifecycle(topic: dict[str, Any]) -> list[str]:
 
 def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
     issues: list[str] = []
-    required = [TARGETS_PATH, HK_TARGETS_PATH, OVERVIEW_PATH, ALL_TOPICS_PATH]
+    required = [
+        TARGETS_PATH,
+        HK_TARGETS_PATH,
+        OVERVIEW_PATH,
+        ALL_TOPICS_PATH,
+        ALLOCATION_HANDOFF_PATH,
+        SIGNAL_FOLLOWUP_PATH,
+    ]
     missing = [str(path.relative_to(ROOT)) for path in required if not path.exists()]
     if missing:
         return [f"Missing required output: {', '.join(missing)}"], {}
@@ -426,6 +445,8 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
     hk_targets = _read_json(HK_TARGETS_PATH)
     overview = _read_json(OVERVIEW_PATH)
     topics = _read_json(ALL_TOPICS_PATH)
+    allocation_handoff = _read_json(ALLOCATION_HANDOFF_PATH)
+    signal_followup = _read_json(SIGNAL_FOLLOWUP_PATH)
 
     core_codes = {item["code"] for item in targets}
     hk_codes = {item["code"] for item in hk_targets}
@@ -466,6 +487,15 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
         issues.append(f"Overview hkQdiiCount is not {HK_TARGET_COUNT}.")
     if meta.get("etfCount") != 24 or meta.get("indexCount") != 1:
         issues.append("Overview ETF/index counts are not 24/1.")
+
+    issues.extend(
+        validate_allocation_handoff(
+            allocation_handoff,
+            expected_codes,
+            end_date,
+        )
+    )
+    issues.extend(validate_signal_followup(signal_followup, expected_codes, end_date))
 
     overview_dates = {
         item.get("latestDate") for item in overview.get("targets", [])
@@ -564,6 +594,12 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
         "weight_dates": weight_dates,
         "labels": dict(sorted(labels.items())),
         "topic_file_count": len(topic_files),
+        "allocation_handoff_target_count": allocation_handoff.get("meta", {}).get(
+            "targetCount"
+        ),
+        "signal_followup_event_count": signal_followup.get("meta", {}).get(
+            "eventCount"
+        ),
         "fresh_component_count": fresh_component_count,
         "stale_component_count": stale_component_count,
     }

@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "2.1.3"
+  version: "2.1.12"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -27,7 +27,7 @@ sop:
     - "secrets"
     - "failure_contract"
   last_verified:
-    date: "2026-08-04"
+    date: "2026-08-14"
     implementation_baseline_ref: "same_git_commit_as_this_file"
 
 authority:
@@ -40,6 +40,15 @@ authority:
     - "industry_insight_sandbox/generate_hk_qdii_dashboard_data.py"
     - "industry_insight_sandbox/generate_hk_connect_consumer_dashboard_data.py"
   unified_overview_merger: "industry_insight_sandbox/merge_hk_qdii_overview.py"
+  allocation_handoff_builder: "industry_insight_sandbox/build_allocation_handoff.py"
+  signal_followup_builder: "industry_insight_sandbox/update_signal_followup.py"
+  offline_backtest_runner: "industry_insight_sandbox/backtest_etf_watch.py"
+  expanded_universe_research_runner: "industry_insight_sandbox/expanded_universe_research.py"
+  offline_backtest_review: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_BACKTEST_REVIEW_2026-08-13.md"
+  offline_execution_simulator: "industry_insight_sandbox/backtest_execution_discipline.py"
+  offline_execution_review: "industry_insight_sandbox/ETF_WATCH_EXECUTION_DISCIPLINE_REVIEW_2026-08-14.md"
+  review_record: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_REVIEW_2026-08-13.md"
+  parameter_ledger: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_PARAMETER_LEDGER.md"
   local_orchestrator: "run_etf_constituent_workflow.py"
   ci_orchestrator: ".github/workflows/etf-constituent-daily.yml"
   scheduled_readiness_checker: "industry_insight_sandbox/check_tushare_readiness.py"
@@ -78,7 +87,7 @@ invariants:
     - "leader"
   moving_average_lifecycle_is_independent_from_primary_label: true
   benchmark_code: "000300.SH"
-  history_start: "20240101"
+  history_start: "20190101"
   production_url: "https://etf-core-constituent-watch.vercel.app"
 
 target_universe:
@@ -106,13 +115,22 @@ data:
   token_source: "TUSHARE_TOKEN"
   timezone: "Asia/Shanghai"
   history:
-    start_date: "20240101"
+    start_date: "20190101"
     end_date: "${end_date:YYYYMMDD}"
+    long_cycle_min_trade_days: 750
+    long_cycle_definition: "MA250 warm-up plus 500 additional trade-day observations"
+    primary_label_formula_changes_when_insufficient: false
+    allocation_entry_allowed_when_insufficient: false
   weight_query:
     start_date_formula: "first_day(end_date - 210 calendar days)"
     end_date_formula: "${end_date}"
     selected_snapshot: "max(trade_date)"
     lookahead_allowed: false
+    actual_age_output_required: true
+    allocation_freshness_max_calendar_days: 60
+    stale_weight_changes_primary_label: false
+    stale_weight_blocks_new_entry_or_scaling: true
+    future_weight_snapshot_allowed: false
   endpoints:
     etf_metadata:
       api: "etf_basic"
@@ -178,6 +196,30 @@ component_selection:
     stale_component_can_confirm_leader: false
 
 strategy:
+  usage_contract:
+    role: "observation_only_auxiliary_information"
+    conclusion: "expanded_sample_does_not_support_using_this_strategy_as_an_independent_capital_allocation_strategy"
+    effective_consumer_mode: "observe_only"
+    capital_allocation_authority: "none"
+    order_authority: "none"
+    external_monitor_role: "read_signals_as_context_for_a_separate_monitoring_model; do_not_convert_them_to_orders_or_position_sizes"
+    allowed_uses:
+      - "display_primary_label_and_three_stage_evidence"
+      - "display_moving_average_lifecycle_as_an_observation_signal"
+      - "display_data_freshness_weight_age_and_etf_liquidity_guards"
+      - "queue_for_human_review_or_cross_system_comparison"
+      - "record_signal_followup_as_post_event_research_only"
+    prohibited_uses:
+      - "open_position"
+      - "add_position"
+      - "reduce_position"
+      - "close_position"
+      - "calculate_cny_amount_or_account_weight"
+      - "rank_targets_as_expected_return_or_priority_to_trade"
+    legacy_wire_fields:
+      meaning: "allocation_handoff.json remains available for schema compatibility"
+      consumer_rule: "action, targetAllocationUnits, allocationInstruction and positionSignal are non-operative metadata; treat every record as observe_only"
+      do_not_infer: "starter, confirmed, risk_protection, exit or extended must not be interpreted as an executable capital instruction"
   numeric_comparison:
     equality_counts_as_above_ma: true
     null_indicator_policy: "condition_false"
@@ -270,20 +312,126 @@ strategy:
       initial_start:
         label: "初始启动"
         formula: "predecessor_path_passed AND safety_margin_passed AND previous_close < previous_ma60 AND current_close >= current_ma60"
-        capital_interface: "starter_position_eligible"
+        capital_interface: "legacy_observation_field_only"
       trend_confirmation:
         label: "年线趋势确认"
         formula: "after_initial_start AND previous_close < previous_ma250 AND current_close >= current_ma250"
         confirmation_timing: "same_trade_day_as_ma250_upward_cross"
-        capital_interface: "scale_in_eligible"
+        capital_interface: "legacy_observation_field_only"
     state_activity:
       initial_start_active: "valid_initial_start_exists AND latest_close >= latest_ma60 AND NOT trend_confirmed_active"
       trend_confirmed_active: "valid_trend_confirmation_exists AND latest_close >= latest_ma250"
       invalidated_initial_start: "valid_initial_start_exists AND latest_close < latest_ma60 AND NOT trend_confirmed_active"
     capital_execution:
-      owner: "external_monitor"
+      allocation_mode: "observation_only"
+      strategy_role: "auxiliary_observation_only; not a funded core or satellite strategy"
+      owner: "external_monitor_reads_context_only"
       strategy_executes_orders: false
+      fixed_cny_amount_provided: false
+      allocation_unit_owner: "none_for_this_strategy"
+      allocation_unit_definition: "no allocation unit is defined; any external budget model belongs to a separate monitor"
       observe_only_interface: "observe_only"
+
+  allocation_handoff:
+    output_path: "industry_insight_sandbox/data/allocation_handoff.json"
+    schema_version: "1.3"
+    allocation_mode: "event_driven_satellite"
+    effective_consumer_mode: "observation_only"
+    compatibility_only: true
+    owner: "external_monitor"
+    strategy_executes_orders: false
+    position_sizing_provided: false
+    fixed_cny_amount_provided: false
+    allocation_unit_owner: "external_monitor"
+    leader_confirmation_role: "industry_state_confirmation_only"
+    leader_stock_chase_allowed: false
+    leader_confirmation_availability: "after_immediate_next_market_trade_day_close"
+    etf_liquidity_role: "execution_metadata_only; it does not replace tracking-index absorption confirmation"
+    premium_discount_check_owner: "external_monitor"
+    allocation_unit_model:
+      purpose: "compatibility metadata only; no relative capacity or position size is defined"
+      all_values: "ignore_for_capital_decisions"
+      observe_only: "effective meaning for every record"
+      candidate_entry: "legacy label only; observe_only"
+      starter_eligible: "legacy label only; observe_only"
+      scale_in_eligible: "legacy label only; observe_only"
+      reduce_to_one_unit: "legacy label only; observe_only"
+      hold_and_monitor: "legacy label only; observe_only"
+      de_risk: "legacy label only; observe_only"
+    output_fields:
+      allocationMode: "event_driven_satellite"
+      allocationUnitOwner: "external_monitor"
+      targetAllocationUnits: "wire compatibility field; ignore regardless of value"
+      allocationInstruction: "wire compatibility field; never an instruction to act"
+      positionSignal: "observation metadata only; never a position or risk action"
+    position_signal_state_machine:
+      independent_from_primary_label: true
+      primary_label_role: "input only; it must not be changed by this state machine"
+      states:
+        watch: "observe_only"
+        candidate: "observe_only; legacy stage label"
+        starter: "observe_only; legacy stage label"
+        confirmed: "observe_only; legacy stage label"
+        extended: "observe_only; legacy stage label"
+        risk_protection: "observe_only; legacy risk context"
+        exit: "observe_only; legacy risk context"
+        data_guard: "observe_only; data-quality warning"
+      entry_guards:
+        - "all component freshness fields are complete and current"
+        - "longCycleHistoryReady == true"
+        - "weightFresh == true"
+      execution_metadata:
+        weight_age: "weightDate to topic asOf in calendar days"
+        etf_amount_rank_pct: "ETF own amount rolling 252-day percentile with min 120 observations"
+        premium_discount: "not provided by this strategy; external monitor must check before execution"
+      risk_rules:
+        ma20_profit_protection: "last_2_trade_days_all(close < ma20) AND latest_ma20 < ma20_5_trade_days_ago; advisory only and requires external position state"
+        ma60_structure_exit: "(initial_start_active OR trend_confirmed_active) AND latest_close < latest_ma60; advisory only and requires external position state"
+        funding_or_leader_risk: "not an automatic exit rule; funding remains a confirmed-stage quality gate and leader weakness remains display/risk context pending separate historical validation"
+      external_position_boundary:
+        requires_external_position_state: true
+        no_cny_amounts: true
+        no_order_instructions: true
+        no_account_cost_or_stop_loss: true
+    boundary: "the handoff provides lifecycle, quality gates, data warnings and research context only; all capital, order, entry, exit and risk decisions are outside this strategy"
+    source_scope: "unified_25_target_overview_plus_core_and_hk_topic_details"
+    action_enum:
+      - "observe_only"
+      - "candidate_entry"
+      - "starter_eligible"
+      - "scale_in_eligible"
+      - "reduce_to_one_unit"
+      - "hold_and_monitor"
+      - "de_risk"
+    action_mapping:
+      effective_consumer_semantics: "all_actions_are_observe_only"
+      legacy_action_fields_are_non_operational: true
+      de_risk: "maLifecycle.initialStartInvalidated == true OR ((maLifecycle.initialStartActive OR maLifecycle.trendConfirmedActive) AND latest_close < latest_ma60)"
+      reduce_to_one_unit: "maLifecycle.trendConfirmedActive AND MA20 profit-protection rule"
+      scale_in_eligible: "maLifecycle.trendConfirmedActive AND structure.pass AND breakout.pass AND leader.pass AND entry_data_fresh"
+      starter_eligible: "maLifecycle.initialStartActive AND entry_data_fresh"
+      candidate_entry: "primary_label == 接近启动 AND latest_close >= latest_ma60 * 0.97 AND entry_data_fresh"
+      hold_and_monitor: "primary_label == 趋势延续"
+      observe_only: "otherwise"
+    entry_priority:
+      applies_to_actions:
+        - "scale_in_eligible"
+        - "starter_eligible"
+        - "candidate_entry"
+      tie_breakers_in_order:
+        - "action_order: scale_in_eligible before starter_eligible before candidate_entry"
+        - "stage_pass_count descending"
+        - "absorption_rank_pct descending; null treated as 0"
+        - "target.order ascending"
+    required_target_fields:
+      - "action"
+      - "actionEventToday"
+      - "entryPriorityRank"
+      - "signal"
+      - "guards"
+      - "reasonCodes"
+      - "reasons"
+      - "positionSignal"
 
   stage_structure:
     id: "structure"
@@ -341,6 +489,10 @@ strategy:
   stage_leader:
     id: "leader"
     title: "权重龙头确认"
+    signal_role: "industry_state_confirmation_only"
+    trade_instruction: false
+    chase_leader_stock_allowed: false
+    explanation: "strict confirmation is only known after the immediate next market trade day; it confirms industry consensus and must not be interpreted as buying the limit-up leader"
     watched_ranks:
       strict:
         from: 1
@@ -576,6 +728,72 @@ execution:
       - "save_market_data_cache_always"
 
 validation:
+  offline_backtest:
+    decision_use: false
+    production_workflow_dependency: false
+    lookahead_allowed: false
+    default_start_date: "20190101"
+    default_end_date: "20260813"
+    horizons_trade_days: [5, 20, 60]
+    entry_execution_price: "corresponding ETF next market trade date open"
+    historical_component_rule: "use latest index weight snapshot not after each decision date"
+    current_component_backfill_allowed: false
+    current_target_universe_survivorship_bias: true
+    true_untouched_out_of_sample_available: false
+    event_independence_checks:
+      - "same-target non-overlap by horizon"
+      - "cross-target market-wave clustering"
+    partial_target_rule:
+      513970.SH: "price, funding, and moving-average lifecycle only because historical official constituent snapshots are unavailable"
+    parameter_writeback_allowed: false
+    account_execution_discipline:
+      production_decision_use: false
+      entry_event: "initial_start_today AND entry_guard_passed"
+      entry_execution: "next market trade date ETF open"
+      repeated_active_state_can_reenter: false
+      automatic_scaling_on_ma250_or_leader: false
+      compared_exit_variants:
+        - "fixed_20_only"
+        - "ma60_exit_only"
+        - "fixed_20_or_ma60"
+        - "unvalidated_20_or_ma60"
+      capacity_grid: [1, 2, 3, 5]
+      cost_bps_per_side_grid: [0, 5, 10]
+      current_forward_observation_candidate: "fixed_20_only; maximum 3 slots; one third of external satellite capacity per slot"
+      candidate_is_production_authorization: false
+    expanded_universe_research:
+      decision_use: false
+      production_workflow_dependency: false
+      lookahead_allowed: false
+      command: "py -B .\\expanded_universe_research.py --start-date 20120101 --end-date 20260813 --max-indexes 80 --complete-count 30"
+      signal_layer_pool_count: 80
+      current_target_count_in_pool: 23
+      complete_strategy_pool_count: 30
+      complete_strategy_data_start_date: "20190101"
+      pool_selection: "ETF-backed domestic industry/theme indexes; current targets prioritized; no return-based selection"
+      etf_metadata_statuses: ["L", "D", "P"]
+      execution_point_in_time_required: true
+      wave_cluster_calendar_days: 10
+      outputs:
+        - "industry_insight_sandbox/backtest_results/etf_watch_expanded_<start>_<end>.json"
+        - "industry_insight_sandbox/backtest_results/etf_watch_expanded_<start>_<end>.md"
+        - "industry_insight_sandbox/backtest_results/etf_watch_expanded_<start>_<end>_lifecycle_events.csv"
+        - "industry_insight_sandbox/backtest_results/etf_watch_expanded_<start>_<end>_waves.csv"
+        - "industry_insight_sandbox/backtest_results/etf_watch_expanded_execution_<start>_<end>.json"
+      limitations:
+        - "signal_layer_uses_index_history_before_etf_listing"
+        - "complete_strategy_layer_is_a_30_index_subpool"
+        - "current_target_priority_and_metadata_availability_do_not_equal_full_historical_universe"
+    outputs:
+      - "industry_insight_sandbox/backtest_results/etf_watch_backtest_<start>_<end>.json"
+      - "industry_insight_sandbox/backtest_results/etf_watch_backtest_<start>_<end>_events.csv"
+      - "industry_insight_sandbox/backtest_results/etf_watch_backtest_<start>_<end>_sensitivity.csv"
+      - "industry_insight_sandbox/backtest_results/etf_watch_backtest_<start>_<end>.md"
+      - "industry_insight_sandbox/backtest_results/etf_watch_execution_backtest_<start>_<end>.json"
+      - "industry_insight_sandbox/backtest_results/etf_watch_execution_backtest_<start>_<end>_summary.csv"
+      - "industry_insight_sandbox/backtest_results/etf_watch_execution_backtest_<start>_<end>_trades.csv"
+      - "industry_insight_sandbox/backtest_results/etf_watch_execution_backtest_<start>_<end>_nav.csv"
+      - "industry_insight_sandbox/backtest_results/etf_watch_execution_backtest_<start>_<end>.md"
   local_orchestrator_output_contract:
     stdout_keys:
       - "run_id"
@@ -619,19 +837,39 @@ validation:
     stale_component_can_count_as_above_ma250: false
     stale_component_can_qualify_leader_event: false
     startup_confirmation_requires_fresh_strict_leader: true
+    allocation_handoff_target_count: 25
+    allocation_handoff_codes_equal_unified_target_codes: true
+    allocation_handoff_as_of_equals_end_date: true
+    allocation_handoff_execution_owner: "external_monitor"
+    allocation_handoff_strategy_executes_orders: false
+    allocation_handoff_position_sizing_provided: false
+    allocation_handoff_fixed_cny_amount_provided: false
+    allocation_handoff_position_signal_requires_external_position_state: true
+    allocation_handoff_effective_consumer_mode: "observation_only"
+    allocation_handoff_legacy_actions_must_not_trigger_capital: true
+    allocation_handoff_target_units_must_be_ignored: true
+    stale_component_blocks_position_signal_entry_or_scaling: true
+    insufficient_long_cycle_history_blocks_position_signal_entry_or_scaling: true
+    stale_weight_blocks_position_signal_entry_or_scaling: true
+    leader_confirmation_never_authorizes_leader_stock_chasing: true
+    etf_amount_rank_does_not_replace_tracking_index_absorption: true
+    signal_followup_decision_use: false
+    signal_followup_lookahead_allowed: false
     required_stage_titles_in_order:
       - "低位收敛"
       - "带量突破年线"
       - "权重龙头确认"
   site_test:
     command: "cd industry_insight_sandbox && npm test"
-    expected_python_behavior_test_count: 53
+    expected_python_behavior_test_count: 70
     expected_node_render_test_count: 11
     behavior_test_files:
       - "industry_insight_sandbox/tests/test_strategy_behavior.py"
       - "industry_insight_sandbox/tests/test_readiness_behavior.py"
       - "industry_insight_sandbox/tests/test_publication_guards.py"
       - "industry_insight_sandbox/tests/test_moving_average_lifecycle.py"
+      - "industry_insight_sandbox/tests/test_backtest_etf_watch.py"
+      - "industry_insight_sandbox/tests/test_execution_discipline_backtest.py"
     required_behavior_cases:
       - "stale_component_own_tail_event_excluded"
       - "stale_latest_component_unqualified"
@@ -657,6 +895,13 @@ validation:
       - "weekend_uses_previous_completed_trade_date"
       - "readiness_selects_latest_unpublished_trade_date"
       - "orchestrator_default_date_uses_trade_calendar"
+      - "maps_independent_position_stages_without_execution"
+      - "ma250_cross_without_all_three_stages_cannot_scale"
+      - "entry_ranking_includes_candidate_after_confirmed_and_starter"
+      - "history_and_weight_guards_block_entry_without_changing_primary_label"
+      - "signal_followup_records_transition_and_available_horizons"
+      - "signal_followup_does_not_duplicate_continuing_label"
+      - "signal_followup_rejects_date_rollback"
       - "production_date_extracts_single_live_date"
       - "production_date_blocks_implicit_rollback"
       - "production_date_requires_exact_human_confirmation"
@@ -674,11 +919,23 @@ validation:
       - "ma250_cross_confirms_trend_on_same_day"
       - "moving_average_lifecycle_has_no_lookahead"
       - "absolute_five_percent_safety_floor"
+      - "backtest_lifecycle_vector_matches_production_engine"
+      - "backtest_future_rows_cannot_change_prior_lifecycle_state"
+      - "backtest_weight_snapshot_never_uses_future_month"
+      - "backtest_executable_return_uses_next_market_open"
+      - "backtest_unconditional_baseline_does_not_require_structure_on_sample_day"
+      - "execution_backtest_enters_at_next_market_open"
+      - "execution_backtest_does_not_reenter_while_held"
+      - "execution_backtest_unvalidated_position_exits_after_20_trade_days"
+      - "execution_backtest_breakout_validation_extends_until_ma60_failure"
+      - "execution_backtest_same_day_capacity_prefers_validated_signal"
   vercel_build_test:
     command: "cd industry_insight_sandbox && npm run build:vercel"
   required_outputs:
     - "industry_insight_sandbox/data/overview.json"
     - "industry_insight_sandbox/data/all_topics.json"
+    - "industry_insight_sandbox/data/allocation_handoff.json"
+    - "industry_insight_sandbox/data/signal_followup.json"
     - "industry_insight_sandbox/data/topics/<slug>.json"
     - "industry_insight_sandbox/data/hk_qdii/513970-sh.json"
     - "industry_insight_sandbox/data/hk_qdii/513230-sh.json"
@@ -776,6 +1033,58 @@ output_schema:
     core_topic_summary_additional_required_fields:
       - "belowMa250FiveDays"
       - "ma60Near"
+  allocation_handoff:
+    path: "industry_insight_sandbox/data/allocation_handoff.json"
+    required_meta_fields:
+      - "schemaVersion"
+      - "generatedAt"
+      - "asOf"
+      - "targetCount"
+      - "executionOwner"
+      - "strategyExecutesOrders"
+      - "positionSizingProvided"
+      - "allocationMode"
+      - "allocationUnitOwner"
+      - "fixedCnyAmountProvided"
+    required_target_fields:
+      - "code"
+      - "asOf"
+      - "action"
+      - "actionEventToday"
+      - "entryPriorityRank"
+      - "targetAllocationUnits"
+      - "allocationInstruction"
+      - "positionSignal"
+      - "primaryLabel"
+      - "lifecycleLabel"
+      - "signal"
+      - "guards"
+      - "reasonCodes"
+      - "reasons"
+    position_signal_required_fields:
+      - "stage"
+      - "referenceUnits"
+      - "newEntryAllowed"
+      - "addPositionAllowed"
+      - "entryAction"
+      - "riskAction"
+      - "reasonCodes"
+      - "riskReasonCodes"
+      - "requiresExternalPositionState"
+      - "leaderConfirmationRole"
+      - "leaderStockChaseAllowed"
+      - "executionOwner"
+  signal_followup:
+    path: "industry_insight_sandbox/data/signal_followup.json"
+    schema_version: "1.0"
+    decision_use: false
+    lookahead_allowed: false
+    tracked_signal: "启动确认 transition only"
+    horizons_trade_days: [5, 20, 60]
+    benchmark_by_engine:
+      core_a_share: "000300.SH"
+      hk_qdii: "each topic's declared benchmark, currently HSI"
+    persistence_source: "published etf-watch-data branch restored before each production calculation"
 
 publication:
   live_data:
@@ -785,6 +1094,8 @@ publication:
     files:
       - "overview.json"
       - "all_topics.json"
+      - "allocation_handoff.json"
+      - "signal_followup.json"
       - "topics/**"
       - "hk_qdii/**"
   web_application:

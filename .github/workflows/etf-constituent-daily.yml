@@ -190,6 +190,14 @@ jobs:
         working-directory: industry_insight_sandbox
         run: npm ci
 
+      - name: Restore published signal follow-up history
+        shell: bash
+        run: |
+          if git fetch origin etf-watch-data --depth=1; then
+            git show FETCH_HEAD:signal_followup.json \
+              > industry_insight_sandbox/data/signal_followup.json || true
+          fi
+
       - name: Calculate unified ETF and HK QDII observations
         id: calculate
         shell: bash
@@ -258,6 +266,8 @@ jobs:
           publish_dir="$(mktemp -d)"
           cp industry_insight_sandbox/data/overview.json "$publish_dir/overview.json"
           cp industry_insight_sandbox/data/all_topics.json "$publish_dir/all_topics.json"
+          cp industry_insight_sandbox/data/allocation_handoff.json "$publish_dir/allocation_handoff.json"
+          cp industry_insight_sandbox/data/signal_followup.json "$publish_dir/signal_followup.json"
           cp -R industry_insight_sandbox/data/topics "$publish_dir/topics"
           cp -R industry_insight_sandbox/data/hk_qdii "$publish_dir/hk_qdii"
           cd "$publish_dir"
@@ -287,6 +297,8 @@ jobs:
           path: |
             industry_insight_sandbox/data/overview.json
             industry_insight_sandbox/data/all_topics.json
+            industry_insight_sandbox/data/allocation_handoff.json
+            industry_insight_sandbox/data/signal_followup.json
             industry_insight_sandbox/data/topics
             industry_insight_sandbox/data/hk_qdii
             industry_insight_sandbox/dist

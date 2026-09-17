@@ -20,7 +20,8 @@ ETF_CODE = "513970.SH"
 INDEX_CODE = "02018.00"
 INDEX_VENDOR_CODE = "HSCGSI"
 BENCHMARK_CODE = "HSI"
-HISTORY_START = "20230101"
+HISTORY_START = "20190101"
+LONG_CYCLE_MIN_TRADE_DAYS = 750
 LOW_BELOW_MA250_WARNING_DAYS = 40
 LOW_BELOW_MA250_PASS_DAYS = 60
 LOW_DEEP_10_WARNING_DAYS = 12
@@ -642,6 +643,14 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
             "latestDate": as_of,
             "constituentDate": official_date,
             "dataStart": str(fund.iloc[0]["trade_date"]),
+            "historyTradeDayCount": len(fund),
+            "ma250ValidDayCount": int(fund["ma250"].notna().sum()),
+            "longCycleHistoryReady": bool(
+                len(fund) >= LONG_CYCLE_MIN_TRADE_DAYS
+                and int(fund["ma250"].notna().sum())
+                >= LONG_CYCLE_MIN_TRADE_DAYS - 249
+            ),
+            "longCycleMinimumTradeDays": LONG_CYCLE_MIN_TRADE_DAYS,
             "method": "港股QDII ETF价格代理 + 官方前十大成分股",
             "structureSource": "etf_price_proxy",
             "structureObjectName": "513970 ETF",
@@ -692,6 +701,11 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
             "ma60Gap": as_float(ma60_gap),
             "ma250Gap": as_float(ma250_gap),
             "amountRankPct": (
+                as_float(float(latest["amountRank"]) * 100)
+                if pd.notna(latest["amountRank"])
+                else None
+            ),
+            "etfAmountRankPct": (
                 as_float(float(latest["amountRank"]) * 100)
                 if pd.notna(latest["amountRank"])
                 else None

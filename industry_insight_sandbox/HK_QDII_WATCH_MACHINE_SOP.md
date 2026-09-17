@@ -122,13 +122,28 @@ strategy:
       - MA20向上穿越发生在MA60向上穿越之前20个交易日内
     initial_start:
       event: close由下向上穿越MA60
-      capital_interface: starter_position_eligible
+      capital_interface: legacy_observation_field_only
     trend_confirmation:
       event: initial_start之后close由下向上穿越MA250
       timing: 上穿MA250当日确认
-      capital_interface: scale_in_eligible
+      capital_interface: legacy_observation_field_only
     execution_owner: external_monitor
     strategy_executes_orders: false
+  position_signal_handoff:
+    shared_output: ../data/allocation_handoff.json
+    owner: external_monitor
+    role: observation_only_auxiliary_context
+    effective_consumer_mode: observe_only
+    applies_to: [513970.SH, 513230.SH]
+    constraints:
+      - 不改变港股QDII三层主标签或MA20辅助标签
+      - 成分数据不新鲜时只输出数据质量警告，不产生新开或加仓建议
+      - MA20减弱和MA60退出只作为观察上下文，不产生减仓或退出指令
+      - 不输出人民币金额、账户仓位、成本价或下单指令
+      - 龙头次日持续性只用于行业状态确认，不得解释为追涨龙头股
+      - 长周期历史不足或权重日期超过60个日历日时，只输出数据质量警告
+      - ETF自身成交额分位只作执行流动性信息，不替代原指数/ETF资金确认口径
+      - 本策略不定义资金单位、槽位、人民币金额、账户仓位或下单权限
   stage_1:
     name: 低位收敛
     object_by_target:

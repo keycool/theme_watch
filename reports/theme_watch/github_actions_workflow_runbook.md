@@ -10,12 +10,6 @@ Workflow file:
 Wrapper entrypoint:
 - [run_theme_watch_workflow.py](/D:/CC/Industry%20Insight/run_theme_watch_workflow.py)
 
-Setup checklist:
-- [github_actions_setup_checklist.md](/D:/CC/Industry%20Insight/reports/theme_watch/github_actions_setup_checklist.md)
-
-Repo migration plan:
-- [repo_migration_plan.md](/D:/CC/Industry%20Insight/reports/theme_watch/repo_migration_plan.md)
-
 ## Required GitHub Secrets
 
 Add these repository secrets before enabling the schedule:

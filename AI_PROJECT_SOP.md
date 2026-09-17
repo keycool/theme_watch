@@ -30,6 +30,14 @@ systems:
       hk_qdii_2: industry_insight_sandbox/hk_qdii_targets.json
     local_orchestrator: run_etf_constituent_workflow.py
     ci_orchestrator: .github/workflows/etf-constituent-daily.yml
+    allocation_handoff: industry_insight_sandbox/data/allocation_handoff.json
+    allocation_handoff_role: observation_only_auxiliary_context
+    allocation_handoff_effective_mode: observation_only
+    allocation_sizing_owner: none_for_this_strategy_external_monitor_only
+    capital_decision_authority: external_monitor_separate_from_this_strategy
+    signal_followup: industry_insight_sandbox/data/signal_followup.json
+    strategy_review: industry_insight_sandbox/ETF_CONSTITUENT_WATCH_REVIEW_2026-08-13.md
+    parameter_ledger: industry_insight_sandbox/ETF_CONSTITUENT_WATCH_PARAMETER_LEDGER.md
     schedule:
       timezone: Asia/Shanghai
       crons:

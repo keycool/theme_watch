@@ -17,7 +17,8 @@ DATA_DIR = ROOT / "data"
 CACHE_DIR = DATA_DIR / "cache"
 TOPIC_DIR = DATA_DIR / "topics"
 TARGETS_PATH = ROOT / "targets.json"
-HISTORY_START = "20240101"
+HISTORY_START = "20190101"
+LONG_CYCLE_MIN_TRADE_DAYS = 750
 CORE_WEIGHT_COVERAGE = 60.0
 MAX_CORE_COUNT = 20
 LEADER_WATCH_COUNT = 10
@@ -557,7 +558,20 @@ def build_topic(
         .rolling(252, min_periods=120)
         .rank(pct=True)
     )
+    etf_amount_rank_pct = None
+    if target["kind"] == "etf":
+        target_amount_rank = (
+            target_daily["amount"].rolling(252, min_periods=120).rank(pct=True)
+        )
+        if pd.notna(target_amount_rank.iloc[-1]):
+            etf_amount_rank_pct = float(target_amount_rank.iloc[-1]) * 100
     latest = index_daily.iloc[-1]
+    history_trade_day_count = len(index_daily)
+    ma250_valid_day_count = int(index_daily["ma250"].notna().sum())
+    long_cycle_history_ready = bool(
+        history_trade_day_count >= LONG_CYCLE_MIN_TRADE_DAYS
+        and ma250_valid_day_count >= LONG_CYCLE_MIN_TRADE_DAYS - 249
+    )
     rhythm_label = evaluate_short_term_rhythm(index_daily)
     ma_lifecycle = evaluate_moving_average_lifecycle(index_daily)
     last_120 = index_daily.tail(120).copy()
@@ -799,6 +813,10 @@ def build_topic(
             "latestDate": latest_date,
             "weightDate": weight_date,
             "dataStart": str(index_daily.iloc[0]["trade_date"]),
+            "historyTradeDayCount": history_trade_day_count,
+            "ma250ValidDayCount": ma250_valid_day_count,
+            "longCycleHistoryReady": long_cycle_history_ready,
+            "longCycleMinimumTradeDays": LONG_CYCLE_MIN_TRADE_DAYS,
             "method": "ETF/主题指数 + 指数权重核心成分股",
             "sandbox": True,
         },
@@ -842,6 +860,7 @@ def build_topic(
                 if absorption_rank_latest is None
                 else absorption_rank_latest * 100
             ),
+            "etfAmountRankPct": as_float(etf_amount_rank_pct),
             "fundingConfirmed": funding_confirmed,
             "crowdingHot": crowding_hot,
             "crowdingOverheated": crowding_overheated,

@@ -49,11 +49,20 @@ async function render(path = "/") {
 }
 
 test("the unified target universe and generated datasets stay aligned", async () => {
-  const [targets, hkTargets, overview, topics] = await Promise.all([
+  const [
+    targets,
+    hkTargets,
+    overview,
+    topics,
+    allocationHandoff,
+    signalFollowup,
+  ] = await Promise.all([
     readJson("targets.json"),
     readJson("hk_qdii_targets.json"),
     readJson("data/overview.json"),
     readJson("data/all_topics.json"),
+    readJson("data/allocation_handoff.json"),
+    readJson("data/signal_followup.json"),
   ]);
 
   const targetCodes = [...targets, ...hkTargets].map((item) => item.code).sort();
@@ -79,6 +88,78 @@ test("the unified target universe and generated datasets stay aligned", async ()
   assert.deepEqual(topicCodes, coreCodes);
   assert.equal(overview.meta.targetCount, 25);
   assert.equal(overview.meta.hkQdiiCount, 2);
+  assert.equal(allocationHandoff.meta.schemaVersion, "1.3");
+  assert.equal(allocationHandoff.meta.targetCount, 25);
+  assert.equal(allocationHandoff.meta.allocationMode, "event_driven_satellite");
+  assert.equal(allocationHandoff.meta.allocationUnitOwner, "external_monitor");
+  assert.equal(allocationHandoff.meta.strategyExecutesOrders, false);
+  assert.equal(allocationHandoff.meta.positionSizingProvided, false);
+  assert.equal(allocationHandoff.meta.fixedCnyAmountProvided, false);
+  assert.equal(
+    allocationHandoff.meta.leaderConfirmationRole,
+    "industry_state_confirmation_only",
+  );
+  assert.equal(allocationHandoff.meta.leaderStockChaseAllowed, false);
+  assert.deepEqual(
+    allocationHandoff.targets.map((item) => item.code).sort(),
+    targetCodes,
+  );
+  assert.ok(
+    allocationHandoff.targets.every((item) =>
+      [
+        "observe_only",
+        "candidate_entry",
+        "starter_eligible",
+        "scale_in_eligible",
+        "reduce_to_one_unit",
+        "hold_and_monitor",
+        "de_risk",
+      ].includes(item.action),
+    ),
+  );
+  assert.ok(
+    allocationHandoff.targets.every((item) =>
+      [0, 0.5, 1, 2, null].includes(item.targetAllocationUnits),
+    ),
+  );
+  assert.ok(
+    allocationHandoff.targets.every((item) =>
+      [
+        "watch",
+        "candidate",
+        "starter",
+        "confirmed",
+        "extended",
+        "risk_protection",
+        "exit",
+        "data_guard",
+      ].includes(item.positionSignal?.stage),
+    ),
+  );
+  assert.ok(
+    allocationHandoff.targets.every(
+      (item) => item.positionSignal?.requiresExternalPositionState === true,
+    ),
+  );
+  assert.ok(
+    allocationHandoff.targets.every(
+      (item) => item.positionSignal?.leaderStockChaseAllowed === false,
+    ),
+  );
+  assert.ok(
+    allocationHandoff.targets.every(
+      (item) => typeof item.guards?.longCycleHistoryReady === "boolean",
+    ),
+  );
+  assert.ok(
+    allocationHandoff.targets.every(
+      (item) => typeof item.guards?.weightFresh === "boolean",
+    ),
+  );
+  assert.equal(signalFollowup.meta.schemaVersion, "1.0");
+  assert.equal(signalFollowup.meta.decisionUse, false);
+  assert.equal(signalFollowup.meta.lookaheadAllowed, false);
+  assert.deepEqual(Object.keys(signalFollowup.latestLabels).sort(), targetCodes);
   assert.equal(new Set(overview.targets.map((item) => item.slug)).size, 25);
   assert.ok(
     overview.targets.every((item) => rhythmLabels.has(item.rhythmLabel)),
@@ -423,6 +504,15 @@ test("keeps production publication on main and after Vercel succeeds", async () 
   assert.match(workflow, /rollback_confirmation:/);
   assert.match(workflow, /Guard manually requested production date/);
   assert.match(workflow, /Guard generated production date/);
+  assert.match(
+    workflow,
+    /cp industry_insight_sandbox\/data\/allocation_handoff\.json/,
+  );
+  assert.match(workflow, /Restore published signal follow-up history/);
+  assert.match(
+    workflow,
+    /cp industry_insight_sandbox\/data\/signal_followup\.json/,
+  );
 
   const vercelDeployIndex = workflow.indexOf(
     "- name: Deploy observation site to Vercel",
