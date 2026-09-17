@@ -209,10 +209,17 @@ jobs:
           if [[ "$WORKFLOW_ALLOW_NON_TRADE_DAY" == "true" ]]; then
             args+=(--allow-non-trade-day)
           fi
-          output="$("${args[@]}")"
+          set +e
+          output="$("${args[@]}" 2>&1)"
+          exit_code=$?
+          set -e
           printf '%s\n' "$output"
           run_status="$(printf '%s\n' "$output" | awk -F= '$1 == "status" { print $2 }' | tail -n 1)"
+          if [[ -z "$run_status" ]]; then
+            run_status="failed"
+          fi
           echo "run_status=$run_status" >> "$GITHUB_OUTPUT"
+          exit "$exit_code"
 
       - name: Build and verify all pages
         if: steps.calculate.outputs.run_status == 'success'
