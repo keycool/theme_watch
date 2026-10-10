@@ -71,7 +71,7 @@ test("the unified target universe and generated datasets stay aligned", async ()
   const topicCodes = topics.map((item) => item.target.code).sort();
 
   assert.equal(targets.length, 23);
-  assert.equal(hkTargets.length, 2);
+  assert.equal(hkTargets.length, 0);
   assert.equal(targets.filter((item) => item.kind === "etf").length, 22);
   assert.equal(targets.filter((item) => item.kind === "index").length, 1);
   assert.ok(
@@ -86,10 +86,10 @@ test("the unified target universe and generated datasets stay aligned", async ()
   );
   assert.deepEqual(overviewCodes, targetCodes);
   assert.deepEqual(topicCodes, coreCodes);
-  assert.equal(overview.meta.targetCount, 25);
-  assert.equal(overview.meta.hkQdiiCount, 2);
+  assert.equal(overview.meta.targetCount, 23);
+  assert.equal(overview.meta.hkQdiiCount, 0);
   assert.equal(allocationHandoff.meta.schemaVersion, "1.3");
-  assert.equal(allocationHandoff.meta.targetCount, 25);
+  assert.equal(allocationHandoff.meta.targetCount, 23);
   assert.equal(allocationHandoff.meta.allocationMode, "event_driven_satellite");
   assert.equal(allocationHandoff.meta.allocationUnitOwner, "external_monitor");
   assert.equal(allocationHandoff.meta.strategyExecutesOrders, false);
@@ -160,7 +160,7 @@ test("the unified target universe and generated datasets stay aligned", async ()
   assert.equal(signalFollowup.meta.decisionUse, false);
   assert.equal(signalFollowup.meta.lookaheadAllowed, false);
   assert.deepEqual(Object.keys(signalFollowup.latestLabels).sort(), targetCodes);
-  assert.equal(new Set(overview.targets.map((item) => item.slug)).size, 25);
+  assert.equal(new Set(overview.targets.map((item) => item.slug)).size, 23);
   assert.ok(
     overview.targets.every((item) => rhythmLabels.has(item.rhythmLabel)),
   );
@@ -243,12 +243,12 @@ test("server-renders the overview and links every unified target", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>ETF与主题指数核心成分观察总览<\/title>/);
-  assert.match(html, /25 formal project targets/);
+  assert.match(html, /23 formal project targets/);
   assert.match(html, />LIVE</);
   assert.match(html, /数据截止/);
   assert.match(html, /生成于/);
   assert.doesNotMatch(html, /封闭沙盒 · 不接入生产/);
-  assert.match(html, /25个正式标的集中在同一张启动观察表中/);
+  assert.match(html, /23个正式标的集中在同一张启动观察表中/);
   assert.match(html, /低位收敛/);
   assert.match(html, /带量突破年线/);
   assert.match(html, /权重龙头确认/);

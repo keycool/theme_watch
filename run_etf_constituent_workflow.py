@@ -34,6 +34,8 @@ HK_GENERATORS = [
 OVERVIEW_MERGER = SANDBOX_DIR / "merge_hk_qdii_overview.py"
 ALLOCATION_HANDOFF_BUILDER = SANDBOX_DIR / "build_allocation_handoff.py"
 SIGNAL_FOLLOWUP_BUILDER = SANDBOX_DIR / "update_signal_followup.py"
+# 港股 QDII 生成链总开关；停用后跳过两个 HK 生成器，合并/下游按空列表处理。
+HK_QDII_ENABLED = False
 TARGETS_PATH = SANDBOX_DIR / "targets.json"
 HK_TARGETS_PATH = SANDBOX_DIR / "hk_qdii_targets.json"
 OVERVIEW_PATH = SANDBOX_DIR / "data" / "overview.json"
@@ -43,7 +45,7 @@ SIGNAL_FOLLOWUP_PATH = SANDBOX_DIR / "data" / "signal_followup.json"
 TOPIC_DIR = SANDBOX_DIR / "data" / "topics"
 SUMMARY_DIR = ROOT / "logs" / "etf_constituent_workflow"
 CORE_TARGET_COUNT = 23
-HK_TARGET_COUNT = 2
+HK_TARGET_COUNT = 0  # 港股 QDII 观察 2026-10-10 起停用（恒生官网成分接口 403）
 TOTAL_TARGET_COUNT = CORE_TARGET_COUNT + HK_TARGET_COUNT
 
 
@@ -118,7 +120,7 @@ def _run_generators(end_date: str, log_path: Path) -> int:
         [sys.executable, str(GENERATOR), "--end-date", end_date],
         *[
             [sys.executable, str(generator), "--end-date", end_date]
-            for generator in HK_GENERATORS
+            for generator in (HK_GENERATORS if HK_QDII_ENABLED else [])
         ],
         [sys.executable, str(OVERVIEW_MERGER)],
         [sys.executable, str(ALLOCATION_HANDOFF_BUILDER)],
@@ -493,8 +495,8 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
         issues.append(f"Overview coreTargetCount is not {CORE_TARGET_COUNT}.")
     if meta.get("hkQdiiCount") != HK_TARGET_COUNT:
         issues.append(f"Overview hkQdiiCount is not {HK_TARGET_COUNT}.")
-    if meta.get("etfCount") != 24 or meta.get("indexCount") != 1:
-        issues.append("Overview ETF/index counts are not 24/1.")
+    if meta.get("etfCount") != 22 or meta.get("indexCount") != 1:
+        issues.append("Overview ETF/index counts are not 22/1.")
 
     issues.extend(
         validate_allocation_handoff(

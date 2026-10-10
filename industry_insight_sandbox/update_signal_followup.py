@@ -167,8 +167,17 @@ def build_signal_followup(
     prior_as_of = prior.get("meta", {}).get("asOf")
     if isinstance(prior_as_of, str) and prior_as_of > as_of:
         raise ValueError("Signal follow-up date cannot move backwards.")
-    events = list(prior.get("events", []))
-    latest_labels = dict(prior.get("latestLabels", {}))
+    # 港股 QDII 已停用：历史事件与最新标签只保留仍属于当前目标池的代码。
+    events = [
+        event
+        for event in prior.get("events", [])
+        if str(event.get("code")) in topics
+    ]
+    latest_labels = {
+        str(code): label
+        for code, label in prior.get("latestLabels", {}).items()
+        if str(code) in topics
+    }
 
     for item in targets:
         code = str(item["code"])
