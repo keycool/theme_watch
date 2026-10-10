@@ -547,7 +547,8 @@ test("checks every formal target and resolved tracking index before schedule", a
   assert.match(readiness, /for code in tracking_indexes:/);
   assert.match(readiness, /for code in global_indexes:/);
   assert.match(workflow, /--hk-targets industry_insight_sandbox\/hk_qdii_targets\.json/);
-  assert.match(workflow, /cp -R industry_insight_sandbox\/data\/hk_qdii/);
+  // 港股 QDII 已停用：发布步骤不得再拷贝 hk_qdii 数据目录。
+  assert.doesNotMatch(workflow, /cp -R industry_insight_sandbox\/data\/hk_qdii/);
   assert.match(readiness, /pro\.etf_basic\(/);
   assert.match(readiness, /unresolved_etfs/);
   assert.match(readiness, /completed_calendar_end/);
