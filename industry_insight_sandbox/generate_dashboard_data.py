@@ -306,7 +306,7 @@ def _rank_pct(series: pd.Series, value: float | None) -> float | None:
     只做排序统计，不含任何方向性解读。样本不足 60 个交易日返回 None，
     避免用太短的窗口冒充分位。
     """
-    if value is None:
+    if value is None or not isinstance(series, pd.Series):
         return None
     try:
         numeric = float(value)
@@ -361,7 +361,7 @@ def build_observation_block(
     latest_close = close.iloc[-1] if len(close) else None
     gap60_series = (close / ma60 - 1) * 100
     gap250_series = (close / ma250 - 1) * 100
-    amount_series = pd.to_numeric(frame.get("amountRatio20"), errors="coerce")
+    amount_series = pd.to_numeric(frame.get("amount_ratio20"), errors="coerce")
 
     def scalar(series: pd.Series):
         if series is None or not len(series):

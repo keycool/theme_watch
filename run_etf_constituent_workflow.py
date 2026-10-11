@@ -249,7 +249,6 @@ def _validate_topic_freshness(topic: dict[str, Any]) -> list[str]:
     if summary.get("aboveMa250Count") != fresh_ma250_count:
         issues.append(f"{code}: aboveMa250Count includes stale or inconsistent components.")
 
-    strict_leader_confirmed = False
     for event in topic.get("limitEvents", []):
         event_code = str(event.get("code", "unknown"))
         event_fresh = event.get("dataFresh")
@@ -263,17 +262,6 @@ def _validate_topic_freshness(topic: dict[str, Any]) -> list[str]:
             )
         if not event_fresh and event.get("qualified") is True:
             issues.append(f"{code}/{event_code}: stale component qualifies as leader.")
-        if (
-            event_fresh
-            and event.get("qualified") is True
-            and isinstance(event.get("weightRank"), int)
-            and event["weightRank"] <= 3
-        ):
-            strict_leader_confirmed = True
-
-    if summary.get("strictLeaderConfirmed") is not strict_leader_confirmed:
-        issues.append(f"{code}: strictLeaderConfirmed is inconsistent with fresh events.")
-
     group_monitor_expected = bool(
         components
         and fresh_active_count >= 1
@@ -287,7 +275,7 @@ def _validate_topic_freshness(topic: dict[str, Any]) -> list[str]:
         (
             item
             for item in (leader_stage or {}).get("items", [])
-            if item.get("title") == "核心群体转强"
+            if item.get("title") == "核心成分 MA60 广度"
         ),
         None,
     )
@@ -296,8 +284,6 @@ def _validate_topic_freshness(topic: dict[str, Any]) -> list[str]:
     elif group_item.get("passed") is not group_monitor_expected:
         issues.append(f"{code}: group-strength result includes stale components.")
 
-    if summary.get("label") == "启动确认" and not strict_leader_confirmed:
-        issues.append(f"{code}: startup confirmation lacks a fresh strict leader.")
     return issues
 
 
@@ -360,7 +346,6 @@ def _validate_hk_topic(
     if summary.get("positive5dCount") != positive_5d_count:
         issues.append(f"{code}: positive5dCount is inconsistent.")
 
-    strict_confirmed = False
     for event in topic.get("leaderEvents", []):
         event_code = str(event.get("code", "unknown"))
         event_fresh = event.get("dataFresh")
@@ -372,12 +357,6 @@ def _validate_hk_topic(
             issues.append(f"{code}/{event_code}: event freshness disagrees with component.")
         if not event_fresh and event.get("qualified") is True:
             issues.append(f"{code}/{event_code}: stale HK event qualifies.")
-        strict_confirmed = strict_confirmed or bool(event.get("strictQualified"))
-
-    if summary.get("strictLeaderConfirmed") is not strict_confirmed:
-        issues.append(f"{code}: strictLeaderConfirmed is inconsistent.")
-    if summary.get("label") == "启动确认" and not strict_confirmed:
-        issues.append(f"{code}: startup confirmation lacks a fresh strict leader.")
     if len(topic.get("stages", [])) != 3:
         issues.append(f"{code}: HK three-stage observation chain is incomplete.")
     return issues
@@ -390,23 +369,25 @@ def _validate_ma_lifecycle(topic: dict[str, Any]) -> list[str]:
         return [f"{code}: maLifecycle is missing or invalid."]
 
     required_fields = {
-        "label",
+        "stateCode",
+        "maStackCode",
         "separationPct",
         "separationRankPct",
         "dynamicThresholdPct",
         "separationObservationCount",
-        "safetyMarginPassed",
         "convergenceDays",
-        "deathCrossDate",
-        "warmUpDate",
-        "initialStartDate",
-        "trendConfirmedDate",
-        "initialStartToday",
-        "trendConfirmedToday",
-        "initialStartActive",
-        "trendConfirmedActive",
-        "initialStartInvalidated",
-        "capitalInterface",
+        "ma20CrossUpDate",
+        "ma60CrossUpDate",
+        "ma60BelowMa250Date",
+        "firstAboveMa250Date",
+        "aboveMa20",
+        "aboveMa60",
+        "aboveMa250",
+        "aboveMa250Today",
+        "ma60CrossUpToday",
+        "ma60CrossUpInvalidated",
+        "stateAboveMa60",
+        "stateAboveMa250",
         "executionOwner",
         "strategyExecutesOrders",
     }
@@ -414,31 +395,27 @@ def _validate_ma_lifecycle(topic: dict[str, Any]) -> list[str]:
     issues = [
         f"{code}: maLifecycle is missing fields {', '.join(missing)}."
     ] if missing else []
-    if lifecycle.get("label") not in {
-        "年线趋势确认",
-        "初始启动",
-        "短线转暖",
-        "低位收敛",
-        "未形成",
+    if lifecycle.get("stateCode") not in {
+        "above_ma250",
+        "above_ma60",
+        "above_ma20",
+        "below_ma20_converged",
+        "below_ma20",
     }:
-        issues.append(f"{code}: maLifecycle label is invalid.")
-    if lifecycle.get("capitalInterface") not in {
-        "observe_only",
-        "starter_position_eligible",
-        "scale_in_eligible",
-    }:
-        issues.append(f"{code}: maLifecycle capitalInterface is invalid.")
+        issues.append(f"{code}: maLifecycle stateCode is invalid.")
     if lifecycle.get("executionOwner") != "external_monitor":
         issues.append(f"{code}: maLifecycle executionOwner is invalid.")
     if lifecycle.get("strategyExecutesOrders") is not False:
         issues.append(f"{code}: maLifecycle must not execute orders.")
     for field in [
-        "safetyMarginPassed",
-        "initialStartToday",
-        "trendConfirmedToday",
-        "initialStartActive",
-        "trendConfirmedActive",
-        "initialStartInvalidated",
+        "aboveMa20",
+        "aboveMa60",
+        "aboveMa250",
+        "aboveMa250Today",
+        "ma60CrossUpToday",
+        "ma60CrossUpInvalidated",
+        "stateAboveMa60",
+        "stateAboveMa250",
     ]:
         if not isinstance(lifecycle.get(field), bool):
             issues.append(f"{code}: maLifecycle {field} must be boolean.")
@@ -547,18 +524,16 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
     for item in overview.get("targets", []):
         code = item.get("code", "unknown")
         for field in [
-            "maLifecycleLabel",
-            "maSafetyMarginPassed",
+            "maStateCode",
+            "maStackCode",
             "maSeparationPct",
             "maSeparationRankPct",
-            "initialStartToday",
-            "trendConfirmedToday",
-            "capitalInterface",
+            "observation",
         ]:
             if field not in item:
                 issues.append(f"{code}: overview is missing {field}.")
 
-    expected_stage_titles = ["低位收敛", "带量突破年线", "权重龙头确认"]
+    expected_stage_titles = ["价格位置", "均线与成交额", "核心成分股"]
     fresh_component_count = 0
     stale_component_count = 0
     for topic in topics:
@@ -617,8 +592,8 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
             for component in hk_topic.get("constituents", [])
         )
 
-    labels = Counter(
-        item.get("label", "unknown") for item in overview.get("targets", [])
+    state_codes = Counter(
+        item.get("maStateCode", "unknown") for item in overview.get("targets", [])
     )
     weight_dates = sorted(
         {item.get("weightDate") for item in overview.get("targets", [])}
@@ -631,7 +606,7 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
         "index_count": meta.get("indexCount"),
         "latest_date": next(iter(overview_dates), None),
         "weight_dates": weight_dates,
-        "labels": dict(sorted(labels.items())),
+        "state_codes": dict(sorted(state_codes.items())),
         "topic_file_count": len(topic_files),
         "allocation_handoff_target_count": allocation_handoff.get("meta", {}).get(
             "targetCount"
@@ -739,8 +714,8 @@ def main() -> None:
     print(f"target_count={metrics.get('target_count', 0)}")
     print(f"latest_date={metrics.get('latest_date', '')}")
     print(
-        "labels="
-        + json.dumps(metrics.get("labels", {}), ensure_ascii=False, sort_keys=True)
+        "states="
+        + json.dumps(metrics.get("state_codes", {}), ensure_ascii=False, sort_keys=True)
     )
     print(f"summary_json={summary_path}")
     print(f"stdout_log={log_path}")

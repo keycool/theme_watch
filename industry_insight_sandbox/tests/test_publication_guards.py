@@ -59,7 +59,7 @@ def valid_topic() -> dict:
         "stages": [
             {
                 "id": "leader",
-                "items": [{"title": "核心群体转强", "passed": True}],
+                "items": [{"title": "核心成分 MA60 广度", "passed": True}],
             }
         ],
     }
@@ -133,17 +133,15 @@ class TopicFreshnessValidationTest(unittest.TestCase):
 
         self.assertTrue(any("later than topic as_of" in issue for issue in issues))
 
-    def test_stale_component_cannot_create_startup_confirmation(self) -> None:
+    def test_stale_component_cannot_qualify_as_leader(self) -> None:
+        # 标签退役后，过期成分保护由「stale 不能进龙头」读数守卫承担。
         topic = valid_topic()
-        topic["summary"]["label"] = "启动确认"
-        topic["summary"]["strictLeaderConfirmed"] = True
         topic["limitEvents"][0]["qualified"] = True
         topic["limitEvents"][0]["dataFresh"] = False
 
         issues = _validate_topic_freshness(topic)
 
         self.assertTrue(any("stale component qualifies as leader" in issue for issue in issues))
-        self.assertTrue(any("startup confirmation lacks" in issue for issue in issues))
 
 
 if __name__ == "__main__":
