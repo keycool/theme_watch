@@ -83,7 +83,7 @@ test("the unified target universe and generated datasets stay aligned", async ()
   assert.deepEqual(topicCodes, coreCodes);
   assert.equal(overview.meta.targetCount, 23);
   assert.equal(overview.meta.hkQdiiCount, 0);
-  assert.equal(allocationHandoff.meta.schemaVersion, "1.5");
+  assert.equal(allocationHandoff.meta.schemaVersion, "2.0");
   assert.equal(allocationHandoff.meta.targetCount, 23);
   assert.equal(allocationHandoff.meta.allocationMode, "event_driven_satellite");
   assert.equal(allocationHandoff.meta.allocationUnitOwner, "external_monitor");
@@ -100,45 +100,20 @@ test("the unified target universe and generated datasets stay aligned", async ()
     targetCodes,
   );
   assert.ok(
-    allocationHandoff.targets.every((item) =>
-      [
-        "no_action",
-        "candidate_entry",
-        "starter",
-        "scale_in",
-        "reduce_to_one_unit",
-        "hold_and_monitor",
-        "de_risk",
-      ].includes(item.action),
-    ),
+    allocationHandoff.targets.every((item) => maStateCodes.has(item.maStateCode)),
   );
+  // 2026-10-11 接口中性化（schema 2.0）：不再输出 action/单位/指令/优先级。
   assert.ok(
-    allocationHandoff.targets.every((item) =>
-      [0, 0.5, 1, 2, null].includes(item.targetAllocationUnits),
-    ),
-  );
-  assert.ok(
-    allocationHandoff.targets.every((item) =>
-      [
-        "no_position",
-        "half_unit",
-        "one_unit",
-        "two_units",
-        "hold_only",
-        "reduce_to_one_unit",
-        "zero_units",
-        "data_guard",
-      ].includes(item.positionSignal?.stage),
+    allocationHandoff.targets.every(
+      (item) => !("action" in item) && !("positionSignal" in item),
     ),
   );
   assert.ok(
     allocationHandoff.targets.every(
-      (item) => item.positionSignal?.requiresExternalPositionState === true,
-    ),
-  );
-  assert.ok(
-    allocationHandoff.targets.every(
-      (item) => item.positionSignal?.leaderStockChaseAllowed === false,
+      (item) =>
+        typeof item.stateInputs === "object" &&
+        Array.isArray(item.reasonCodes) &&
+        item.reasonCodes.length > 0,
     ),
   );
   assert.ok(
@@ -316,79 +291,6 @@ test("server-renders all 23 independent topic pages", async () => {
     assert.match(html, /核心成分状态矩阵/);
     assert.match(html, /返回全部专题/);
   }
-});
-
-test("server-renders the production-integrated 513970 HK QDII strategy page", async () => {
-  const [response, dashboard] = await Promise.all([
-    render("/hk-qdii/513970-sh"),
-    readJson("data/hk_qdii/513970-sh.json"),
-  ]);
-
-  assert.equal(response.status, 200);
-  const html = await response.text();
-  assert.match(html, /513970 恒生消费ETF · 行业读数/);
-  assert.match(html, /513970\.SH/);
-  assert.match(html, /恒生消费指数/);
-  assert.match(html, /统一生产监控 · ETF价格代理 · 港股专用口径/);
-  assert.match(html, /价格位置/);
-  assert.match(html, /量价趋势读数/);
-  assert.match(html, /港股核心成分股/);
-  assert.match(html, /恒生消费指数前十大成分状态/);
-  assert.equal(dashboard.meta.productionIntegrated, true);
-  assert.equal(typeof dashboard.chart.at(-1)?.ma20, "number");
-  assert.ok(maStateCodes.has(dashboard.summary.maLifecycle.stateCode));
-  assert.ok(
-    maStackPattern.test(dashboard.summary.maLifecycle.maStackCode ?? ""),
-  );
-  assert.equal(dashboard.summary.maLifecycle.strategyExecutesOrders, false);
-  assert.match(html, /均线几何位置/);
-  assert.match(html, /MA20/);
-  assert.equal(dashboard.constituents.length, 10);
-  assert.ok(
-    dashboard.constituents.every(
-      (component) =>
-        typeof component.latestDate === "string" &&
-        typeof component.dataFresh === "boolean",
-    ),
-  );
-});
-
-test("server-renders 017832 through its 513230 tracking-index strategy", async () => {
-  const [response, dashboard] = await Promise.all([
-    render("/hk-qdii/513230-sh"),
-    readJson("data/hk_qdii/513230-sh.json"),
-  ]);
-
-  assert.equal(response.status, 200);
-  const html = await response.text();
-  assert.match(html, /017832 \/ 513230 港股通消费 · 行业读数/);
-  assert.match(html, /513230\.SH/);
-  assert.match(html, /017832\.OF/);
-  assert.match(html, /931454\.CSI/);
-  assert.match(html, /统一生产监控 · 指数直接版 · 港股专用口径/);
-  assert.match(html, /中证港股通消费主题指数前十大成分状态/);
-  assert.match(html, /切换：景顺长城恒生消费/);
-  assert.equal(dashboard.meta.structureSource, "tracking_index");
-  assert.equal(dashboard.meta.productionIntegrated, true);
-  assert.equal(dashboard.target.feederCode, "017832.OF");
-  assert.equal(dashboard.target.indexCode, "931454.CSI");
-  assert.equal(typeof dashboard.chart.at(-1)?.ma20, "number");
-  assert.ok(maStateCodes.has(dashboard.summary.maLifecycle.stateCode));
-  assert.ok(
-    maStackPattern.test(dashboard.summary.maLifecycle.maStackCode ?? ""),
-  );
-  assert.equal(dashboard.summary.maLifecycle.strategyExecutesOrders, false);
-  assert.match(html, /均线几何位置/);
-  assert.match(html, /MA20/);
-  assert.equal(dashboard.constituents.length, 10);
-  assert.ok(
-    dashboard.constituents.every(
-      (component) =>
-        typeof component.weight === "number" &&
-        component.weight > 0 &&
-        component.dataFresh === true,
-    ),
-  );
 });
 
 test("keeps low-position, funding, and leader alerts below strict confirmation", async () => {

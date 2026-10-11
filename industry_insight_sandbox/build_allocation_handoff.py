@@ -12,48 +12,21 @@ ALL_TOPICS_PATH = DATA_DIR / "all_topics.json"
 HK_TARGETS_PATH = Path(__file__).resolve().parent / "hk_qdii_targets.json"
 OUTPUT_PATH = DATA_DIR / "allocation_handoff.json"
 
-ACTION_ORDER = {
-    "de_risk": 0,
-    "reduce_to_one_unit": 1,
-    "scale_in": 2,
-    "starter": 3,
-    "candidate_entry": 4,
-    "hold_and_monitor": 5,
-    "no_action": 6,
-}
-ENTRY_ACTIONS = {"scale_in", "starter", "candidate_entry"}
-VALID_ACTIONS = set(ACTION_ORDER)
 ALLOCATION_MODE = "event_driven_satellite"
 WEIGHT_FRESHNESS_MAX_CALENDAR_DAYS = 60
-ALLOCATION_UNITS = {
-    "no_action": 0,
-    "candidate_entry": 0.5,
-    "starter": 1,
-    "scale_in": 2,
-    "reduce_to_one_unit": 1,
-    "hold_and_monitor": None,
-    "de_risk": 0,
-}
-ALLOCATION_INSTRUCTIONS = {
-    "no_action": "no_satellite_position",
-    "candidate_entry": "candidate_half_unit_only",
-    "starter": "target_one_starter_unit",
-    "scale_in": "target_two_units_total",
-    "reduce_to_one_unit": "reduce_to_one_unit_if_held",
-    "hold_and_monitor": "hold_existing_only",
-    "de_risk": "target_zero_units",
-}
 
-# 执行语义映射：观察层不再输出 capitalInterface，改由本文件从 action 推导。
-CAPITAL_INTERFACE_BY_ACTION = {
-    "no_action": "no_action",
-    "candidate_entry": "no_action",
-    "starter": "starter_unit",
-    "scale_in": "scale_in_units",
-    "reduce_to_one_unit": "no_action",
-    "hold_and_monitor": "no_action",
-    "de_risk": "exit_units",
-}
+# 与页面一致的客观排序：按收盘价相对均线的位置分组，再按固定顺序。
+MA_STATE_ORDER = [
+    "above_ma250",
+    "above_ma60",
+    "above_ma20",
+    "below_ma20_converged",
+    "below_ma20",
+]
+VALID_STATE_CODES = set(MA_STATE_ORDER)
+
+# 安全边际读数沿用参数台账口径：MA60/MA250 间距历史分位达到 70 视为达标。
+SAFETY_MARGIN_RANK_PCT = 70
 
 # 文案只陈述「读数到了哪档」，不写方向判断，也不替外部下建议。
 REASON_TEXT = {
@@ -150,106 +123,45 @@ def _three_stages_passed(topic: dict[str, Any]) -> bool:
     )
 
 
-def _position_signal(
-    summary: dict[str, Any],
+def _state_reading(
     lifecycle: dict[str, Any],
     market: dict[str, bool],
     entry_guard_reasons: list[str],
     three_stages_passed: bool,
-) -> tuple[str, dict[str, Any]]:
+    states: dict[str, Any],
+) -> list[str]:
+    """把当前行情事实归入互斥的一档读数；只描述位置与门槛，不带动作语义。"""
     initial_active = _as_bool(lifecycle.get("stateAboveMa60"))
     trend_active = _as_bool(lifecycle.get("stateAboveMa250"))
     initial_invalidated = _as_bool(lifecycle.get("ma60CrossUpInvalidated"))
     confirmed_quality = trend_active and three_stages_passed
 
-    def signal(
-        stage: str,
-        units: float | int | None,
-        entry_action: str,
-        risk_action: str,
-        reason_codes: list[str],
-        risk_reason_codes: list[str] | None = None,
-        *,
-        new_entry_allowed: bool = False,
-        add_position_allowed: bool = False,
-    ) -> dict[str, Any]:
-        return {
-            "stage": stage,
-            "referenceUnits": units,
-            "newEntryAllowed": new_entry_allowed,
-            "addPositionAllowed": add_position_allowed,
-            "entryAction": entry_action,
-            "riskAction": risk_action,
-            "reasonCodes": reason_codes,
-            "riskReasonCodes": risk_reason_codes or [],
-            "requiresExternalPositionState": True,
-            "leaderConfirmationRole": "industry_state_confirmation_only",
-            "leaderStockChaseAllowed": False,
-            "executionOwner": "external_monitor",
-        }
-
     if initial_invalidated or (
         market["closeBelowMa60"] and (initial_active or trend_active)
     ):
-        reasons = ["CLOSE_BELOW_MA60"]
+        codes = ["CLOSE_BELOW_MA60"]
         if initial_invalidated:
-            reasons.insert(0, "MA60_CROSSUP_INVALIDATED")
-        return "de_risk", signal(
-            "zero_units",
-            0,
-            "no_entry",
-            "exit_to_zero_if_held",
-            reasons,
-            reasons,
-        )
+            codes.insert(0, "MA60_CROSSUP_INVALIDATED")
+        return codes
 
     if entry_guard_reasons:
-        return "hold_and_monitor", signal(
-            "data_guard",
-            None,
-            "no_entry",
-            "hold",
-            entry_guard_reasons,
-        )
+        return list(entry_guard_reasons)
 
     if trend_active and market["twoDaysBelowMa20"]:
-        reasons = ["TREND_CONFIRMED_ACTIVE", "TWO_DAYS_BELOW_MA20"]
-        return "reduce_to_one_unit", signal(
-            "reduce_to_one_unit",
-            1,
-            "no_entry",
-            "reduce_to_one_unit_if_held",
-            reasons,
-            ["TWO_DAYS_BELOW_MA20"],
-        )
+        return ["TREND_CONFIRMED_ACTIVE", "TWO_DAYS_BELOW_MA20"]
 
     if confirmed_quality:
-        return "scale_in", signal(
-            "two_units",
-            2,
-            "scale_to_two_units",
-            "hold",
-            ["ABOVE_MA250_STATE", "THREE_GROUPS_MET"],
-            new_entry_allowed=True,
-            add_position_allowed=True,
-        )
+        return ["ABOVE_MA250_STATE", "THREE_GROUPS_MET"]
 
     if initial_active:
-        reasons = ["ABOVE_MA60_STATE"]
-        if _as_bool(lifecycle.get("safetyMarginPassed")):
-            reasons.append("MA60_MA250_SEPARATION_MET")
-        return "starter", signal(
-            "one_unit",
-            1,
-            "enter_or_hold_starter",
-            "hold",
-            reasons,
-            new_entry_allowed=True,
-        )
+        codes = ["ABOVE_MA60_STATE"]
+        separation_rank = lifecycle.get("separationRankPct")
+        if isinstance(separation_rank, (int, float)) and separation_rank >= SAFETY_MARGIN_RANK_PCT:
+            codes.append("MA60_MA250_SEPARATION_MET")
+        return codes
 
     # 观察层已不再输出 label。这里从 summary.stateInputs 的【事实输入】自行推导，
-    # 保证执行层的资格语义不依赖观察层的措辞。
-    states = summary.get("stateInputs") or {}
+    # 保证本文件不依赖观察层的措辞，也不替外部监测端下结论。
     approaching_start = bool(
         states.get("belowMa250FiveDaysGe60")
         and states.get("ma60CrossUpEmerged")
@@ -261,43 +173,21 @@ def _position_signal(
         or states.get("nearWindowHighBreadth")
     )
 
-    if (
-        approaching_start
-        and market["withinMa60Window"]
-    ):
-        return "candidate_entry", signal(
-            "half_unit",
-            0.5,
-            "candidate_entry",
-            "hold",
-            ["POSITION_WINDOW_MET"],
-            new_entry_allowed=True,
-        )
+    if approaching_start and market["withinMa60Window"]:
+        return ["POSITION_WINDOW_MET"]
 
     if trend_extension:
-        return "hold_and_monitor", signal(
-            "hold_only",
-            None,
-            "hold_existing_only",
-            "hold",
-            ["RELATIVE_EXCESS_MET"],
-        )
+        return ["RELATIVE_EXCESS_MET"]
 
-    return "no_action", signal(
-        "no_position",
-        0,
-        "no_entry",
-        "hold",
-        ["NO_MA_SIGNAL"],
-    )
+    return ["NO_MA_SIGNAL"]
 
 
 def _reason_codes(
-    position_signal: dict[str, Any],
+    state_reading: list[str],
     stale_component_count: int,
 ) -> list[str]:
-    """只保留与持仓/数据质量相关的读数；资金与拥挤度分位已于 2026-09-21 下线。"""
-    codes = list(position_signal["reasonCodes"])
+    """只保留与状态归类和数据质量相关的读数；资金与拥挤度分位已于 2026-09-21 下线。"""
+    codes = list(state_reading)
     if stale_component_count:
         codes.append("STALE_COMPONENTS_PRESENT")
     return codes
@@ -367,16 +257,13 @@ def build_allocation_handoff(
         )
         market = _market_state(topic)
         stage_all_passed = _three_stages_passed(topic)
-        action, position_signal = _position_signal(
-            summary,
-            lifecycle,
-            market,
-            entry_guard_reasons,
-            stage_all_passed,
+        states = summary.get("stateInputs") or {}
+        state_reading = _state_reading(
+            lifecycle, market, entry_guard_reasons, stage_all_passed, states
         )
-        reason_codes = _reason_codes(position_signal, stale_count)
-        action_event_today = _as_bool(lifecycle.get("initialStartToday")) or _as_bool(
-            lifecycle.get("trendConfirmedToday")
+        reason_codes = _reason_codes(state_reading, stale_count)
+        ma_event_today = _as_bool(lifecycle.get("ma60CrossUpToday")) or _as_bool(
+            lifecycle.get("aboveMa250Today")
         )
         targets.append(
             {
@@ -387,20 +274,11 @@ def build_allocation_handoff(
                 "bucket": item.get("bucket"),
                 "route": item.get("route"),
                 "asOf": as_of,
-                "action": action,
-                "actionEventToday": action_event_today,
-                "entryPriorityRank": None,
-                "targetAllocationUnits": ALLOCATION_UNITS[action],
-                "allocationInstruction": ALLOCATION_INSTRUCTIONS[action],
-                "positionSignal": position_signal,
                 "maStackCode": lifecycle.get("maStackCode"),
                 "maStateCode": lifecycle.get("stateCode"),
+                "maEventToday": ma_event_today,
+                "stateInputs": states,
                 "signal": {
-                    # capitalInterface 属执行语义，由本文件从 action 推导，
-                    # 不再从观察层透传。
-                    "capitalInterface": CAPITAL_INTERFACE_BY_ACTION.get(
-                        action, "no_action"
-                    ),
                     "ma60CrossUpToday": _as_bool(lifecycle.get("ma60CrossUpToday")),
                     "stateAboveMa60": _as_bool(lifecycle.get("stateAboveMa60")),
                     "ma60CrossUpInvalidated": _as_bool(
@@ -446,29 +324,18 @@ def build_allocation_handoff(
             }
         )
 
-    entry_targets = [item for item in targets if item["action"] in ENTRY_ACTIONS]
-    entry_targets.sort(
-        key=lambda item: (
-            ACTION_ORDER[item["action"]],
-            -int(item.get("stagePassCount") or 0),
-            -float(item.get("absorptionRankPct") or 0),
-            int(item.get("targetOrder") or 0),
-        )
-    )
-    for rank, item in enumerate(entry_targets, start=1):
-        item["entryPriorityRank"] = rank
-
     targets.sort(
         key=lambda item: (
-            ACTION_ORDER[item["action"]],
-            item["entryPriorityRank"] or 10_000,
+            MA_STATE_ORDER.index(item["maStateCode"])
+            if item["maStateCode"] in MA_STATE_ORDER
+            else len(MA_STATE_ORDER),
             int(item.get("targetOrder") or 0),
         )
     )
     meta = overview.get("meta", {})
     return {
         "meta": {
-            "schemaVersion": "1.5",
+            "schemaVersion": "2.0",
             "generatedAt": meta.get("generatedAt"),
             "asOf": as_of,
             "targetCount": len(targets),
@@ -494,7 +361,7 @@ def validate_allocation_handoff(
     issues: list[str] = []
     meta = handoff.get("meta", {})
     targets = handoff.get("targets", [])
-    if meta.get("schemaVersion") != "1.5":
+    if meta.get("schemaVersion") != "2.0":
         issues.append("Allocation handoff schemaVersion is invalid.")
     if meta.get("asOf") != end_date:
         issues.append("Allocation handoff asOf does not equal end_date.")
@@ -522,61 +389,42 @@ def validate_allocation_handoff(
     handoff_codes = {item.get("code") for item in targets}
     if handoff_codes != expected_codes:
         issues.append("Allocation handoff codes do not match the target universe.")
-    ranks = sorted(
-        item["entryPriorityRank"]
-        for item in targets
-        if item.get("entryPriorityRank") is not None
-    )
-    if ranks != list(range(1, len(ranks) + 1)):
-        issues.append("Allocation handoff entryPriorityRank is not contiguous.")
     for item in targets:
         code = item.get("code", "unknown")
         if item.get("asOf") != end_date:
             issues.append(f"{code}: allocation handoff asOf is invalid.")
-        if item.get("action") not in VALID_ACTIONS:
-            issues.append(f"{code}: allocation handoff action is invalid.")
-            continue
-        action = item["action"]
-        if not isinstance(item.get("actionEventToday"), bool):
-            issues.append(f"{code}: allocation handoff actionEventToday must be boolean.")
-        if item.get("targetAllocationUnits") != ALLOCATION_UNITS[action]:
-            issues.append(f"{code}: allocation handoff targetAllocationUnits is invalid.")
-        if item.get("allocationInstruction") != ALLOCATION_INSTRUCTIONS[action]:
-            issues.append(f"{code}: allocation handoff allocationInstruction is invalid.")
-        position_signal = item.get("positionSignal", {})
-        required_position_fields = {
-            "stage",
-            "referenceUnits",
-            "newEntryAllowed",
-            "addPositionAllowed",
-            "entryAction",
-            "riskAction",
-            "reasonCodes",
-            "riskReasonCodes",
-            "requiresExternalPositionState",
-            "leaderConfirmationRole",
-            "leaderStockChaseAllowed",
-            "executionOwner",
+        if item.get("maStateCode") not in VALID_STATE_CODES:
+            issues.append(f"{code}: allocation handoff maStateCode is invalid.")
+        if not isinstance(item.get("maEventToday"), bool):
+            issues.append(f"{code}: allocation handoff maEventToday must be boolean.")
+        if not isinstance(item.get("stateInputs"), dict):
+            issues.append(f"{code}: allocation handoff stateInputs is invalid.")
+        signal = item.get("signal", {})
+        required_signal_fields = {
+            "ma60CrossUpToday",
+            "stateAboveMa60",
+            "ma60CrossUpInvalidated",
+            "aboveMa250Today",
+            "stateAboveMa250",
+            "ma60CrossUpDate",
+            "firstAboveMa250Date",
         }
-        missing_position_fields = sorted(required_position_fields.difference(position_signal))
-        if missing_position_fields:
+        missing_signal_fields = sorted(required_signal_fields.difference(signal))
+        if missing_signal_fields:
             issues.append(
-                f"{code}: allocation handoff positionSignal is missing "
-                f"{', '.join(missing_position_fields)}."
+                f"{code}: allocation handoff signal is missing "
+                f"{', '.join(missing_signal_fields)}."
             )
-        elif (
-            position_signal.get("referenceUnits") != ALLOCATION_UNITS[action]
-            or not isinstance(position_signal.get("newEntryAllowed"), bool)
-            or not isinstance(position_signal.get("addPositionAllowed"), bool)
-            or not isinstance(position_signal.get("reasonCodes"), list)
-            or not isinstance(position_signal.get("riskReasonCodes"), list)
-            or position_signal.get("requiresExternalPositionState") is not True
-            or position_signal.get("leaderConfirmationRole")
-            != "industry_state_confirmation_only"
-            or position_signal.get("leaderStockChaseAllowed") is not False
-            or position_signal.get("executionOwner") != "external_monitor"
-        ):
-            issues.append(f"{code}: allocation handoff positionSignal is invalid.")
+        else:
+            for field in (
+                "ma60CrossUpToday",
+                "stateAboveMa60",
+                "ma60CrossUpInvalidated",
+                "aboveMa250Today",
+                "stateAboveMa250",
+            ):
+                if not isinstance(signal.get(field), bool):
+                    issues.append(f"{code}: allocation handoff signal {field} must be boolean.")
         if not isinstance(item.get("reasonCodes"), list) or not item["reasonCodes"]:
             issues.append(f"{code}: allocation handoff reasonCodes are invalid.")
         guards = item.get("guards", {})
@@ -603,8 +451,6 @@ def validate_allocation_handoff(
             issues.append(f"{code}: allocation handoff weight date is after asOf.")
         elif not isinstance(weight_age, int):
             issues.append(f"{code}: allocation handoff weight age is invalid.")
-        if item.get("action") in ENTRY_ACTIONS and guards.get("entryGuardPassed") is not True:
-            issues.append(f"{code}: allocation handoff entry action bypasses data guards.")
         history_days = guards.get("historyTradeDayCount")
         ma250_days = guards.get("ma250ValidDayCount")
         if not isinstance(guards.get("historyStartDate"), str):
