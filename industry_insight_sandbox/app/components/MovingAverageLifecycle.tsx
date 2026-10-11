@@ -83,6 +83,7 @@ function formatDate(value: string | null) {
   return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
 }
 
+// 均线读数是收盘价走完之后的派生结果：图表在前，这里只留三格摘要并沉到页面底部。
 export default function MovingAverageLifecycle({
   lifecycle,
 }: {
@@ -92,7 +93,7 @@ export default function MovingAverageLifecycle({
     <section className="ma-lifecycle shell">
       <div className="ma-lifecycle-heading">
         <div>
-          <p className="eyebrow">MOVING AVERAGE GEOMETRY</p>
+          <p className="eyebrow">MOVING AVERAGE GEOMETRY / DERIVED READOUT</p>
           <h2>均线几何位置</h2>
         </div>
         <span className="mono">{lifecycle.maStackCode}</span>
@@ -116,11 +117,6 @@ export default function MovingAverageLifecycle({
           </p>
         </article>
         <article>
-          <small>收盘 &lt; MA20 &lt; MA60 连续天数</small>
-          <strong>{lifecycle.convergenceDays}/30日</strong>
-          <p>观测样本 {lifecycle.separationObservationCount} 个</p>
-        </article>
-        <article>
           <small>均线上穿日期</small>
           <strong>
             {formatDate(lifecycle.ma20CrossUpDate)} →{" "}
@@ -129,20 +125,13 @@ export default function MovingAverageLifecycle({
           </strong>
           <p>MA20 → MA60 → MA250</p>
         </article>
-        <article>
-          <small>MA60 位于 MA250 下方起始日</small>
-          <strong>{formatDate(lifecycle.ma60BelowMa250Date)}</strong>
-          <p>该日期之后 MA60 持续低于 MA250</p>
-        </article>
-        <article>
-          <small>执行归属</small>
-          <strong className="mono">{lifecycle.executionOwner}</strong>
-          <p>
-            本页只输出读数
-            {lifecycle.strategyExecutesOrders ? "" : "，不执行交易"}
-          </p>
-        </article>
       </div>
+      <p className="ma-lifecycle-note">
+        均线相对关系由收盘价计算得出，是价格走势的派生读数而非先行原因；
+        本页只输出读数
+        {lifecycle.strategyExecutesOrders ? "" : "，不执行交易"}
+        。
+      </p>
     </section>
   );
 }

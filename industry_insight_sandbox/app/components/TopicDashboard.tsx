@@ -580,60 +580,6 @@ export default function TopicDashboard({
         </div>
       </section>
 
-      <MovingAverageLifecycle lifecycle={dashboardData.summary.maLifecycle} />
-
-      <section className="identity-grid shell">
-        <article className="identity-card identity-main">
-          <div>
-            <p className="eyebrow">{dashboardData.target.bucket}</p>
-            <h2>{dashboardData.target.name}</h2>
-            <p className="mono">{dashboardData.target.code}</p>
-          </div>
-          <div className="price-block">
-            <strong>{formatNumber(dashboardData.target.latestClose, 3)}</strong>
-            <span className={(dashboardData.target.latestPct || 0) >= 0 ? "up" : "down"}>
-              {formatPercent(dashboardData.target.latestPct, 2)}
-            </span>
-          </div>
-        </article>
-        <article className="identity-card">
-          <p className="metric-label">跟踪指数</p>
-          <strong>{dashboardData.target.indexName}</strong>
-          <span className="mono">{dashboardData.target.indexCode}</span>
-        </article>
-        <article className="identity-card">
-          <p className="metric-label">核心成分篮子</p>
-          <strong>{dashboardData.summary.coreCount} 只</strong>
-          <span>累计权重 {formatPercent(dashboardData.summary.coreCoverage)}</span>
-        </article>
-        <article className="identity-card">
-          <p className="metric-label">指数距年线</p>
-          <strong className={ma250Gap !== null && ma250Gap >= 0 ? "up" : "down"}>
-            {formatPercent(ma250Gap)}
-          </strong>
-          <span>连续2日收于MA250上方为价格层口径</span>
-        </article>
-      </section>
-
-      <section className="process shell" aria-label="三层条件读数">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">THREE-LAYER CONFIRMATION</p>
-            <h2>三组条件读数</h2>
-          </div>
-          <p>
-            第一组读数：收盘低于MA250至少5%的天数，60日与40日两档刻度。
-            第二组读数：收盘相对MA60 / MA250的位置，以及成交额所处历史分位。
-            第三组读数：核心成分股位于MA60上方的比例、涨停记录与成交额。
-          </p>
-        </div>
-        <div className="stage-grid">
-          {dashboardData.stages.map((stage) => (
-            <StageCard stage={stage} key={stage.id} />
-          ))}
-        </div>
-      </section>
-
       <section className="analytics shell">
         <article className="panel chart-panel">
           <div className="panel-heading">
@@ -701,6 +647,59 @@ export default function TopicDashboard({
           </div>
         </article>
       </section>
+
+      <section className="identity-grid shell">
+        <article className="identity-card identity-main">
+          <div>
+            <p className="eyebrow">{dashboardData.target.bucket}</p>
+            <h2>{dashboardData.target.name}</h2>
+            <p className="mono">{dashboardData.target.code}</p>
+          </div>
+          <div className="price-block">
+            <strong>{formatNumber(dashboardData.target.latestClose, 3)}</strong>
+            <span className={(dashboardData.target.latestPct || 0) >= 0 ? "up" : "down"}>
+              {formatPercent(dashboardData.target.latestPct, 2)}
+            </span>
+          </div>
+        </article>
+        <article className="identity-card">
+          <p className="metric-label">跟踪指数</p>
+          <strong>{dashboardData.target.indexName}</strong>
+          <span className="mono">{dashboardData.target.indexCode}</span>
+        </article>
+        <article className="identity-card">
+          <p className="metric-label">核心成分篮子</p>
+          <strong>{dashboardData.summary.coreCount} 只</strong>
+          <span>累计权重 {formatPercent(dashboardData.summary.coreCoverage)}</span>
+        </article>
+        <article className="identity-card">
+          <p className="metric-label">指数距年线</p>
+          <strong className={ma250Gap !== null && ma250Gap >= 0 ? "up" : "down"}>
+            {formatPercent(ma250Gap)}
+          </strong>
+          <span>连续2日收于MA250上方为价格层口径</span>
+        </article>
+      </section>
+
+      <section className="process shell" aria-label="三层条件读数">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">THREE-LAYER CONFIRMATION</p>
+            <h2>三组条件读数</h2>
+          </div>
+          <p>
+            第一组读数：收盘低于MA250至少5%的天数，60日与40日两档刻度。
+            第二组读数：收盘相对MA60 / MA250的位置，以及成交额所处历史分位。
+            第三组读数：核心成分股位于MA60上方的比例、涨停记录与成交额。
+          </p>
+        </div>
+        <div className="stage-grid">
+          {dashboardData.stages.map((stage) => (
+            <StageCard stage={stage} key={stage.id} />
+          ))}
+        </div>
+      </section>
+
 
       <section className="holdings shell">
         <article className="panel weights-panel">
@@ -894,6 +893,8 @@ export default function TopicDashboard({
           </table>
         </div>
       </section>
+
+      <MovingAverageLifecycle lifecycle={dashboardData.summary.maLifecycle} />
 
       <section className="method shell">
         <div className="section-heading">
