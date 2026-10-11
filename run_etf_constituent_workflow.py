@@ -22,6 +22,11 @@ from industry_insight_sandbox.build_allocation_handoff import (
 from industry_insight_sandbox.update_signal_followup import (
     validate_signal_followup,
 )
+from industry_insight_sandbox.build_market_context import (
+    REGIME_MARKET_WIDE,
+    REGIME_NONE,
+    REGIME_SINGLE_NAME,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -34,6 +39,7 @@ HK_GENERATORS = [
 OVERVIEW_MERGER = SANDBOX_DIR / "merge_hk_qdii_overview.py"
 ALLOCATION_HANDOFF_BUILDER = SANDBOX_DIR / "build_allocation_handoff.py"
 SIGNAL_FOLLOWUP_BUILDER = SANDBOX_DIR / "update_signal_followup.py"
+MARKET_CONTEXT_BUILDER = SANDBOX_DIR / "build_market_context.py"
 # 港股 QDII 生成链总开关；停用后跳过两个 HK 生成器，合并/下游按空列表处理。
 HK_QDII_ENABLED = False
 TARGETS_PATH = SANDBOX_DIR / "targets.json"
@@ -42,6 +48,7 @@ OVERVIEW_PATH = SANDBOX_DIR / "data" / "overview.json"
 ALL_TOPICS_PATH = SANDBOX_DIR / "data" / "all_topics.json"
 ALLOCATION_HANDOFF_PATH = SANDBOX_DIR / "data" / "allocation_handoff.json"
 SIGNAL_FOLLOWUP_PATH = SANDBOX_DIR / "data" / "signal_followup.json"
+MARKET_CONTEXT_PATH = SANDBOX_DIR / "data" / "market_context.json"
 TOPIC_DIR = SANDBOX_DIR / "data" / "topics"
 SUMMARY_DIR = ROOT / "logs" / "etf_constituent_workflow"
 CORE_TARGET_COUNT = 23
@@ -125,6 +132,7 @@ def _run_generators(end_date: str, log_path: Path) -> int:
         [sys.executable, str(OVERVIEW_MERGER)],
         [sys.executable, str(ALLOCATION_HANDOFF_BUILDER)],
         [sys.executable, str(SIGNAL_FOLLOWUP_BUILDER)],
+        [sys.executable, str(MARKET_CONTEXT_BUILDER)],
     ]
     log_sections: list[str] = []
     for command in commands:
@@ -446,6 +454,7 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
         ALL_TOPICS_PATH,
         ALLOCATION_HANDOFF_PATH,
         SIGNAL_FOLLOWUP_PATH,
+        MARKET_CONTEXT_PATH,
     ]
     missing = [str(path.relative_to(ROOT)) for path in required if not path.exists()]
     if missing:
@@ -457,6 +466,7 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
     topics = _read_json(ALL_TOPICS_PATH)
     allocation_handoff = _read_json(ALLOCATION_HANDOFF_PATH)
     signal_followup = _read_json(SIGNAL_FOLLOWUP_PATH)
+    market_context = _read_json(MARKET_CONTEXT_PATH)
 
     core_codes = {item["code"] for item in targets}
     hk_codes = {item["code"] for item in hk_targets}
@@ -506,6 +516,25 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
         )
     )
     issues.extend(validate_signal_followup(signal_followup, expected_codes, end_date))
+
+    market_meta = market_context.get("meta", {})
+    if market_meta.get("schemaVersion") != "1.0":
+        issues.append("Market context schemaVersion is invalid.")
+    if market_meta.get("asOf") != end_date:
+        issues.append("Market context asOf does not equal end_date.")
+    if market_meta.get("decisionUse") is not False:
+        issues.append("Market context must remain observation-only.")
+    if set(market_context.get("targets", {})) != expected_codes:
+        issues.append("Market context codes do not match the target universe.")
+    for code, context in market_context.get("targets", {}).items():
+        if context.get("contextAsOf") != end_date:
+            issues.append(f"{code}: market contextAsOf is invalid.")
+        if context.get("declineRegime") not in {
+            REGIME_NONE,
+            REGIME_MARKET_WIDE,
+            REGIME_SINGLE_NAME,
+        }:
+            issues.append(f"{code}: market context declineRegime is invalid.")
 
     overview_dates = {
         item.get("latestDate") for item in overview.get("targets", [])
@@ -610,6 +639,7 @@ def _validate_outputs(end_date: str) -> tuple[list[str], dict[str, Any]]:
         "signal_followup_event_count": signal_followup.get("meta", {}).get(
             "eventCount"
         ),
+        "market_context_as_of": market_context.get("meta", {}).get("asOf"),
         "fresh_component_count": fresh_component_count,
         "stale_component_count": stale_component_count,
     }
