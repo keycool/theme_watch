@@ -1,6 +1,7 @@
 import Link from "next/link";
 import MovingAverageLifecycle, {
   type MovingAverageLifecycleData,
+  type ObservationBlock,
 } from "./MovingAverageLifecycle";
 import StatusStrip from "./StatusStrip";
 
@@ -42,10 +43,8 @@ type DashboardData = {
     name: string;
   };
   summary: {
-    label: string;
-    rhythmLabel: string;
+    observation: ObservationBlock;
     maLifecycle: MovingAverageLifecycleData;
-    conclusion: string;
     stagePassCount: number;
     ma60Gap: NullableNumber;
     ma250Gap: NullableNumber;
@@ -130,8 +129,8 @@ function formatNumber(value: NullableNumber, digits = 3) {
 }
 
 function statusText(passed: boolean, warning: boolean) {
-  if (passed) return "通过";
-  return warning ? "提前预警" : "未通过";
+  if (passed) return "达到";
+  return warning ? "接近" : "未达";
 }
 
 function pathFor(
@@ -256,7 +255,7 @@ export default function HKQdiiDashboard({
           <h1>
             {dashboardData.target.name}
             <br />
-            <span>行业启动观察</span>
+            <span>行业均线位置读数</span>
           </h1>
           <p className="hero-description">
             {dashboardData.meta.heroDescription}
@@ -266,11 +265,26 @@ export default function HKQdiiDashboard({
           </div>
         </div>
         <div className="hero-status">
-          <p>本期判断</p>
-          <strong>{dashboardData.summary.label}</strong>
-          <small>均线阶段 · {dashboardData.summary.maLifecycle.label}</small>
-          <small>短期节奏 · {dashboardData.summary.rhythmLabel}</small>
-          <span>{dashboardData.summary.conclusion}</span>
+          <p>本期读数</p>
+          <strong className="mono">
+            {dashboardData.summary.maLifecycle.maStackCode}
+          </strong>
+          <small>
+            收盘位于 MA60 {dashboardData.summary.maLifecycle.aboveMa60 ? "上方" : "下方"}
+            {" · "}MA250{" "}
+            {dashboardData.summary.maLifecycle.aboveMa250 ? "上方" : "下方"}
+          </small>
+          <small>
+            距MA60 {formatPercent(dashboardData.summary.observation.position.ma60GapPct, 2)}
+            {" · "}距MA250{" "}
+            {formatPercent(dashboardData.summary.observation.position.ma250GapPct, 2)}
+          </small>
+          <span>
+            量能分位{" "}
+            {formatPercent(dashboardData.summary.observation.strength.etfAmountRankPct, 0)}
+            ，连站MA60{" "}
+            {dashboardData.summary.observation.duration.aboveMa60Days} 个交易日
+          </span>
         </div>
       </section>
 
@@ -340,15 +354,15 @@ export default function HKQdiiDashboard({
         </article>
       </section>
 
-      <section className="process shell" aria-label="港股QDII三层启动条件">
+      <section className="process shell" aria-label="港股QDII三层条件读数">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">THREE-LAYER CONFIRMATION</p>
-            <h2>港股专用口径的三层闭环</h2>
+            <p className="eyebrow">THREE-LAYER READING</p>
+            <h2>港股专用口径的三层条件</h2>
           </div>
           <p>
-            低位规则保留原策略弹性路径；量价层使用ETF自身行情；港股没有统一涨停板，
-            龙头层改用5%绝对涨幅、个股95%收益分位、次日延续与前十大群体广度共同确认。
+            位置层保留原策略的弹性路径；量价层使用ETF自身行情；港股没有统一涨停板，
+            龙头层改用5%绝对涨幅、个股95%收益分位、次日涨跌幅与前十大群体广度共同计量。
           </p>
         </div>
         <div className="stage-grid">
@@ -428,7 +442,7 @@ export default function HKQdiiDashboard({
             rows={chartRows}
           />
           <p className="chart-footnote">
-            {dashboardData.meta.chartFootnote} MA20仅生成短期节奏标签，不参与三层条件与主启动标签判定。
+            {dashboardData.meta.chartFootnote} MA20只作为短期位置参考，不参与三组条件的判定。
           </p>
         </article>
         <article className="panel">
@@ -452,8 +466,15 @@ export default function HKQdiiDashboard({
             rows={chartRows}
           />
           <div className="relative-note">
-            <strong>当前完成 {dashboardData.summary.stagePassCount}/3 层</strong>
-            <p>{dashboardData.summary.conclusion}</p>
+            <strong>本图读数</strong>
+            <p>
+              当前收盘位于近{" "}
+              {dashboardData.summary.observation.position.windowDays} 个交易日区间的{" "}
+              {formatPercent(dashboardData.summary.observation.position.closeRankPct, 0)} 分位，
+              距区间高点{" "}
+              {formatPercent(dashboardData.summary.observation.position.drawdownFromWindowHighPct, 2)}
+              ；三层条件当前满足 {dashboardData.summary.stagePassCount}/3。
+            </p>
           </div>
         </article>
       </section>
@@ -560,17 +581,17 @@ export default function HKQdiiDashboard({
                     动态门槛 {formatPercent(event.dynamicThreshold, 2)}；
                     次日 {formatPercent(event.continuationPct, 2)}；
                     {event.strictQualified
-                      ? "前三龙头严格确认通过。"
+                      ? "前三龙头达到严格口径。"
                       : event.qualified
-                        ? "仅作为第4至10名预警。"
-                        : "持续性或新鲜度未通过。"}
+                        ? "仅作为第4至10名记录。"
+                        : "连续性或数据新鲜度未达。"}
                   </p>
                 </div>
               ))}
             </div>
           ) : (
             <div className="empty-state">
-              最近观察窗口没有成分股同时满足“涨幅≥5%且达到自身120日收益95%分位”。
+              最近区间内没有成分股同时满足“涨幅≥5%且达到自身120日收益95%分位”。
             </div>
           )}
           <div className="leader-summary">

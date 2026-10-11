@@ -30,13 +30,28 @@ class HkQdiiStrategyBehaviorTests(unittest.TestCase):
         self.assertEqual(snapshot["target"]["indexCode"], "931454.CSI")
         self.assertIsInstance(snapshot["chart"][-1]["ma20"], (int, float))
         self.assertIn(
-            snapshot["summary"]["rhythmLabel"],
-            {"短期转强", "低位反弹", "上升回踩", "短期转弱", "震荡整理"},
+            snapshot["summary"]["maLifecycle"]["stateCode"],
+            {
+                "above_ma250",
+                "above_ma60",
+                "above_ma20",
+                "below_ma20_converged",
+                "below_ma20",
+            },
         )
         self.assertIn(
-            snapshot["summary"]["maLifecycle"]["label"],
-            {"年线趋势确认", "初始启动", "短线转暖", "低位收敛", "未形成"},
+            snapshot["summary"]["maLifecycle"]["maStackCode"],
+            {
+                "MA20>MA60>MA250",
+                "MA20>MA250>MA60",
+                "MA60>MA20>MA250",
+                "MA60>MA250>MA20",
+                "MA250>MA20>MA60",
+                "MA250>MA60>MA20",
+                "MA--",
+            },
         )
+        self.assertIn("observation", snapshot["summary"])
         self.assertFalse(
             snapshot["summary"]["maLifecycle"]["strategyExecutesOrders"]
         )
@@ -75,8 +90,18 @@ class HkQdiiStrategyBehaviorTests(unittest.TestCase):
         )
         self.assertTrue(
             all(
-                row["rhythmLabel"]
-                and row["maLifecycleLabel"]
+                row["maStateCode"]
+                and row["maStackCode"]
+                and row["observation"]
+                for row in merged["targets"]
+                if row["kind"] == "hk_qdii"
+            )
+        )
+        self.assertTrue(
+            all(
+                "label" not in row
+                and "rhythmLabel" not in row
+                and "capitalInterface" not in row
                 for row in merged["targets"]
                 if row["kind"] == "hk_qdii"
             )

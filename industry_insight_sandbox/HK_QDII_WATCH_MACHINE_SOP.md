@@ -3,7 +3,7 @@
 ```yaml
 contract:
   id: hk_qdii_watch
-  version: 3.1.0
+  version: 3.2.0
   mode: production_extension
   production_integrated: true
   unified_overview_target_count: 25
@@ -90,19 +90,8 @@ strategy:
     ma20:
       window: 20
       function: simple_moving_average
-      role: diagnostic_and_auxiliary_label
-      affects_stage_or_primary_label: false
-  short_term_rhythm:
-    output_field: rhythmLabel
-    role: auxiliary_label_only
-    affects_stage_or_primary_label: false
-    ma20_rising: latest_MA20 > MA20_5_trade_days_ago
-    first_match:
-      - 短期转强: latest_close >= latest_MA20 AND latest_MA20 >= latest_MA60 AND ma20_rising
-      - 低位反弹: latest_close >= latest_MA20 AND latest_MA20 < latest_MA60
-      - 上升回踩: latest_close < latest_MA20 AND latest_MA20 >= latest_MA60 AND ma20_rising
-      - 短期转弱: latest_close < latest_MA20 AND NOT ma20_rising
-      - 震荡整理: otherwise_or_missing_indicator
+      role: diagnostic_only
+      affects_stage_or_readout: false
   moving_average_lifecycle:
     shared_engine: moving_average_lifecycle.py
     output_field: maLifecycle
@@ -122,7 +111,6 @@ strategy:
       - MA20向上穿越发生在MA60向上穿越之前20个交易日内
     initial_start:
       event: close由下向上穿越MA60
-      capital_interface: legacy_observation_field_only
     trend_confirmation:
       event: initial_start之后close由下向上穿越MA250
       timing: 上穿MA250当日确认
@@ -133,10 +121,10 @@ strategy:
     shared_output: ../data/allocation_handoff.json
     owner: external_monitor
     role: observation_only_auxiliary_context
-    effective_consumer_mode: observe_only
+    effective_consumer_mode: read_only_context
     applies_to: [513970.SH, 513230.SH]
     constraints:
-      - 不改变港股QDII三层主标签或MA20辅助标签
+      - 不改变港股 QDII 的几何读数与三组刻度
       - 成分数据不新鲜时只输出数据质量警告，不产生新开或加仓建议
       - MA20减弱和MA60退出只作为观察上下文，不产生减仓或退出指令
       - 不输出人民币金额、账户仓位、成本价或下单指令
@@ -202,11 +190,18 @@ strategy:
     warning: secondary_event_qualified OR breadth
     explicit_exclusion: 不使用A股涨停阈值
 
-label:
-  启动确认: three_stages_passed
-  接近启动: stage_1_passed AND stage_2_passed AND stage_3_warning
-  观察中: any_stage_passed_or_warning
-  未启动: no_stage_passed_or_warning
+readout:
+  principle: 观察层只输出几何读数与历史分位，不输出方向性 label
+  three_groups_met: stage_1_passed AND stage_2_passed AND stage_3_passed
+  stage_pass_count: sum(stage_1_passed, stage_2_passed, stage_3_passed)
+  stage_1_passed: low_position_condition
+  stage_2_passed: price_confirm AND funding_confirm
+  stage_3_passed: strict_event_qualified AND breadth
+  breadth_denominator: freshConstituentCount（不是 activeCount）
+  state_code_rule:
+    source: latest close vs MA20 / MA60 / MA250 的纯几何关系
+    values_in_priority_order: [above_ma250, above_ma60, above_ma20, below_ma20_converged, below_ma20]
+    event_gating_allowed: false
 
 execution:
   unified_command:
@@ -233,6 +228,6 @@ execution:
 - For 513230.SH, use official `index_weight` values and never replace them with market-cap guesses.
 - Never use a rank 4-10 event as strict leader confirmation.
 - Never allow a stale constituent to confirm an event or breadth.
-- Treat `rhythmLabel` as an MA20 diagnostic label only; it must not alter any stage or the primary startup label.
+- The MA20 diagnostic rhythm label was removed on 2026-09-21; MA20 geometry now lives in `observation.position` and must not alter any stage or the state code.
 - Both HK outputs must set `meta.productionIntegrated=true` before overview merge or publication.
 - Publish `data/hk_qdii/**` only after the same main-branch, date monotonicity, test and Vercel guards used by the core workflow pass.

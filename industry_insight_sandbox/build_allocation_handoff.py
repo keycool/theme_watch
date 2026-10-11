@@ -15,52 +15,63 @@ OUTPUT_PATH = DATA_DIR / "allocation_handoff.json"
 ACTION_ORDER = {
     "de_risk": 0,
     "reduce_to_one_unit": 1,
-    "scale_in_eligible": 2,
-    "starter_eligible": 3,
+    "scale_in": 2,
+    "starter": 3,
     "candidate_entry": 4,
     "hold_and_monitor": 5,
-    "observe_only": 6,
+    "no_action": 6,
 }
-ENTRY_ACTIONS = {"scale_in_eligible", "starter_eligible", "candidate_entry"}
+ENTRY_ACTIONS = {"scale_in", "starter", "candidate_entry"}
 VALID_ACTIONS = set(ACTION_ORDER)
 ALLOCATION_MODE = "event_driven_satellite"
 WEIGHT_FRESHNESS_MAX_CALENDAR_DAYS = 60
 ALLOCATION_UNITS = {
-    "observe_only": 0,
+    "no_action": 0,
     "candidate_entry": 0.5,
-    "starter_eligible": 1,
-    "scale_in_eligible": 2,
+    "starter": 1,
+    "scale_in": 2,
     "reduce_to_one_unit": 1,
     "hold_and_monitor": None,
     "de_risk": 0,
 }
 ALLOCATION_INSTRUCTIONS = {
-    "observe_only": "no_satellite_position",
+    "no_action": "no_satellite_position",
     "candidate_entry": "candidate_half_unit_only",
-    "starter_eligible": "target_one_starter_unit",
-    "scale_in_eligible": "target_two_units_total",
+    "starter": "target_one_starter_unit",
+    "scale_in": "target_two_units_total",
     "reduce_to_one_unit": "reduce_to_one_unit_if_held",
     "hold_and_monitor": "hold_existing_only",
     "de_risk": "target_zero_units",
 }
 
+# 执行语义映射：观察层不再输出 capitalInterface，改由本文件从 action 推导。
+CAPITAL_INTERFACE_BY_ACTION = {
+    "no_action": "no_action",
+    "candidate_entry": "no_action",
+    "starter": "starter_unit",
+    "scale_in": "scale_in_units",
+    "reduce_to_one_unit": "no_action",
+    "hold_and_monitor": "no_action",
+    "de_risk": "exit_units",
+}
+
+# 文案只陈述「读数到了哪档」，不写方向判断，也不替外部下建议。
 REASON_TEXT = {
-    "INITIAL_START_INVALIDATED": "MA60 初始启动已失效",
-    "TREND_CONFIRMED_ACTIVE": "MA250 年线趋势确认仍有效",
-    "INITIAL_START_ACTIVE": "MA60 初始启动仍有效",
-    "SAFETY_MARGIN_PASSED": "MA60 与 MA250 的安全边际已通过",
-    "TREND_EXTENSION": "当前属于趋势延续，供外部持仓管理",
-    "OBSERVE_ONLY": "尚未形成可执行的均线生命周期信号",
-    "CANDIDATE_ENTRY_QUALITY_GATE": "主策略接近启动且已进入 MA60 观察窗口",
-    "THREE_STAGE_CONFIRMATION": "低位、资金与龙头三层条件均已通过",
-    "MA20_PROFIT_PROTECTION": "连续两日收盘低于 MA20，且 MA20 走弱",
-    "MA60_STRUCTURE_EXIT": "收盘跌破 MA60，趋势结构退出",
-    "ENTRY_BLOCKED_STALE_COMPONENTS": "成分数据不完整，不建议新开或加仓",
-    "ENTRY_BLOCKED_INSUFFICIENT_HISTORY": "长周期历史样本不足，不建议新开或加仓",
-    "ENTRY_BLOCKED_STALE_WEIGHTS": "权重快照已过期，不建议依据龙头排名新开或加仓",
-    "FUNDING_CONFIRMED": "资金连续三日确认",
-    "CROWDING_HOT": "资金拥挤风险提示",
-    "STALE_COMPONENTS_PRESENT": "存在停牌或未更新的成分股，已按策略排除失效数据",
+    "MA60_CROSSUP_INVALIDATED": "MA60 上穿后重新回落，交叉记录失效",
+    "ABOVE_MA250_STATE": "收盘位于 MA250 上方",
+    "TREND_CONFIRMED_ACTIVE": "MA250 上方状态已连续两日成立",
+    "ABOVE_MA60_STATE": "收盘位于 MA60 上方",
+    "MA60_MA250_SEPARATION_MET": "MA60 与 MA250 间距达到动态门槛",
+    "RELATIVE_EXCESS_MET": "相对收益或位置读数达到延伸刻度",
+    "NO_MA_SIGNAL": "三组读数均未达门槛",
+    "POSITION_WINDOW_MET": "低于 MA250 5% 的天数与 MA60 3% 区间同时达到门槛",
+    "THREE_GROUPS_MET": "位置、量价、成分三组读数均达到门槛",
+    "TWO_DAYS_BELOW_MA20": "连续两日收盘低于 MA20，且 MA20 下行",
+    "CLOSE_BELOW_MA60": "收盘跌破 MA60",
+    "ENTRY_BLOCKED_STALE_COMPONENTS": "成分数据不完整，不提供新开与加仓读数",
+    "ENTRY_BLOCKED_INSUFFICIENT_HISTORY": "长周期历史样本不足，不提供新开与加仓读数",
+    "ENTRY_BLOCKED_STALE_WEIGHTS": "权重快照已过期，不提供依赖龙头排名的新开与加仓读数",
+    "STALE_COMPONENTS_PRESENT": "存在停牌或未更新的成分股，已按口径排除",
 }
 
 
@@ -125,9 +136,9 @@ def _market_state(topic: dict[str, Any]) -> dict[str, bool]:
         and ma20 < chart[-6]["ma20"]
     )
     return {
-        "ma60ObservationWindow": ma60_observation_window,
+        "withinMa60Window": ma60_observation_window,
         "closeBelowMa60": close_below_ma60,
-        "ma20ProfitProtection": last_two_below_ma20 and ma20_weakening,
+        "twoDaysBelowMa20": last_two_below_ma20 and ma20_weakening,
     }
 
 
@@ -146,9 +157,9 @@ def _position_signal(
     entry_guard_reasons: list[str],
     three_stages_passed: bool,
 ) -> tuple[str, dict[str, Any]]:
-    initial_active = _as_bool(lifecycle.get("initialStartActive"))
-    trend_active = _as_bool(lifecycle.get("trendConfirmedActive"))
-    initial_invalidated = _as_bool(lifecycle.get("initialStartInvalidated"))
+    initial_active = _as_bool(lifecycle.get("stateAboveMa60"))
+    trend_active = _as_bool(lifecycle.get("stateAboveMa250"))
+    initial_invalidated = _as_bool(lifecycle.get("ma60CrossUpInvalidated"))
     confirmed_quality = trend_active and three_stages_passed
 
     def signal(
@@ -180,11 +191,11 @@ def _position_signal(
     if initial_invalidated or (
         market["closeBelowMa60"] and (initial_active or trend_active)
     ):
-        reasons = ["MA60_STRUCTURE_EXIT"]
+        reasons = ["CLOSE_BELOW_MA60"]
         if initial_invalidated:
-            reasons.insert(0, "INITIAL_START_INVALIDATED")
+            reasons.insert(0, "MA60_CROSSUP_INVALIDATED")
         return "de_risk", signal(
-            "exit",
+            "zero_units",
             0,
             "no_entry",
             "exit_to_zero_if_held",
@@ -201,34 +212,34 @@ def _position_signal(
             entry_guard_reasons,
         )
 
-    if trend_active and market["ma20ProfitProtection"]:
-        reasons = ["TREND_CONFIRMED_ACTIVE", "MA20_PROFIT_PROTECTION"]
+    if trend_active and market["twoDaysBelowMa20"]:
+        reasons = ["TREND_CONFIRMED_ACTIVE", "TWO_DAYS_BELOW_MA20"]
         return "reduce_to_one_unit", signal(
-            "risk_protection",
+            "reduce_to_one_unit",
             1,
             "no_entry",
             "reduce_to_one_unit_if_held",
             reasons,
-            ["MA20_PROFIT_PROTECTION"],
+            ["TWO_DAYS_BELOW_MA20"],
         )
 
     if confirmed_quality:
-        return "scale_in_eligible", signal(
-            "confirmed",
+        return "scale_in", signal(
+            "two_units",
             2,
             "scale_to_two_units",
             "hold",
-            ["TREND_CONFIRMED_ACTIVE", "THREE_STAGE_CONFIRMATION"],
+            ["ABOVE_MA250_STATE", "THREE_GROUPS_MET"],
             new_entry_allowed=True,
             add_position_allowed=True,
         )
 
     if initial_active:
-        reasons = ["INITIAL_START_ACTIVE"]
+        reasons = ["ABOVE_MA60_STATE"]
         if _as_bool(lifecycle.get("safetyMarginPassed")):
-            reasons.append("SAFETY_MARGIN_PASSED")
-        return "starter_eligible", signal(
-            "starter",
+            reasons.append("MA60_MA250_SEPARATION_MET")
+        return "starter", signal(
+            "one_unit",
             1,
             "enter_or_hold_starter",
             "hold",
@@ -236,47 +247,57 @@ def _position_signal(
             new_entry_allowed=True,
         )
 
+    # 观察层已不再输出 label。这里从 summary.stateInputs 的【事实输入】自行推导，
+    # 保证执行层的资格语义不依赖观察层的措辞。
+    states = summary.get("stateInputs") or {}
+    approaching_start = bool(
+        states.get("belowMa250FiveDaysGe60")
+        and states.get("ma60CrossUpEmerged")
+        and states.get("leaderGroupMonitored")
+    )
+    trend_extension = bool(
+        states.get("ma250ExceedPct15")
+        or states.get("relativeExcessGe15Pct")
+        or states.get("nearWindowHighBreadth")
+    )
+
     if (
-        summary.get("label") == "接近启动"
-        and market["ma60ObservationWindow"]
+        approaching_start
+        and market["withinMa60Window"]
     ):
         return "candidate_entry", signal(
-            "candidate",
+            "half_unit",
             0.5,
             "candidate_entry",
             "hold",
-            ["CANDIDATE_ENTRY_QUALITY_GATE"],
+            ["POSITION_WINDOW_MET"],
             new_entry_allowed=True,
         )
 
-    if summary.get("label") == "趋势延续":
+    if trend_extension:
         return "hold_and_monitor", signal(
-            "extended",
+            "hold_only",
             None,
             "hold_existing_only",
             "hold",
-            ["TREND_EXTENSION"],
+            ["RELATIVE_EXCESS_MET"],
         )
 
-    return "observe_only", signal(
-        "watch",
+    return "no_action", signal(
+        "no_position",
         0,
         "no_entry",
         "hold",
-        ["OBSERVE_ONLY"],
+        ["NO_MA_SIGNAL"],
     )
 
 
 def _reason_codes(
     position_signal: dict[str, Any],
-    summary: dict[str, Any],
     stale_component_count: int,
 ) -> list[str]:
+    """只保留与持仓/数据质量相关的读数；资金与拥挤度分位已于 2026-09-21 下线。"""
     codes = list(position_signal["reasonCodes"])
-    if _as_bool(summary.get("fundingConfirmed")):
-        codes.append("FUNDING_CONFIRMED")
-    if _as_bool(summary.get("crowdingHot")):
-        codes.append("CROWDING_HOT")
     if stale_component_count:
         codes.append("STALE_COMPONENTS_PRESENT")
     return codes
@@ -353,7 +374,7 @@ def build_allocation_handoff(
             entry_guard_reasons,
             stage_all_passed,
         )
-        reason_codes = _reason_codes(position_signal, summary, stale_count)
+        reason_codes = _reason_codes(position_signal, stale_count)
         action_event_today = _as_bool(lifecycle.get("initialStartToday")) or _as_bool(
             lifecycle.get("trendConfirmedToday")
         )
@@ -372,25 +393,23 @@ def build_allocation_handoff(
                 "targetAllocationUnits": ALLOCATION_UNITS[action],
                 "allocationInstruction": ALLOCATION_INSTRUCTIONS[action],
                 "positionSignal": position_signal,
-                "primaryLabel": summary.get("label", item.get("label")),
-                "lifecycleLabel": lifecycle.get("label", item.get("maLifecycleLabel")),
+                "maStackCode": lifecycle.get("maStackCode"),
+                "maStateCode": lifecycle.get("stateCode"),
                 "signal": {
-                    "capitalInterface": lifecycle.get(
-                        "capitalInterface", item.get("capitalInterface")
+                    # capitalInterface 属执行语义，由本文件从 action 推导，
+                    # 不再从观察层透传。
+                    "capitalInterface": CAPITAL_INTERFACE_BY_ACTION.get(
+                        action, "no_action"
                     ),
-                    "initialStartToday": _as_bool(lifecycle.get("initialStartToday")),
-                    "initialStartActive": _as_bool(lifecycle.get("initialStartActive")),
-                    "initialStartInvalidated": _as_bool(
-                        lifecycle.get("initialStartInvalidated")
+                    "ma60CrossUpToday": _as_bool(lifecycle.get("ma60CrossUpToday")),
+                    "stateAboveMa60": _as_bool(lifecycle.get("stateAboveMa60")),
+                    "ma60CrossUpInvalidated": _as_bool(
+                        lifecycle.get("ma60CrossUpInvalidated")
                     ),
-                    "trendConfirmedToday": _as_bool(
-                        lifecycle.get("trendConfirmedToday")
-                    ),
-                    "trendConfirmedActive": _as_bool(
-                        lifecycle.get("trendConfirmedActive")
-                    ),
-                    "initialStartDate": lifecycle.get("initialStartDate"),
-                    "trendConfirmedDate": lifecycle.get("trendConfirmedDate"),
+                    "aboveMa250Today": _as_bool(lifecycle.get("aboveMa250Today")),
+                    "stateAboveMa250": _as_bool(lifecycle.get("stateAboveMa250")),
+                    "ma60CrossUpDate": lifecycle.get("ma60CrossUpDate"),
+                    "firstAboveMa250Date": lifecycle.get("firstAboveMa250Date"),
                 },
                 "guards": {
                     "topicDataFresh": topic_data_fresh,
@@ -412,12 +431,10 @@ def build_allocation_handoff(
                     "etfAmountRankPct": etf_amount_rank_pct,
                     "premiumDiscountCheckProvided": False,
                     "premiumDiscountCheckOwner": "external_monitor",
-                    "fundingConfirmed": _as_bool(summary.get("fundingConfirmed")),
-                    "crowdingHot": _as_bool(summary.get("crowdingHot")),
-                    "ma60ObservationWindow": market["ma60ObservationWindow"],
+                    "withinMa60Window": market["withinMa60Window"],
                     "closeBelowMa60": market["closeBelowMa60"],
-                    "ma20ProfitProtection": market["ma20ProfitProtection"],
-                    "threeStagesPassed": stage_all_passed,
+                    "twoDaysBelowMa20": market["twoDaysBelowMa20"],
+                    "threeGroupsMet": stage_all_passed,
                 },
                 "reasonCodes": reason_codes,
                 "reasons": [REASON_TEXT[code] for code in reason_codes],
@@ -451,7 +468,7 @@ def build_allocation_handoff(
     meta = overview.get("meta", {})
     return {
         "meta": {
-            "schemaVersion": "1.3",
+            "schemaVersion": "1.5",
             "generatedAt": meta.get("generatedAt"),
             "asOf": as_of,
             "targetCount": len(targets),
@@ -477,7 +494,7 @@ def validate_allocation_handoff(
     issues: list[str] = []
     meta = handoff.get("meta", {})
     targets = handoff.get("targets", [])
-    if meta.get("schemaVersion") != "1.3":
+    if meta.get("schemaVersion") != "1.5":
         issues.append("Allocation handoff schemaVersion is invalid.")
     if meta.get("asOf") != end_date:
         issues.append("Allocation handoff asOf does not equal end_date.")
@@ -572,12 +589,10 @@ def validate_allocation_handoff(
             "etfLiquidityApplicable",
             "etfLiquidityDataReady",
             "premiumDiscountCheckProvided",
-            "fundingConfirmed",
-            "crowdingHot",
-            "ma60ObservationWindow",
+            "withinMa60Window",
             "closeBelowMa60",
-            "ma20ProfitProtection",
-            "threeStagesPassed",
+            "twoDaysBelowMa20",
+            "threeGroupsMet",
         ]:
             if not isinstance(guards.get(field), bool):
                 issues.append(f"{code}: allocation handoff guard {field} must be boolean.")

@@ -1,7 +1,7 @@
 ---
 sop:
   id: "etf_constituent_watch"
-  version: "2.1.12"
+  version: "2.2.0"
   canonical_path: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_MACHINE_SOP.md"
   document_kind: "machine_execution_contract"
   audience:
@@ -20,14 +20,14 @@ sop:
     - "authority"
     - "invariants"
     - "strategy"
-    - "label_state_machine"
+    - "observation_readout_contract"
     - "execution"
     - "validation"
     - "publication"
     - "secrets"
     - "failure_contract"
   last_verified:
-    date: "2026-08-14"
+    date: "2026-09-21"
     implementation_baseline_ref: "same_git_commit_as_this_file"
 
 authority:
@@ -41,12 +41,17 @@ authority:
     - "industry_insight_sandbox/generate_hk_connect_consumer_dashboard_data.py"
   unified_overview_merger: "industry_insight_sandbox/merge_hk_qdii_overview.py"
   allocation_handoff_builder: "industry_insight_sandbox/build_allocation_handoff.py"
+  market_context_builder: "industry_insight_sandbox/build_market_context.py"
   signal_followup_builder: "industry_insight_sandbox/update_signal_followup.py"
   offline_backtest_runner: "industry_insight_sandbox/backtest_etf_watch.py"
   expanded_universe_research_runner: "industry_insight_sandbox/expanded_universe_research.py"
   offline_backtest_review: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_BACKTEST_REVIEW_2026-08-13.md"
   offline_execution_simulator: "industry_insight_sandbox/backtest_execution_discipline.py"
   offline_execution_review: "industry_insight_sandbox/ETF_WATCH_EXECUTION_DISCIPLINE_REVIEW_2026-08-14.md"
+  # 2026-09-21 客户甲确认：回测产物冻结为历史档案，不再作为决策依据，
+  # 也不再继续优化、改造或重跑。它们评价的是 v2.1.12 旧标签信号的入场价值，
+  # 不覆盖 v2.2.0 起的客观读数口径，也不覆盖任何后续新方向。
+  backtest_archive_status: "historical_only_not_decision_basis"
   review_record: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_REVIEW_2026-08-13.md"
   parameter_ledger: "industry_insight_sandbox/ETF_CONSTITUENT_WATCH_PARAMETER_LEDGER.md"
   local_orchestrator: "run_etf_constituent_workflow.py"
@@ -66,7 +71,7 @@ invariants:
     etf: "ETF -> 真实跟踪指数 -> 指数权重核心成分股"
     direct_index: "主题指数 -> 自身指数行情 -> 指数权重核心成分股"
   sw_l2_role: "display_only"
-  sw_l2_must_not_affect_label: true
+  sw_l2_must_not_affect_readouts: true
   isolated_from_workflows:
     - "run_theme_watch_workflow.py"
     - "run_sw_l2_strategy_scan.py"
@@ -85,7 +90,7 @@ invariants:
     - "structure"
     - "breakout"
     - "leader"
-  moving_average_lifecycle_is_independent_from_primary_label: true
+  moving_average_lifecycle_is_independent_from_readouts: true
   benchmark_code: "000300.SH"
   history_start: "20190101"
   production_url: "https://etf-core-constituent-watch.vercel.app"
@@ -119,7 +124,7 @@ data:
     end_date: "${end_date:YYYYMMDD}"
     long_cycle_min_trade_days: 750
     long_cycle_definition: "MA250 warm-up plus 500 additional trade-day observations"
-    primary_label_formula_changes_when_insufficient: false
+    readout_formula_changes_when_insufficient: false
     allocation_entry_allowed_when_insufficient: false
   weight_query:
     start_date_formula: "first_day(end_date - 210 calendar days)"
@@ -128,7 +133,7 @@ data:
     lookahead_allowed: false
     actual_age_output_required: true
     allocation_freshness_max_calendar_days: 60
-    stale_weight_changes_primary_label: false
+    stale_weight_changes_readouts: false
     stale_weight_blocks_new_entry_or_scaling: true
     future_weight_snapshot_allowed: false
   endpoints:
@@ -199,12 +204,12 @@ strategy:
   usage_contract:
     role: "observation_only_auxiliary_information"
     conclusion: "expanded_sample_does_not_support_using_this_strategy_as_an_independent_capital_allocation_strategy"
-    effective_consumer_mode: "observe_only"
+    effective_consumer_mode: "read_only_context"
     capital_allocation_authority: "none"
     order_authority: "none"
     external_monitor_role: "read_signals_as_context_for_a_separate_monitoring_model; do_not_convert_them_to_orders_or_position_sizes"
     allowed_uses:
-      - "display_primary_label_and_three_stage_evidence"
+      - "display_geometry_readouts_and_three_stage_evidence"
       - "display_moving_average_lifecycle_as_an_observation_signal"
       - "display_data_freshness_weight_age_and_etf_liquidity_guards"
       - "queue_for_human_review_or_cross_system_comparison"
@@ -218,7 +223,7 @@ strategy:
       - "rank_targets_as_expected_return_or_priority_to_trade"
     legacy_wire_fields:
       meaning: "allocation_handoff.json remains available for schema compatibility"
-      consumer_rule: "action, targetAllocationUnits, allocationInstruction and positionSignal are non-operative metadata; treat every record as observe_only"
+      consumer_rule: "action, targetAllocationUnits, allocationInstruction and positionSignal are non-operative metadata; treat every record as read-only context"
       do_not_infer: "starter, confirmed, risk_protection, exit or extended must not be interpreted as an executable capital instruction"
   numeric_comparison:
     equality_counts_as_above_ma: true
@@ -229,8 +234,8 @@ strategy:
       input: "tracking_index.close"
       window_trade_days: 20
       function: "simple_moving_average"
-      role: "diagnostic_and_auxiliary_label"
-      affects_stage_or_primary_label: false
+      role: "diagnostic_only"
+      affects_stage_or_readout: false
     ma60:
       input: "tracking_index.close"
       window_trade_days: 60
@@ -262,27 +267,9 @@ strategy:
     close_to_high_120:
       formula: "latest_tracking_index_close / max(tracking_index_close_last_120)"
 
-  short_term_rhythm:
-    output_field: "rhythmLabel"
-    role: "auxiliary_label_only"
-    affects_stage_or_primary_label: false
-    ma20_rising_formula: "latest_ma20 > ma20_5_trade_days_ago"
-    evaluation_mode: "first_match_wins"
-    states_in_priority_order:
-      - label: "短期转强"
-        condition: "latest_close >= latest_ma20 AND latest_ma20 >= latest_ma60 AND ma20_rising"
-      - label: "低位反弹"
-        condition: "latest_close >= latest_ma20 AND latest_ma20 < latest_ma60"
-      - label: "上升回踩"
-        condition: "latest_close < latest_ma20 AND latest_ma20 >= latest_ma60 AND ma20_rising"
-      - label: "短期转弱"
-        condition: "latest_close < latest_ma20 AND NOT ma20_rising"
-      - label: "震荡整理"
-        condition: "otherwise_or_missing_indicator"
-
   moving_average_lifecycle:
     output_field: "maLifecycle"
-    role: "independent_startup_timing_signal"
+    role: "independent_geometry_reading"
     affects_stage_or_primary_label: false
     lookahead_allowed: false
     calculation_object: "same_price_series_used_for_ma20_ma60_ma250"
@@ -307,14 +294,13 @@ strategy:
       warm_up_lookback_trade_days: 20
     events:
       warm_up:
-        label: "短线转暖"
+        code: "ma20_cross_up"
         role: "observation_only"
       initial_start:
-        label: "初始启动"
+        code: "ma60_cross_up"
         formula: "predecessor_path_passed AND safety_margin_passed AND previous_close < previous_ma60 AND current_close >= current_ma60"
-        capital_interface: "legacy_observation_field_only"
       trend_confirmation:
-        label: "年线趋势确认"
+        code: "ma250_cross_up"
         formula: "after_initial_start AND previous_close < previous_ma250 AND current_close >= current_ma250"
         confirmation_timing: "same_trade_day_as_ma250_upward_cross"
         capital_interface: "legacy_observation_field_only"
@@ -330,11 +316,11 @@ strategy:
       fixed_cny_amount_provided: false
       allocation_unit_owner: "none_for_this_strategy"
       allocation_unit_definition: "no allocation unit is defined; any external budget model belongs to a separate monitor"
-      observe_only_interface: "observe_only"
+      capital_interface: "none"
 
   allocation_handoff:
     output_path: "industry_insight_sandbox/data/allocation_handoff.json"
-    schema_version: "1.3"
+    schema_version: "1.4"
     allocation_mode: "event_driven_satellite"
     effective_consumer_mode: "observation_only"
     compatibility_only: true
@@ -351,13 +337,13 @@ strategy:
     allocation_unit_model:
       purpose: "compatibility metadata only; no relative capacity or position size is defined"
       all_values: "ignore_for_capital_decisions"
-      observe_only: "effective meaning for every record"
-      candidate_entry: "legacy label only; observe_only"
-      starter_eligible: "legacy label only; observe_only"
-      scale_in_eligible: "legacy label only; observe_only"
-      reduce_to_one_unit: "legacy label only; observe_only"
-      hold_and_monitor: "legacy label only; observe_only"
-      de_risk: "legacy label only; observe_only"
+      no_action: "effective meaning for every record"
+      candidate_entry: "compatibility value only; no_action"
+      starter: "compatibility value only; no_action"
+      scale_in: "compatibility value only; no_action"
+      reduce_to_one_unit: "compatibility value only; no_action"
+      hold_and_monitor: "compatibility value only; no_action"
+      de_risk: "compatibility value only; no_action"
     output_fields:
       allocationMode: "event_driven_satellite"
       allocationUnitOwner: "external_monitor"
@@ -365,17 +351,17 @@ strategy:
       allocationInstruction: "wire compatibility field; never an instruction to act"
       positionSignal: "observation metadata only; never a position or risk action"
     position_signal_state_machine:
-      independent_from_primary_label: true
-      primary_label_role: "input only; it must not be changed by this state machine"
+      derived_from_geometry_only: true
+      readout_role: "input only; it must not be changed by this state machine"
       states:
-        watch: "observe_only"
-        candidate: "observe_only; legacy stage label"
-        starter: "observe_only; legacy stage label"
-        confirmed: "observe_only; legacy stage label"
-        extended: "observe_only; legacy stage label"
-        risk_protection: "observe_only; legacy risk context"
-        exit: "observe_only; legacy risk context"
-        data_guard: "observe_only; data-quality warning"
+        no_position: "no_action"
+        half_unit: "no_action; compatibility stage value"
+        one_unit: "no_action; compatibility stage value"
+        two_units: "no_action; compatibility stage value"
+        hold_only: "no_action; compatibility stage value"
+        reduce_to_one_unit: "no_action; compatibility risk context"
+        zero_units: "no_action; compatibility risk context"
+        data_guard: "no_action; data-quality warning"
       entry_guards:
         - "all component freshness fields are complete and current"
         - "longCycleHistoryReady == true"
@@ -385,7 +371,7 @@ strategy:
         etf_amount_rank_pct: "ETF own amount rolling 252-day percentile with min 120 observations"
         premium_discount: "not provided by this strategy; external monitor must check before execution"
       risk_rules:
-        ma20_profit_protection: "last_2_trade_days_all(close < ma20) AND latest_ma20 < ma20_5_trade_days_ago; advisory only and requires external position state"
+        two_days_below_ma20: "last_2_trade_days_all(close < ma20) AND latest_ma20 < ma20_5_trade_days_ago; advisory only and requires external position state"
         ma60_structure_exit: "(initial_start_active OR trend_confirmed_active) AND latest_close < latest_ma60; advisory only and requires external position state"
         funding_or_leader_risk: "not an automatic exit rule; funding remains a confirmed-stage quality gate and leader weakness remains display/risk context pending separate historical validation"
       external_position_boundary:
@@ -396,30 +382,31 @@ strategy:
     boundary: "the handoff provides lifecycle, quality gates, data warnings and research context only; all capital, order, entry, exit and risk decisions are outside this strategy"
     source_scope: "unified_25_target_overview_plus_core_and_hk_topic_details"
     action_enum:
-      - "observe_only"
+      - "no_action"
       - "candidate_entry"
-      - "starter_eligible"
-      - "scale_in_eligible"
+      - "starter"
+      - "scale_in"
       - "reduce_to_one_unit"
       - "hold_and_monitor"
       - "de_risk"
     action_mapping:
-      effective_consumer_semantics: "all_actions_are_observe_only"
-      legacy_action_fields_are_non_operational: true
-      de_risk: "maLifecycle.initialStartInvalidated == true OR ((maLifecycle.initialStartActive OR maLifecycle.trendConfirmedActive) AND latest_close < latest_ma60)"
-      reduce_to_one_unit: "maLifecycle.trendConfirmedActive AND MA20 profit-protection rule"
-      scale_in_eligible: "maLifecycle.trendConfirmedActive AND structure.pass AND breakout.pass AND leader.pass AND entry_data_fresh"
-      starter_eligible: "maLifecycle.initialStartActive AND entry_data_fresh"
-      candidate_entry: "primary_label == 接近启动 AND latest_close >= latest_ma60 * 0.97 AND entry_data_fresh"
-      hold_and_monitor: "primary_label == 趋势延续"
-      observe_only: "otherwise"
+      effective_consumer_semantics: "all_actions_are_compatibility_values_only"
+      action_fields_are_non_operational: true
+      derivation_note: "观察层不输出资格语义；这里全部由 maLifecycle / stages / stateInputs 的几何读数自行推导"
+      de_risk: "maLifecycle.ma60CrossUpInvalidated == true OR ((maLifecycle.stateAboveMa60 OR maLifecycle.stateAboveMa250) AND latest_close < latest_ma60)"
+      reduce_to_one_unit: "maLifecycle.stateAboveMa250 AND two_days_below_ma20 rule"
+      scale_in: "maLifecycle.stateAboveMa250 AND structure.pass AND breakout.pass AND leader.pass AND entry_data_fresh"
+      starter: "maLifecycle.stateAboveMa60 AND entry_data_fresh"
+      candidate_entry: "states.belowMa250FiveDaysGe60 AND states.ma60CrossUpEmerged AND states.leaderGroupMonitored AND market.withinMa60Window AND latest_close >= latest_ma60 * 0.97 AND entry_data_fresh"
+      hold_and_monitor: "states.ma250ExceedPct15 OR states.relativeExcessGe15Pct OR states.nearWindowHighBreadth"
+      no_action: "otherwise"
     entry_priority:
       applies_to_actions:
-        - "scale_in_eligible"
-        - "starter_eligible"
+        - "scale_in"
+        - "starter"
         - "candidate_entry"
       tie_breakers_in_order:
-        - "action_order: scale_in_eligible before starter_eligible before candidate_entry"
+        - "action_order: scale_in before starter before candidate_entry"
         - "stage_pass_count descending"
         - "absorption_rank_pct descending; null treated as 0"
         - "target.order ascending"
@@ -544,28 +531,83 @@ strategy:
     condition_c: "close_to_high_120 >= 0.95 AND above_ma60_core_ratio >= 0.67 AND above_ma250_core_ratio >= 0.67"
     evaluation_priority: 1
 
-label_state_machine:
-  evaluation_mode: "first_match_wins"
-  states_in_priority_order:
-    - label: "趋势延续"
-      condition: "trend_extension"
-    - label: "启动确认"
-      condition: "structure.pass AND breakout.pass AND leader.pass"
-    - label: "接近启动"
-      condition: "structure.pass AND breakout.emerged AND leader.group_monitor"
-    - label: "观察中"
-      condition: "(structure.pass OR structure.warning) AND breakout.ma60_observation_window"
-    - label: "未启动"
-      condition: "otherwise"
-  side_signal_rule: "when structure is absent or the tracking index is outside the ma60 observation window, breakout and leader signals remain visible but cannot raise the overall label"
+observation_readout_contract:
+  principle: >-
+    观察层只输出几何读数与历史分位（位置 / 时间 / 广度 / 强度），
+    不输出方向性结论、资格判断或任何 label 语义。
+    需要资格语义的下游（build_allocation_handoff）必须自行从这些读数推导。
+  evaluation_mode: "independent_readouts"
+  readout_groups:
+    - id: "position"
+      fields:
+        - "maStackCode"
+        - "maStateCode"
+        - "ma20GapPct"
+        - "ma60GapPct"
+        - "ma250GapPct"
+        - "ma60GapRankPct"
+        - "ma250GapRankPct"
+        - "closeRankPct"
+        - "drawdownFromWindowHighPct"
+        - "windowDays"
+    - id: "duration"
+      fields:
+        - "aboveMa60Days"
+        - "aboveMa250Days"
+        - "belowMa60Days"
+        - "ma60CrossUpDate"
+        - "firstAboveMa250Date"
+        - "ma60CrossUpDaysAgo"
+    - id: "breadth"
+      denominator_rule: "breadth 百分比的分母是成分股样本数 coreCount（港股 QDII 为 freshConstituentCount），不得使用 activeCount"
+      fields:
+        - "coreCount"
+        - "coreCoveragePct"
+        - "aboveMa60Count"
+        - "aboveMa250Count"
+        - "aboveMa60Pct"
+        - "aboveMa250Pct"
+    - id: "strength"
+      fields:
+        - "amountRatio20"
+        - "amountRatio20RankPct"
+        - "absorptionRankPct"
+        - "etfAmountRankPct"
+        - "relativeExcess120Pct"
+    - id: "context"
+      source: "build_market_context.py；必须在 generate 与 merge 之后运行（此时才能拿到全部 25 个标的）"
+      origin: "2026-09-18 急跌历史验证中唯一显著的结论：全市场一起跌 vs 单独被砸，20 日超额差 +1.50%（CI[+0.51%, +2.41%]）"
+      fields:
+        - "marketRet5MedianPct"
+        - "ownRet5Pct"
+        - "declineRegime"
+        - "declineThresholdPct"
+        - "sampleCount"
+        - "contextAsOf"
+      decline_regime_rule: "ownRet5Pct <= -3% 且 marketRet5MedianPct <= -3% → market_wide；ownRet5Pct <= -3% 而横截面未跌 → single_name；否则 none"
+      rejected_definition: "不得使用「同日触发数 >= 5」定义市场级冲击（验证中误标率 68.3%）"
+      caveats:
+        - "纯观察读数，不含买卖含义，也不构成对后续走势的判断"
+        - "历史横截面无法补算：该读数只从首次运行日起逐日积累，contextAsOf 必须与读数一同展示"
+  state_code_rule:
+    source: "latest close vs MA20 / MA60 / MA250 的纯几何关系"
+    values_in_priority_order:
+      - "above_ma250"
+      - "above_ma60"
+      - "above_ma20"
+      - "below_ma20_converged"
+      - "below_ma20"
+    event_gating_allowed: false
+    note: "stateCode 只由当日收盘与均线的位置决定，不得由『是否发生过上穿事件』反向加门"
   stage_pass_count_formula: "sum(structure.pass, breakout.pass, leader.pass)"
+  three_groups_met_formula: "structure.pass AND breakout.pass AND leader.pass"
   overview_sort:
-    label_order:
-      - "趋势延续"
-      - "启动确认"
-      - "接近启动"
-      - "观察中"
-      - "未启动"
+    state_order:
+      - "above_ma250"
+      - "above_ma60"
+      - "above_ma20"
+      - "below_ma20_converged"
+      - "below_ma20"
     tie_breakers_in_order:
       - "stage_pass_count descending"
       - "absorption_rank_pct descending; null treated as 0"
@@ -801,7 +843,7 @@ validation:
       - "issues_count"
       - "target_count"
       - "latest_date"
-      - "labels"
+      - "states"
       - "summary_json"
       - "stdout_log"
     status_enum:
@@ -898,9 +940,9 @@ validation:
       - "maps_independent_position_stages_without_execution"
       - "ma250_cross_without_all_three_stages_cannot_scale"
       - "entry_ranking_includes_candidate_after_confirmed_and_starter"
-      - "history_and_weight_guards_block_entry_without_changing_primary_label"
+      - "history_and_weight_guards_block_entry_without_changing_geometry_state"
       - "signal_followup_records_transition_and_available_horizons"
-      - "signal_followup_does_not_duplicate_continuing_label"
+      - "signal_followup_does_not_duplicate_continuing_signal"
       - "signal_followup_rejects_date_rollback"
       - "production_date_extracts_single_live_date"
       - "production_date_blocks_implicit_rollback"
@@ -961,21 +1003,17 @@ output_schema:
       - "kind"
       - "indexCode"
       - "indexName"
-      - "label"
-      - "rhythmLabel"
-      - "maLifecycleLabel"
-      - "maSafetyMarginPassed"
+      - "maStackCode"
+      - "maStateCode"
       - "maSeparationPct"
       - "maSeparationRankPct"
-      - "initialStartToday"
-      - "trendConfirmedToday"
-      - "capitalInterface"
+      - "ma60CrossUpToday"
+      - "aboveMa250Today"
+      - "observation"
       - "latestDate"
       - "weightDate"
       - "ma250Gap"
       - "absorptionRankPct"
-      - "fundingConfirmed"
-      - "crowdingHot"
       - "belowMa250Days"
       - "belowMa250TenDays"
       - "stagePassCount"
@@ -983,7 +1021,10 @@ output_schema:
       - "route"
     core_target_additional_required_fields:
       - "belowMa250FiveDays"
-      - "ma60Near"
+      - "aboveMa60Count"
+      - "aboveMa250Count"
+      - "coreCount"
+      - "coreCoverage"
     required_component_freshness_fields:
       - "latestDate"
       - "dataFresh"
@@ -1001,27 +1042,45 @@ output_schema:
       - "limitEvents"
       - "notes"
     required_summary_fields:
-      - "label"
-      - "rhythmLabel"
       - "maLifecycle"
+      - "observation"
+      - "stagePassCount"
+      - "ma60Gap"
+      - "ma250Gap"
+      - "belowMa250Days"
+      - "belowMa250FiveDays"
+      - "belowMa250TenDays"
+      - "belowMa250FifteenDays"
+      - "aboveMa60Count"
+      - "aboveMa250Count"
+      - "coreCount"
+      - "coreCoverage"
+      - "absorptionRankPct"
+      - "etfAmountRankPct"
+      - "amountRatio20"
+      - "relativeExcess120"
+      - "ma60CrossUpToday"
+      - "activeCount"
     ma_lifecycle_required_fields:
-      - "label"
+      - "stateCode"
+      - "maStackCode"
       - "separationPct"
       - "separationRankPct"
       - "dynamicThresholdPct"
       - "separationObservationCount"
-      - "safetyMarginPassed"
       - "convergenceDays"
-      - "deathCrossDate"
-      - "warmUpDate"
-      - "initialStartDate"
-      - "trendConfirmedDate"
-      - "initialStartToday"
-      - "trendConfirmedToday"
-      - "initialStartActive"
-      - "trendConfirmedActive"
-      - "initialStartInvalidated"
-      - "capitalInterface"
+      - "ma60CrossUpDate"
+      - "ma20CrossUpDate"
+      - "ma60BelowMa250Date"
+      - "firstAboveMa250Date"
+      - "ma60CrossUpToday"
+      - "aboveMa250Today"
+      - "aboveMa20"
+      - "aboveMa60"
+      - "aboveMa250"
+      - "stateAboveMa60"
+      - "stateAboveMa250"
+      - "ma60CrossUpInvalidated"
       - "executionOwner"
       - "strategyExecutesOrders"
     chart_required_fields:
@@ -1055,8 +1114,8 @@ output_schema:
       - "targetAllocationUnits"
       - "allocationInstruction"
       - "positionSignal"
-      - "primaryLabel"
-      - "lifecycleLabel"
+      - "maStackCode"
+      - "maStateCode"
       - "signal"
       - "guards"
       - "reasonCodes"
@@ -1074,12 +1133,35 @@ output_schema:
       - "leaderConfirmationRole"
       - "leaderStockChaseAllowed"
       - "executionOwner"
-  signal_followup:
-    path: "industry_insight_sandbox/data/signal_followup.json"
+  market_context:
+    path: "industry_insight_sandbox/data/market_context.json"
     schema_version: "1.0"
     decision_use: false
+    required_meta_fields:
+      - "schemaVersion"
+      - "generatedAt"
+      - "asOf"
+      - "sampleCount"
+      - "marketRet5MedianPct"
+      - "declineThresholdPct"
+      - "decisionUse"
+    required_target_fields:
+      - "marketRet5MedianPct"
+      - "ownRet5Pct"
+      - "declineRegime"
+      - "declineThresholdPct"
+      - "sampleCount"
+      - "contextAsOf"
+    build_order: "generate → merge → build_market_context（回填 overview / all_topics / topics / hk_qdii）"
+  signal_followup:
+    path: "industry_insight_sandbox/data/signal_followup.json"
+    schema_version: "1.1"
+    decision_use: false
     lookahead_allowed: false
-    tracked_signal: "启动确认 transition only"
+    tracked_signal: "three_groups_met 由 not_met 首次转为成立（structure / breakout / leader 三组读数全部达到门槛）"
+    event_field: "signalCondition"
+    latest_state_field: "latestStates"
+    latest_state_enum: ["three_groups_met", "not_met"]
     horizons_trade_days: [5, 20, 60]
     benchmark_by_engine:
       core_a_share: "000300.SH"
@@ -1095,6 +1177,7 @@ publication:
       - "overview.json"
       - "all_topics.json"
       - "allocation_handoff.json"
+      - "market_context.json"
       - "signal_followup.json"
       - "topics/**"
       - "hk_qdii/**"
@@ -1193,7 +1276,7 @@ change_control:
     - "update this SOP invariants"
   prohibited_behavior:
     - "silently infer a replacement threshold"
-    - "silently use SW L2 to determine labels"
+    - "silently use SW L2 to determine readouts"
     - "publish when validation status is failed"
     - "log secret values"
 ---

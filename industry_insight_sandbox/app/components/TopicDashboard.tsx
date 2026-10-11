@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MovingAverageLifecycle, {
   type MovingAverageLifecycleData,
+  type ObservationBlock,
 } from "./MovingAverageLifecycle";
 import StatusStrip from "./StatusStrip";
 
@@ -75,34 +76,25 @@ type DashboardData = {
     latestPct: number | null;
   };
   summary: {
-    label: string;
-    rhythmLabel: string;
+    observation: ObservationBlock;
+    stateInputs?: Record<string, boolean | number>;
     maLifecycle: MovingAverageLifecycleData;
-    conclusion: string;
     coreCount: number;
     coreCoverage: number | null;
     activeCount: number;
     aboveMa60Count: number;
     aboveMa250Count: number;
-    strictLeaderConfirmed: boolean;
-    ma60Watch?: boolean;
-    ma60Near?: boolean;
-    ma60BreakoutToday?: boolean;
+    ma60CrossUpToday?: boolean;
     ma60Gap?: number | null;
     ma250Gap: number | null;
     amountRatio20: number | null;
     absorptionRankPct?: number | null;
-    fundingConfirmed?: boolean;
-    crowdingHot?: boolean;
-    lowWarning?: boolean;
     belowMa250Days?: number;
     belowMa250FiveDays?: number;
     belowMa250TenDays?: number;
     relativeExcess120: number | null;
     topThreeNames: string[];
     topTenNames?: string[];
-    topTenLimitAlert?: boolean;
-    secondaryLimitAlert?: boolean;
     stagePassCount: number;
   };
   stages: Stage[];
@@ -172,8 +164,8 @@ function formatNumber(value: number | null | undefined, digits = 1) {
 }
 
 function statusText(passed: boolean, warning = false) {
-  if (passed) return "通过";
-  return warning ? "提前预警" : "未通过";
+  if (passed) return "达到";
+  return warning ? "接近" : "未达";
 }
 
 function canvasSize(canvas: HTMLCanvasElement) {
@@ -558,7 +550,7 @@ export default function TopicDashboard({
           <h1>
             从ETF跟踪指数出发，
             <br />
-            直接观察<span>权重成分股</span>
+            以<span>权重成分股</span>为样本
           </h1>
           <p className="hero-description">
             取消“ETF → 申万二级”的强制中间映射。价格结构看跟踪指数，
@@ -566,11 +558,25 @@ export default function TopicDashboard({
           </p>
         </div>
         <div className="hero-status">
-          <p>本期判断</p>
-          <strong>{dashboardData.summary.label}</strong>
-          <small>均线阶段 · {dashboardData.summary.maLifecycle.label}</small>
-          <small>短期节奏 · {dashboardData.summary.rhythmLabel}</small>
-          <span>{dashboardData.summary.conclusion}</span>
+          <p>本期读数</p>
+          <strong className="mono">
+            {dashboardData.summary.maLifecycle.maStackCode}
+          </strong>
+          <small>
+            收盘位于 MA60 {dashboardData.summary.maLifecycle.aboveMa60 ? "上方" : "下方"}
+            {" · "}MA250{" "}
+            {dashboardData.summary.maLifecycle.aboveMa250 ? "上方" : "下方"}
+          </small>
+          <small>
+            距MA60 {formatPercent(dashboardData.summary.observation.position.ma60GapPct, 2)}
+            {" · "}距MA250{" "}
+            {formatPercent(dashboardData.summary.observation.position.ma250GapPct, 2)}
+          </small>
+          <span>
+            广度 {formatPercent(dashboardData.summary.observation.breadth.aboveMa60Pct, 0)}
+            成分股位于MA60上方；量能倍数{" "}
+            {formatNumber(dashboardData.summary.observation.strength.amountRatio20, 2)}
+          </span>
         </div>
       </section>
 
@@ -605,22 +611,20 @@ export default function TopicDashboard({
           <strong className={ma250Gap !== null && ma250Gap >= 0 ? "up" : "down"}>
             {formatPercent(ma250Gap)}
           </strong>
-          <span>连续2日站上MA250为价格确认</span>
+          <span>连续2日收于MA250上方为价格层口径</span>
         </article>
       </section>
 
-      <section className="process shell" aria-label="三层启动确认链路">
+      <section className="process shell" aria-label="三层条件读数">
         <div className="section-heading">
           <div>
             <p className="eyebrow">THREE-LAYER CONFIRMATION</p>
-            <h2>启动条件必须串联闭环</h2>
+            <h2>三组条件读数</h2>
           </div>
           <p>
-            低于年线至少5%达到60日可通过，达到40日先预警；
-            或年线下至少40日且深跌10%达到24日通过，第二条路径在
-            24日年线下停留且深跌12日时预警。低位结构至少预警，并且
-            距MA60不低于-3%，总状态才进入观察中；站上MA60为正式提前提示。
-            连续2日站上MA250、资金分位持续达标与前三龙头持续性共同完成闭环。
+            第一组读数：收盘低于MA250至少5%的天数，60日与40日两档刻度。
+            第二组读数：收盘相对MA60 / MA250的位置，以及成交额所处历史分位。
+            第三组读数：核心成分股位于MA60上方的比例、涨停记录与成交额。
           </p>
         </div>
         <div className="stage-grid">
@@ -665,8 +669,8 @@ export default function TopicDashboard({
           </div>
           <PriceChart rows={visibleChart} />
           <p className="chart-footnote">
-            成交柱为资金占比在过去252个交易日的历史分位；80%用于资金确认，
-            95%用于过热提示。MA20仅生成短期节奏标签，不参与三层条件与主启动标签判定。
+            成交柱为成交额占比在过去252个交易日的历史分位；80% 与 95% 均为刻度线。
+            MA20只作为短期位置参考，不参与三组条件读数。
             数据截至 {formatDate(dashboardData.meta.latestDate)}。
           </p>
         </article>
@@ -684,8 +688,16 @@ export default function TopicDashboard({
           </div>
           <RelativeChart rows={visibleChart} />
           <div className="relative-note">
-            <strong>为何显示“{dashboardData.summary.label}”</strong>
-            <p>{dashboardData.summary.conclusion}</p>
+            <strong>本图读数</strong>
+            <p>
+              近120日相对沪深300{" "}
+              {formatPercent(dashboardData.summary.observation.strength.relativeExcess120Pct, 2)}
+              ；当前收盘位于近{" "}
+              {dashboardData.summary.observation.position.windowDays} 个交易日区间的{" "}
+              {formatPercent(dashboardData.summary.observation.position.closeRankPct, 0)} 分位，
+              距区间高点{" "}
+              {formatPercent(dashboardData.summary.observation.position.drawdownFromWindowHighPct, 2)}。
+            </p>
           </div>
         </article>
       </section>
@@ -751,16 +763,16 @@ export default function TopicDashboard({
                   </div>
                   <p>
                     {!eventFresh
-                      ? "成分股数据未更新到专题截止日，本事件仅保留记录，不参与龙头确认。"
+                      ? "成分股数据未更新到专题截止日，本事件仅保留记录，不参与龙头层读数。"
                       : isStrictLeader
                       ? event.continuationOk
                         ? event.latestRetained
-                          ? "前三权重龙头涨停后继续收红，且最新收盘未回吐，严格持续性通过。"
+                          ? "前三权重龙头涨停后继续收红，且最新收盘未回吐，达到严格连续性口径。"
                           : "前三权重龙头次日收红，但最新价格已回吐至涨停日下方。"
-                        : "前三权重龙头已涨停，但次日延续尚未确认。"
+                        : "前三权重龙头已涨停，但次日涨跌幅未达口径。"
                       : event.continuationOk
-                        ? "第4至10名权重股近3日涨停后延续，只触发黄色预警。"
-                        : "第4至10名权重股出现涨停，等待次日延续确认。"}
+                        ? "第4至10名权重股近3日涨停后继续收红，只记为黄色刻度。"
+                        : "第4至10名权重股出现涨停，次日涨跌幅待记录。"}
                   </p>
                 </div>
                 );
@@ -894,7 +906,7 @@ export default function TopicDashboard({
           <article>
             <span>主判断对象</span>
             <h3>ETF跟踪指数</h3>
-            <p>用于低位结构、MA60、MA250和趋势位置判断。</p>
+            <p>用于低于MA250 的幅度、MA60、MA250 与趋势位置读数。</p>
           </article>
           <article>
             <span>资金验证对象</span>
@@ -902,14 +914,14 @@ export default function TopicDashboard({
             <p>使用跟踪指数成交额占全A成交额的过去252日历史分位验证增量资金。</p>
           </article>
           <article>
-            <span>龙头确认对象</span>
+            <span>龙头层样本</span>
             <h3>指数权重前3</h3>
-            <p>观察涨停事件和次日延续，不再使用申万市值龙头替代。</p>
+            <p>记录涨停事件与次日涨跌幅，不再使用申万市值龙头替代。</p>
           </article>
           <article className="muted-method">
             <span>辅助参照</span>
             <h3>申万二级行业</h3>
-            <p>保留行业归属和横向比较功能，但不决定本页启动标签。</p>
+            <p>保留行业归属和横向比较功能，不参与本页任何读数计算。</p>
           </article>
         </div>
       </section>

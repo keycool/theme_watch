@@ -13,8 +13,6 @@ sys.path.insert(0, str(SANDBOX_DIR))
 from generate_dashboard_data import (
     evaluate_breakout_state,
     evaluate_limit_event,
-    evaluate_short_term_rhythm,
-    evaluate_strategy_label,
     evaluate_structure_state,
     limit_threshold,
 )
@@ -378,90 +376,6 @@ class BreakoutBehaviorTest(unittest.TestCase):
         self.assertFalse(boundary["ma60Watch"])
         self.assertTrue(boundary["ma60Near"])
         self.assertFalse(outside["ma60Near"])
-
-
-class StrategyLabelBehaviorTest(unittest.TestCase):
-    def label(self, **overrides: bool) -> str:
-        inputs = {
-            "trend_extension": False,
-            "structure_passed": False,
-            "structure_warning": False,
-            "breakout_confirmed": False,
-            "breakout_emerged": False,
-            "leader_confirmed": False,
-            "leader_group_monitor": False,
-            "ma60_near": False,
-        }
-        inputs.update(overrides)
-        return evaluate_strategy_label(**inputs)
-
-    def test_side_signals_cannot_enter_observation_without_structure(self) -> None:
-        self.assertEqual(
-            self.label(
-                breakout_emerged=True,
-                leader_confirmed=True,
-                leader_group_monitor=True,
-            ),
-            "未启动",
-        )
-
-    def test_structure_without_ma60_window_stays_unstarted(self) -> None:
-        self.assertEqual(self.label(structure_warning=True), "未启动")
-
-    def test_structure_and_ma60_window_enter_observation(self) -> None:
-        self.assertEqual(
-            self.label(structure_warning=True, ma60_near=True),
-            "观察中",
-        )
-
-    def test_later_states_remain_layered_on_structure_pass(self) -> None:
-        self.assertEqual(
-            self.label(
-                structure_passed=True,
-                breakout_emerged=True,
-                leader_group_monitor=True,
-            ),
-            "接近启动",
-        )
-        self.assertEqual(
-            self.label(
-                structure_passed=True,
-                breakout_confirmed=True,
-                leader_confirmed=True,
-            ),
-            "启动确认",
-        )
-
-
-class ShortTermRhythmBehaviorTest(unittest.TestCase):
-    def rhythm(
-        self,
-        *,
-        close: float,
-        ma20: float,
-        ma60: float,
-        prior_ma20: float,
-    ) -> str:
-        frame = pd.DataFrame(
-            {
-                "close": [close] * 6,
-                "ma20": [prior_ma20] * 5 + [ma20],
-                "ma60": [ma60] * 6,
-            }
-        )
-        return evaluate_short_term_rhythm(frame)
-
-    def test_classifies_ma20_as_a_diagnostic_rhythm_label(self) -> None:
-        cases = {
-            "短期转强": dict(close=105, ma20=103, ma60=100, prior_ma20=99),
-            "低位反弹": dict(close=100, ma20=99, ma60=102, prior_ma20=100),
-            "上升回踩": dict(close=100, ma20=102, ma60=101, prior_ma20=100),
-            "短期转弱": dict(close=95, ma20=98, ma60=100, prior_ma20=100),
-            "震荡整理": dict(close=99, ma20=100, ma60=102, prior_ma20=99),
-        }
-        for expected, inputs in cases.items():
-            with self.subTest(expected=expected):
-                self.assertEqual(self.rhythm(**inputs), expected)
 
 
 if __name__ == "__main__":

@@ -11,7 +11,12 @@ sys.path.insert(0, str(SANDBOX_DIR))
 from update_signal_followup import build_signal_followup, validate_signal_followup
 
 
-def topic(code: str, label: str, rows: int = 1) -> dict:
+def topic(code: str, three_groups_met: bool, rows: int = 1) -> dict:
+    """构造一个观察层 topic。
+
+    观察层不再输出 label；触发条件由 structure / breakout / leader
+    三组读数是否全部达到门槛决定（update_signal_followup._three_groups_met）。
+    """
     chart = [
         {
             "date": f"202607{day:02d}",
@@ -22,7 +27,10 @@ def topic(code: str, label: str, rows: int = 1) -> dict:
     ]
     return {
         "target": {"code": code, "name": code},
-        "summary": {"label": label},
+        "stages": [
+            {"id": stage_id, "passed": three_groups_met}
+            for stage_id in ("structure", "breakout", "leader")
+        ],
         "chart": chart,
     }
 
@@ -33,16 +41,17 @@ class SignalFollowupTest(unittest.TestCase):
         first_overview = {"targets": [{"code": code, "latestDate": "20260701"}]}
         first = build_signal_followup(
             first_overview,
-            [topic(code, "启动确认", 1)],
+            [topic(code, True, 1)],
             [],
         )
         self.assertEqual(len(first["events"]), 1)
+        self.assertEqual(first["events"][0]["signalCondition"], "three_groups_met")
         self.assertEqual(first["events"][0]["horizons"]["5"]["status"], "pending")
 
         later_overview = {"targets": [{"code": code, "latestDate": "20260721"}]}
         later = build_signal_followup(
             later_overview,
-            [topic(code, "趋势延续", 21)],
+            [topic(code, False, 21)],
             [],
             first,
         )
@@ -54,14 +63,14 @@ class SignalFollowupTest(unittest.TestCase):
         self.assertEqual(event["horizons"]["60"]["status"], "pending")
         self.assertEqual(validate_signal_followup(later, {code}, "20260721"), [])
 
-    def test_does_not_duplicate_continuing_startup_label(self) -> None:
+    def test_does_not_duplicate_continuing_signal(self) -> None:
         code = "TEST.SH"
         overview = {"targets": [{"code": code, "latestDate": "20260701"}]}
-        first = build_signal_followup(overview, [topic(code, "启动确认")], [])
+        first = build_signal_followup(overview, [topic(code, True)], [])
         second_overview = {"targets": [{"code": code, "latestDate": "20260702"}]}
         second = build_signal_followup(
             second_overview,
-            [topic(code, "启动确认", 2)],
+            [topic(code, True, 2)],
             [],
             first,
         )
@@ -72,11 +81,11 @@ class SignalFollowupTest(unittest.TestCase):
         overview = {"targets": [{"code": code, "latestDate": "20260701"}]}
         previous = {
             "meta": {"asOf": "20260702"},
-            "latestLabels": {code: "观察中"},
+            "latestStates": {code: "not_met"},
             "events": [],
         }
         with self.assertRaisesRegex(ValueError, "cannot move backwards"):
-            build_signal_followup(overview, [topic(code, "观察中")], [], previous)
+            build_signal_followup(overview, [topic(code, False)], [], previous)
 
 
 if __name__ == "__main__":

@@ -9,8 +9,14 @@ import StatusStrip from "./components/StatusStrip";
 type OverviewData = typeof bundledOverviewData;
 type Target = OverviewData["targets"][number] & {
   absorptionRankPct?: number | null;
-  rhythmLabel?: string;
-  maLifecycleLabel?: string;
+  maStackCode?: string;
+  maStateCode?: string;
+  observation?: {
+    position?: {
+      ma60GapPct?: number | null;
+      ma250GapPct?: number | null;
+    };
+  };
   route?: string;
 };
 type StageState = Target["stageStates"][number] & { warning?: boolean };
@@ -18,11 +24,29 @@ type StageState = Target["stageStates"][number] & { warning?: boolean };
 const LIVE_OVERVIEW_URL =
   "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/overview.json";
 
-const LABEL_ORDER = ["趋势延续", "启动确认", "接近启动", "观察中", "未启动"];
+// 客观排序：按收盘价落在哪条均线之上，不再按方向性标签排序。
+const MA_STATE_ORDER = [
+  "above_ma250",
+  "above_ma60",
+  "above_ma20",
+  "below_ma20_converged",
+  "below_ma20",
+];
+const MA_STATE_TEXT: Record<string, string> = {
+  above_ma250: "MA250 上方",
+  above_ma60: "MA60 上方",
+  above_ma20: "MA20 上方",
+  below_ma20_converged: "MA20 下方",
+  below_ma20: "MA20 下方",
+};
 
-function labelRank(value: string) {
-  const index = LABEL_ORDER.indexOf(value);
-  return index === -1 ? LABEL_ORDER.length : index;
+function maStateRank(value: string | undefined) {
+  const index = MA_STATE_ORDER.indexOf(value ?? "");
+  return index === -1 ? MA_STATE_ORDER.length : index;
+}
+
+function maStateText(value: string | undefined) {
+  return MA_STATE_TEXT[value ?? ""] ?? "待更新";
 }
 
 function formatPercent(value: number | null | undefined, digits = 1) {
@@ -34,11 +58,10 @@ function formatDate(value: string) {
   return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
 }
 
-function labelClass(label: string) {
-  if (label === "启动确认") return "label-confirmed";
-  if (label === "接近启动") return "label-near";
-  if (label === "观察中") return "label-watch";
-  if (label === "趋势延续") return "label-trend";
+function maStateClass(value: string | undefined) {
+  if (value === "above_ma250") return "label-trend";
+  if (value === "above_ma60") return "label-near";
+  if (value === "above_ma20") return "label-watch";
   return "label-idle";
 }
 
@@ -64,24 +87,26 @@ function TargetRow({ target }: { target: Target }) {
         <small className="mono">{target.indexCode}</small>
       </div>
       <div className="target-row-status">
-        <span className={`overview-label ${labelClass(target.label)}`}>
-          {target.label}
+        <span className={`overview-label ${maStateClass(target.maStateCode)}`}>
+          {maStateText(target.maStateCode)}
         </span>
-        <span className="ma-lifecycle-label">
-          {target.maLifecycleLabel ?? "均线待更新"}
+        <span className="ma-lifecycle-label mono">
+          {target.maStackCode ?? "均线待更新"}
         </span>
         <span className="rhythm-label">
-          {target.rhythmLabel ?? "节奏待更新"}
+          距MA60 {formatPercent(target.observation?.position?.ma60GapPct)}
+          {" · "}距MA250{" "}
+          {formatPercent(target.observation?.position?.ma250GapPct)}
         </span>
       </div>
       <div className="target-row-stages">
         {target.stageStates.map((rawStage, index) => {
           const stage = rawStage as StageState;
           const state = stage.passed
-            ? "通过"
+            ? "达到"
             : stage.warning
-              ? "提前预警"
-              : "未通过";
+              ? "接近"
+              : "未达";
           return (
             <span
               className={
@@ -95,7 +120,7 @@ function TargetRow({ target }: { target: Target }) {
               title={`${stage.title}：${state}`}
             >
               <i />
-              {index === 0 ? "低位" : index === 1 ? "突破" : "龙头"}
+              {index === 0 ? "位置" : index === 1 ? "均线" : "成分"}
             </span>
           );
         })}
@@ -134,8 +159,8 @@ function DashboardHeader() {
     <div className="target-dashboard-head" aria-hidden="true">
       <span>标的</span>
       <span>判断指数</span>
-      <span>启动 / 均线 / 短期</span>
-      <span>三层启动条件</span>
+      <span>均线位置 / 排列</span>
+      <span>三层条件读数</span>
       <span>距MA250</span>
       <span>资金分位</span>
       <span>当日</span>
@@ -158,8 +183,8 @@ function SignalSummary({
   return (
     <div className="overview-signal-summary">
       <div className="signal-summary-heading">
-        <p className="eyebrow">TODAY&apos;S STARTUP WATCH</p>
-        <strong>今日启动观察</strong>
+        <p className="eyebrow">MA GEOMETRY READOUT</p>
+        <strong>今日均线位置读数</strong>
       </div>
       <div className="signal-summary-grid">
         <article>
@@ -167,11 +192,11 @@ function SignalSummary({
           <strong>{total}</strong>
         </article>
         <article>
-          <span>启动确认</span>
+          <span>收盘在MA250上方</span>
           <strong className="confirmed-stat">{confirmed}</strong>
         </article>
         <article>
-          <span>启动观察</span>
+          <span>收盘在MA60上方</span>
           <strong>{watching}</strong>
         </article>
         <article>
@@ -219,7 +244,7 @@ export default function Home() {
     return targets
       .filter(
         (target) =>
-        (label === "全部" || target.label === label) &&
+        (label === "全部" || maStateText(target.maStateCode) === label) &&
         (!normalized ||
           target.name.toLowerCase().includes(normalized) ||
           target.code.toLowerCase().includes(normalized) ||
@@ -227,18 +252,18 @@ export default function Home() {
       )
       .sort(
         (left, right) =>
-          labelRank(left.label) - labelRank(right.label) ||
+          maStateRank(left.maStateCode) - maStateRank(right.maStateCode) ||
           right.stagePassCount - left.stagePassCount ||
           (right.absorptionRankPct || 0) - (left.absorptionRankPct || 0) ||
           left.order - right.order,
       );
   }, [label, query, targets]);
 
-  const confirmedCount = targets.filter(
-    (target) => target.label === "启动确认",
+  const aboveMa250Count = targets.filter(
+    (target) => target.maStateCode === "above_ma250",
   ).length;
-  const watchCount = targets.filter((target) =>
-    ["接近启动", "观察中"].includes(target.label),
+  const aboveMa60Count = targets.filter(
+    (target) => target.maStateCode === "above_ma60",
   ).length;
 
   return (
@@ -265,18 +290,18 @@ export default function Home() {
           <h1>
             项目目标ETF与指数
             <br />
-            <span>核心成分观察总览</span>
+            <span>核心成分读数总览</span>
           </h1>
           <p>
-            23个正式标的集中在同一张启动观察表中，直接对照长期低位、MA60提前提示、
-            MA250与资金确认、权重龙头闭环。点击任一标的进入成分股专题。
+            23个正式标的集中在同一张读数表中，按收盘价相对 MA20 / MA60 / MA250 的位置、
+            成分股广度与成交额分位横向对照。点击任一标的进入成分股专题。
           </p>
         </div>
         <SignalSummary
-          confirmed={confirmedCount}
+          confirmed={aboveMa250Count}
           latestDate={targets[0].latestDate}
           total={overviewData.meta.targetCount}
-          watching={watchCount}
+          watching={aboveMa60Count}
         />
       </section>
 
@@ -284,24 +309,24 @@ export default function Home() {
         <div className="dashboard-title-row">
           <div>
             <p className="eyebrow">ALL TARGETS / THREE-STAGE WATCH</p>
-            <h2>全部标的启动观察</h2>
-            <p>默认按三层条件通过数排序，全部标的集中展示，不再按行业分块。</p>
+            <h2>全部标的读数</h2>
+            <p>默认按三层条件达到数排序，全部标的集中展示，不再按行业分块。</p>
           </div>
           <div className="overview-control-right">
             <select
-              aria-label="按启动状态筛选"
+              aria-label="按均线位置筛选"
               value={label}
               onChange={(event) => setLabel(event.target.value)}
             >
               <option>全部</option>
-              {LABEL_ORDER.map((value) => (
-                <option key={value}>{value}</option>
+              {MA_STATE_ORDER.map((value) => (
+                <option key={value}>{maStateText(value)}</option>
               ))}
             </select>
             <input
               aria-label="搜索ETF、指数或代码"
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="搜索名称 / 代码 / 判断指数"
+              placeholder="搜索名称 / 代码 / 跟踪指数"
               type="search"
               value={query}
             />
@@ -330,7 +355,7 @@ export default function Home() {
           <p>每个专题使用对应ETF的真实跟踪指数和最新权重；港股标的保留专用数据口径。</p>
           <p>核心成分优先覆盖60%指数权重，最多取20只，实际覆盖率逐页展示。</p>
           <p>申万二级不参与本沙盒专题标签，只保留为成分股行业文字参照。</p>
-          <p>以上内容仅用于策略研究与观察，不构成投资建议。</p>
+          <p>以上内容仅用于策略研究与方法验证，不构成投资建议。</p>
         </div>
       </footer>
     </main>

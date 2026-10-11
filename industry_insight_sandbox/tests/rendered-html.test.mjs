@@ -4,20 +4,15 @@ import test from "node:test";
 
 
 const root = new URL("../", import.meta.url);
-const rhythmLabels = new Set([
-  "短期转强",
-  "低位反弹",
-  "上升回踩",
-  "短期转弱",
-  "震荡整理",
+const maStateCodes = new Set([
+  "above_ma250",
+  "above_ma60",
+  "above_ma20",
+  "below_ma20_converged",
+  "below_ma20",
 ]);
-const lifecycleLabels = new Set([
-  "年线趋势确认",
-  "初始启动",
-  "短线转暖",
-  "低位收敛",
-  "未形成",
-]);
+const maStackPattern =
+  /^(MA20>MA60>MA250|MA20>MA250>MA60|MA60>MA20>MA250|MA60>MA250>MA20|MA250>MA20>MA60|MA250>MA60>MA20|MA--)$/;
 
 async function readJson(path) {
   return JSON.parse(await readFile(new URL(path, root), "utf8"));
@@ -88,7 +83,7 @@ test("the unified target universe and generated datasets stay aligned", async ()
   assert.deepEqual(topicCodes, coreCodes);
   assert.equal(overview.meta.targetCount, 23);
   assert.equal(overview.meta.hkQdiiCount, 0);
-  assert.equal(allocationHandoff.meta.schemaVersion, "1.3");
+  assert.equal(allocationHandoff.meta.schemaVersion, "1.5");
   assert.equal(allocationHandoff.meta.targetCount, 23);
   assert.equal(allocationHandoff.meta.allocationMode, "event_driven_satellite");
   assert.equal(allocationHandoff.meta.allocationUnitOwner, "external_monitor");
@@ -107,10 +102,10 @@ test("the unified target universe and generated datasets stay aligned", async ()
   assert.ok(
     allocationHandoff.targets.every((item) =>
       [
-        "observe_only",
+        "no_action",
         "candidate_entry",
-        "starter_eligible",
-        "scale_in_eligible",
+        "starter",
+        "scale_in",
         "reduce_to_one_unit",
         "hold_and_monitor",
         "de_risk",
@@ -125,13 +120,13 @@ test("the unified target universe and generated datasets stay aligned", async ()
   assert.ok(
     allocationHandoff.targets.every((item) =>
       [
-        "watch",
-        "candidate",
-        "starter",
-        "confirmed",
-        "extended",
-        "risk_protection",
-        "exit",
+        "no_position",
+        "half_unit",
+        "one_unit",
+        "two_units",
+        "hold_only",
+        "reduce_to_one_unit",
+        "zero_units",
         "data_guard",
       ].includes(item.positionSignal?.stage),
     ),
@@ -156,17 +151,22 @@ test("the unified target universe and generated datasets stay aligned", async ()
       (item) => typeof item.guards?.weightFresh === "boolean",
     ),
   );
-  assert.equal(signalFollowup.meta.schemaVersion, "1.0");
+  assert.equal(signalFollowup.meta.schemaVersion, "1.1");
   assert.equal(signalFollowup.meta.decisionUse, false);
   assert.equal(signalFollowup.meta.lookaheadAllowed, false);
-  assert.deepEqual(Object.keys(signalFollowup.latestLabels).sort(), targetCodes);
+  assert.deepEqual(Object.keys(signalFollowup.latestStates).sort(), targetCodes);
   assert.equal(new Set(overview.targets.map((item) => item.slug)).size, 23);
   assert.ok(
-    overview.targets.every((item) => rhythmLabels.has(item.rhythmLabel)),
+    overview.targets.every((item) => maStateCodes.has(item.maStateCode)),
   );
   assert.ok(
     overview.targets.every((item) =>
-      lifecycleLabels.has(item.maLifecycleLabel),
+      maStackPattern.test(item.maStackCode ?? ""),
+    ),
+  );
+  assert.ok(
+    overview.targets.every(
+      (item) => item.observation?.position?.windowDays > 0,
     ),
   );
   const nonferrous = topics.find((item) => item.target.code === "512400.SH");
@@ -182,7 +182,7 @@ test("the unified target universe and generated datasets stay aligned", async ()
     coreCodes.includes(item.code),
   )) {
     assert.equal(typeof target.belowMa250FiveDays, "number");
-    assert.equal(typeof target.ma60Near, "boolean");
+    assert.equal(typeof target.maStackCode, "string");
   }
 
   for (const topic of topics) {
@@ -192,12 +192,13 @@ test("the unified target universe and generated datasets stay aligned", async ()
     assert.ok(topic.target.indexCode);
     assert.ok(topic.target.indexName);
     assert.equal(typeof topic.summary.belowMa250FiveDays, "number");
-    assert.equal(typeof topic.summary.ma60Near, "boolean");
-    assert.ok(rhythmLabels.has(topic.summary.rhythmLabel));
-    assert.ok(lifecycleLabels.has(topic.summary.maLifecycle.label));
+    assert.ok(maStateCodes.has(topic.summary.maLifecycle.stateCode));
+    assert.ok(
+      maStackPattern.test(topic.summary.maLifecycle.maStackCode ?? ""),
+    );
     assert.equal(
-      typeof topic.summary.maLifecycle.safetyMarginPassed,
-      "boolean",
+      typeof topic.summary.observation.position.windowDays,
+      "number",
     );
     assert.equal(
       topic.summary.maLifecycle.strategyExecutesOrders,
@@ -225,11 +226,11 @@ test("the unified target universe and generated datasets stay aligned", async ()
     assert.equal(topic.stages.length, 3);
     assert.deepEqual(
       topic.stages.map((stage) => stage.title),
-      ["低位收敛", "带量突破年线", "权重龙头确认"],
+      ["价格位置", "均线与成交额", "核心成分股"],
     );
     const fundingItem = topic.stages
       .find((stage) => stage.id === "breakout")
-      ?.items.find((item) => item.title === "资金持续集中");
+      ?.items.find((item) => item.title === "成交额分位持续");
     assert.match(fundingItem?.value ?? "", /（\d\/3达标）$/);
   }
 });
@@ -242,18 +243,18 @@ test("server-renders the overview and links every unified target", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>ETF与主题指数核心成分观察总览<\/title>/);
+  assert.match(html, /<title>ETF与主题指数核心成分读数总览<\/title>/);
   assert.match(html, /23 formal project targets/);
   assert.match(html, />LIVE</);
   assert.match(html, /数据截止/);
   assert.match(html, /生成于/);
   assert.doesNotMatch(html, /封闭沙盒 · 不接入生产/);
-  assert.match(html, /23个正式标的集中在同一张启动观察表中/);
-  assert.match(html, /低位收敛/);
-  assert.match(html, /带量突破年线/);
-  assert.match(html, /权重龙头确认/);
-  assert.match(html, /全部标的启动观察/);
-  assert.match(html, /启动 \/ 均线 \/ 短期/);
+  assert.match(html, /23个正式标的集中在同一张读数表中/);
+  assert.match(html, /价格位置/);
+  assert.match(html, /均线与成交额/);
+  assert.match(html, /核心成分股/);
+  assert.match(html, /今日均线位置读数/);
+  assert.match(html, /均线位置 \/ 排列/);
   assert.doesNotMatch(html, /当前标签分布/);
   assert.doesNotMatch(html, /最接近闭环的目标/);
 
@@ -283,11 +284,11 @@ test("orders the overview by startup status before secondary metrics", async () 
 
   assert.match(
     source,
-    /const LABEL_ORDER = \["趋势延续", "启动确认", "接近启动", "观察中", "未启动"\]/,
+    /const MA_STATE_ORDER = \[\s*"above_ma250",\s*"above_ma60",\s*"above_ma20",\s*"below_ma20_converged",\s*"below_ma20",\s*\]/,
   );
   assert.match(
     source,
-    /labelRank\(left\.label\) - labelRank\(right\.label\)/,
+    /maStateRank\(left\.maStateCode\) - maStateRank\(right\.maStateCode\)/,
   );
 });
 
@@ -305,12 +306,12 @@ test("server-renders all 23 independent topic pages", async () => {
     assert.doesNotMatch(html, /封闭沙盒 · 不接入生产/);
     assert.match(html, new RegExp(topic.target.name));
     assert.match(html, new RegExp(topic.target.code.replace(".", "\\.")));
-    assert.match(html, /低位收敛/);
-    assert.match(html, /带量突破年线/);
-    assert.match(html, /权重龙头确认/);
+    assert.match(html, /价格位置/);
+    assert.match(html, /均线与成交额/);
+    assert.match(html, /核心成分股/);
     assert.match(html, /MA20/);
-    assert.match(html, /均线启动生命周期/);
-    assert.match(html, /外部资金接口/);
+    assert.match(html, /均线几何位置/);
+    assert.match(html, /不执行交易/);
     assert.match(html, /主要成分股权重/);
     assert.match(html, /核心成分状态矩阵/);
     assert.match(html, /返回全部专题/);
@@ -325,21 +326,22 @@ test("server-renders the production-integrated 513970 HK QDII strategy page", as
 
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /513970 恒生消费ETF · 行业启动观察/);
+  assert.match(html, /513970 恒生消费ETF · 行业读数/);
   assert.match(html, /513970\.SH/);
   assert.match(html, /恒生消费指数/);
   assert.match(html, /统一生产监控 · ETF价格代理 · 港股专用口径/);
-  assert.match(html, /低位收敛/);
-  assert.match(html, /量价趋势确认/);
-  assert.match(html, /港股权重龙头确认/);
+  assert.match(html, /价格位置/);
+  assert.match(html, /量价趋势读数/);
+  assert.match(html, /港股核心成分股/);
   assert.match(html, /恒生消费指数前十大成分状态/);
   assert.equal(dashboard.meta.productionIntegrated, true);
   assert.equal(typeof dashboard.chart.at(-1)?.ma20, "number");
-  assert.ok(rhythmLabels.has(dashboard.summary.rhythmLabel));
-  assert.ok(lifecycleLabels.has(dashboard.summary.maLifecycle.label));
+  assert.ok(maStateCodes.has(dashboard.summary.maLifecycle.stateCode));
+  assert.ok(
+    maStackPattern.test(dashboard.summary.maLifecycle.maStackCode ?? ""),
+  );
   assert.equal(dashboard.summary.maLifecycle.strategyExecutesOrders, false);
-  assert.match(html, /均线启动生命周期/);
-  assert.match(html, /短期节奏/);
+  assert.match(html, /均线几何位置/);
   assert.match(html, /MA20/);
   assert.equal(dashboard.constituents.length, 10);
   assert.ok(
@@ -359,7 +361,7 @@ test("server-renders 017832 through its 513230 tracking-index strategy", async (
 
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /017832 \/ 513230 港股通消费 · 行业启动观察/);
+  assert.match(html, /017832 \/ 513230 港股通消费 · 行业读数/);
   assert.match(html, /513230\.SH/);
   assert.match(html, /017832\.OF/);
   assert.match(html, /931454\.CSI/);
@@ -371,11 +373,12 @@ test("server-renders 017832 through its 513230 tracking-index strategy", async (
   assert.equal(dashboard.target.feederCode, "017832.OF");
   assert.equal(dashboard.target.indexCode, "931454.CSI");
   assert.equal(typeof dashboard.chart.at(-1)?.ma20, "number");
-  assert.ok(rhythmLabels.has(dashboard.summary.rhythmLabel));
-  assert.ok(lifecycleLabels.has(dashboard.summary.maLifecycle.label));
+  assert.ok(maStateCodes.has(dashboard.summary.maLifecycle.stateCode));
+  assert.ok(
+    maStackPattern.test(dashboard.summary.maLifecycle.maStackCode ?? ""),
+  );
   assert.equal(dashboard.summary.maLifecycle.strategyExecutesOrders, false);
-  assert.match(html, /均线启动生命周期/);
-  assert.match(html, /短期节奏/);
+  assert.match(html, /均线几何位置/);
   assert.match(html, /MA20/);
   assert.equal(dashboard.constituents.length, 10);
   assert.ok(
@@ -411,10 +414,8 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
   assert.match(generator, /MA60_OBSERVATION_MIN_GAP = -0\.03/);
   assert.match(generator, /FUNDING_CONFIRM_PERCENTILE = 0\.80/);
   assert.match(generator, /CROWDING_HOT_PERCENTILE = 0\.95/);
-  assert.match(
-    generator,
-    /跟踪指数成交额占全A成交额分位、年线突破与权重龙头持续性已经闭环/,
-  );
+  assert.doesNotMatch(generator, /"conclusion":/);
+  assert.doesNotMatch(generator, /"label":/);
   assert.match(
     generator,
     /below_ma250_5_days >= LOW_BELOW_MA250_5_PASS_DAYS[\s\S]*or deep_path_passed/,
@@ -423,28 +424,22 @@ test("keeps low-position, funding, and leader alerts below strict confirmation",
     generator,
     /below_ma250_5_days >= LOW_BELOW_MA250_5_WARNING_DAYS[\s\S]*or deep_path_warning/,
   );
-  assert.match(
+  // 2026-09-21：方向性判断函数已删除，观察层只产几何读数与历史分位
+  assert.doesNotMatch(generator, /def evaluate_strategy_label/);
+  assert.doesNotMatch(generator, /def evaluate_short_term_rhythm/);
+  assert.doesNotMatch(
     generator,
-    /if \(structure_passed or structure_warning\) and ma60_near:[\s\S]*return "观察中"/,
+    /"观察中"|"未启动"|"启动确认"|"接近启动"|"趋势延续"/,
   );
-  const labelStateSource = generator.slice(
-    generator.indexOf("def evaluate_strategy_label"),
-    generator.indexOf("def evaluate_short_term_rhythm"),
-  );
-  assert.doesNotMatch(labelStateSource, /ma20/i);
   assert.match(generator, /last_three_funding_ranks >= FUNDING_CONFIRM_PERCENTILE/);
-  assert.match(generator, /observation_clues\.append\("连续2日站上MA250"\)/);
-  assert.match(
-    generator,
-    /当前观察线索：\{.*join\(observation_clues\)\}/,
-  );
-  assert.match(generator, /"MA60观察窗口"/);
-  assert.match(generator, /"次级龙头异动"/);
+  assert.doesNotMatch(generator, /observation_clues/);
+  assert.match(generator, /"距MA60 区间"/);
+  assert.match(generator, /"第4至10名异动记录"/);
   assert.match(generator, /权重第4至10名近3日涨停，且次日继续收红/);
-  assert.match(dashboard, /低于年线至少5%达到60日可通过/);
-  assert.match(dashboard, /年线下至少40日且深跌10%达到24日通过/);
-  assert.match(dashboard, /距MA60不低于-3%/);
-  assert.match(dashboard, /资金占比在过去252个交易日的历史分位/);
+  assert.match(dashboard, /收盘低于MA250至少5%的天数，60日与40日两档刻度/);
+  assert.match(dashboard, /第二组读数：收盘相对MA60 \/ MA250的位置/);
+  assert.match(generator, /跟踪指数收盘距MA60不低于-3%/);
+  assert.match(dashboard, /成交额占比在过去252个交易日的历史分位/);
   assert.match(
     dashboard,
     /跟踪指数成交额占全A成交额的过去252日历史分位验证增量资金/,

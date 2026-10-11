@@ -37,13 +37,11 @@ def stages(all_passed: bool) -> list[dict]:
 def topic(
     code: str,
     *,
-    label: str = "观察中",
-    capital_interface: str = "observe_only",
+    approaching_start: bool = False,
+    trend_extension: bool = False,
     initial_active: bool = False,
     initial_invalidated: bool = False,
     trend_active: bool = False,
-    funding_confirmed: bool = False,
-    crowding_hot: bool = False,
     all_stages_passed: bool = False,
     market_chart: list[dict] | None = None,
     stale_component: bool = False,
@@ -61,23 +59,40 @@ def topic(
         },
         "target": {"code": code},
         "summary": {
-            "label": label,
-            "fundingConfirmed": funding_confirmed,
-            "crowdingHot": crowding_hot,
+            "stateInputs": {
+                "belowMa250FiveDaysGe60": approaching_start,
+                "belowMa250FiveDaysGe40": approaching_start,
+                "belowMa250FiveDays": 60 if approaching_start else 0,
+                "belowMa250TenDays": 0,
+                "belowMa250FifteenDays": 0,
+                "ma60WindowEntered": True,
+                "ma60CrossUpEmerged": approaching_start,
+                "ma60CrossUpConfirmed": trend_active,
+                "leaderGroupMonitored": approaching_start,
+                "leaderStreakMet": trend_active,
+                "ma250ExceedPct15": trend_extension,
+                "relativeExcessGe15Pct": False,
+                "nearWindowHighBreadth": False,
+                "breadthMa60Pct": 50.0,
+                "breadthMa250Pct": 50.0,
+                "closeToWindowHighPct": 90.0,
+            },
             "stagePassCount": 3 if all_stages_passed else 0,
             "absorptionRankPct": 80.0,
             "etfAmountRankPct": 50.0,
             "maLifecycle": {
-                "label": "年线趋势确认" if trend_active else "初始启动",
-                "capitalInterface": capital_interface,
-                "initialStartToday": False,
-                "initialStartActive": initial_active,
-                "initialStartInvalidated": initial_invalidated,
-                "trendConfirmedToday": False,
-                "trendConfirmedActive": trend_active,
-                "initialStartDate": "20260801" if initial_active or trend_active else None,
-                "trendConfirmedDate": "20260804" if trend_active else None,
-                "safetyMarginPassed": initial_active,
+                "maStackCode": "MA20>MA60>MA250",
+                "stateCode": "above_ma250" if trend_active else (
+                    "above_ma60" if (initial_active or approaching_start)
+                    else "below_ma20"
+                ),
+                "ma60CrossUpToday": False,
+                "stateAboveMa60": initial_active,
+                "ma60CrossUpInvalidated": initial_invalidated,
+                "aboveMa250Today": False,
+                "stateAboveMa250": trend_active,
+                "ma60CrossUpDate": "20260801" if initial_active or trend_active else None,
+                "firstAboveMa250Date": "20260804" if trend_active else None,
             },
         },
         "stages": stages(all_stages_passed),
@@ -114,7 +129,7 @@ class AllocationHandoffBehaviorTest(unittest.TestCase):
                     "route": f"/topic/{code.lower().replace('.', '-')}",
                     "latestDate": "20260804",
                     "order": order,
-                    "label": "观察中",
+                    "maStateCode": "below_ma20",
                 }
                 for order, code in enumerate(sorted(self.codes), start=1)
             ],
@@ -128,37 +143,31 @@ class AllocationHandoffBehaviorTest(unittest.TestCase):
             [
                 topic(
                     "CANDIDATE.SH",
-                    label="接近启动",
+                    approaching_start=True,
                     market_chart=chart(close=98, ma60=100),
                 ),
                 topic(
                     "SCALE.SH",
-                    capital_interface="scale_in_eligible",
                     trend_active=True,
-                    funding_confirmed=True,
                     all_stages_passed=True,
                 ),
                 topic(
                     "STARTER.SH",
-                    capital_interface="starter_position_eligible",
                     initial_active=True,
                 ),
-                topic("HOLD.SH", label="趋势延续"),
+                topic("HOLD.SH", trend_extension=True),
                 topic(
                     "PROTECT.SH",
-                    capital_interface="scale_in_eligible",
                     trend_active=True,
                     market_chart=chart(ma60=90, profit_protection=True),
                 ),
                 topic(
                     "EXIT.SH",
-                    capital_interface="starter_position_eligible",
                     initial_active=True,
                     market_chart=chart(close=89, ma60=90),
                 ),
                 topic(
                     "STALE.SH",
-                    capital_interface="starter_position_eligible",
                     initial_active=True,
                     stale_component=True,
                 ),
@@ -168,14 +177,14 @@ class AllocationHandoffBehaviorTest(unittest.TestCase):
         by_code = {item["code"]: item for item in handoff["targets"]}
 
         expected = {
-            "CANDIDATE.SH": ("candidate_entry", "candidate", 0.5),
-            "SCALE.SH": ("scale_in_eligible", "confirmed", 2),
-            "STARTER.SH": ("starter_eligible", "starter", 1),
-            "HOLD.SH": ("hold_and_monitor", "extended", None),
-            "PROTECT.SH": ("reduce_to_one_unit", "risk_protection", 1),
-            "EXIT.SH": ("de_risk", "exit", 0),
+            "CANDIDATE.SH": ("candidate_entry", "half_unit", 0.5),
+            "SCALE.SH": ("scale_in", "two_units", 2),
+            "STARTER.SH": ("starter", "one_unit", 1),
+            "HOLD.SH": ("hold_and_monitor", "hold_only", None),
+            "PROTECT.SH": ("reduce_to_one_unit", "reduce_to_one_unit", 1),
+            "EXIT.SH": ("de_risk", "zero_units", 0),
             "STALE.SH": ("hold_and_monitor", "data_guard", None),
-            "OBSERVE.SH": ("observe_only", "watch", 0),
+            "OBSERVE.SH": ("no_action", "no_position", 0),
         }
         for code, (action, stage, units) in expected.items():
             self.assertEqual(by_code[code]["action"], action)
@@ -214,14 +223,12 @@ class AllocationHandoffBehaviorTest(unittest.TestCase):
             [
                 topic(
                     "CANDIDATE.SH",
-                    label="接近启动",
+                    approaching_start=True,
                     market_chart=chart(close=98, ma60=100),
                 ),
                 topic(
                     "SCALE.SH",
-                    capital_interface="scale_in_eligible",
                     trend_active=True,
-                    funding_confirmed=True,
                     all_stages_passed=False,
                 ),
                 topic("STARTER.SH"),
@@ -234,8 +241,8 @@ class AllocationHandoffBehaviorTest(unittest.TestCase):
         )
         scale = next(item for item in handoff["targets"] if item["code"] == "SCALE.SH")
 
-        self.assertEqual(scale["action"], "observe_only")
-        self.assertEqual(scale["positionSignal"]["stage"], "watch")
+        self.assertEqual(scale["action"], "no_action")
+        self.assertEqual(scale["positionSignal"]["stage"], "no_position")
         self.assertFalse(scale["positionSignal"]["addPositionAllowed"])
 
     def test_entry_ranking_includes_candidate_after_confirmed_and_starter(self) -> None:
@@ -243,22 +250,19 @@ class AllocationHandoffBehaviorTest(unittest.TestCase):
             [
                 topic(
                     "CANDIDATE.SH",
-                    label="接近启动",
+                    approaching_start=True,
                     market_chart=chart(close=98, ma60=100),
                 ),
                 topic(
                     "SCALE.SH",
-                    capital_interface="scale_in_eligible",
                     trend_active=True,
-                    funding_confirmed=True,
                     all_stages_passed=True,
                 ),
                 topic(
                     "STARTER.SH",
-                    capital_interface="starter_position_eligible",
                     initial_active=True,
                 ),
-                topic("HOLD.SH", label="趋势延续"),
+                topic("HOLD.SH", trend_extension=True),
                 topic("PROTECT.SH"),
                 topic("EXIT.SH"),
                 topic("STALE.SH", stale_component=True),
@@ -287,13 +291,13 @@ class AllocationHandoffBehaviorTest(unittest.TestCase):
                     "route": "/topic/guarded-sh",
                     "latestDate": "20260804",
                     "order": 1,
-                    "label": "接近启动",
+                    "maStateCode": "above_ma60",
                 }
             ],
         }
         guarded_topic = topic(
             code,
-            label="接近启动",
+            approaching_start=True,
             market_chart=chart(close=98, ma60=100),
             history_ready=False,
             weight_date="20260101",
@@ -301,7 +305,7 @@ class AllocationHandoffBehaviorTest(unittest.TestCase):
         handoff = build_allocation_handoff(overview, [guarded_topic], [])
         guarded = handoff["targets"][0]
 
-        self.assertEqual(guarded["primaryLabel"], "接近启动")
+        self.assertEqual(guarded["maStateCode"], "above_ma60")
         self.assertEqual(guarded["action"], "hold_and_monitor")
         self.assertEqual(guarded["positionSignal"]["stage"], "data_guard")
         self.assertFalse(guarded["guards"]["entryGuardPassed"])

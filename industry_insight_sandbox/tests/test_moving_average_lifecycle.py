@@ -40,28 +40,28 @@ class MovingAverageLifecycleTests(unittest.TestCase):
     def test_ma20_cross_is_only_a_warm_up_signal(self) -> None:
         result = evaluate_moving_average_lifecycle(lifecycle_frame().iloc[:191])
 
-        self.assertEqual(result["label"], "短线转暖")
-        self.assertIsNotNone(result["warmUpDate"])
-        self.assertIsNone(result["initialStartDate"])
-        self.assertEqual(result["capitalInterface"], "observe_only")
+        self.assertEqual(result["stateCode"], "above_ma20")
+        self.assertIsNotNone(result["ma20CrossUpDate"])
+        self.assertIsNone(result["ma60CrossUpDate"])
+        self.assertEqual(result["stateCode"], "above_ma20")
 
     def test_valid_ma60_cross_starts_the_initial_signal(self) -> None:
         result = evaluate_moving_average_lifecycle(lifecycle_frame().iloc[:201])
 
-        self.assertEqual(result["label"], "初始启动")
-        self.assertTrue(result["initialStartToday"])
-        self.assertTrue(result["safetyMarginPassed"])
+        self.assertEqual(result["stateCode"], "above_ma60")
+        self.assertTrue(result["ma60CrossUpToday"])
+        self.assertTrue(result["stateAboveMa60"])
         self.assertGreaterEqual(result["separationPct"], 5.0)
         self.assertGreaterEqual(result["separationRankPct"], 70.0)
-        self.assertEqual(result["capitalInterface"], "starter_position_eligible")
+        self.assertTrue(result["stateAboveMa60"])
 
     def test_ma250_cross_confirms_the_trend_on_the_same_day(self) -> None:
         result = evaluate_moving_average_lifecycle(lifecycle_frame().iloc[:206])
 
-        self.assertEqual(result["label"], "年线趋势确认")
-        self.assertTrue(result["trendConfirmedToday"])
-        self.assertTrue(result["trendConfirmedActive"])
-        self.assertEqual(result["capitalInterface"], "scale_in_eligible")
+        self.assertEqual(result["stateCode"], "above_ma250")
+        self.assertTrue(result["aboveMa250Today"])
+        self.assertTrue(result["stateAboveMa250"])
+        self.assertTrue(result["stateAboveMa250"])
 
     def test_future_rows_do_not_change_the_prior_initial_event(self) -> None:
         frame = lifecycle_frame()
@@ -69,11 +69,11 @@ class MovingAverageLifecycleTests(unittest.TestCase):
         after_start = evaluate_moving_average_lifecycle(frame.iloc[:205])
 
         self.assertEqual(
-            at_start["initialStartDate"],
-            after_start["initialStartDate"],
+            at_start["ma60CrossUpDate"],
+            after_start["ma60CrossUpDate"],
         )
         self.assertEqual(
-            at_start["initialStartDate"],
+            at_start["ma60CrossUpDate"],
             frame.iloc[200]["trade_date"],
         )
 
@@ -86,9 +86,12 @@ class MovingAverageLifecycleTests(unittest.TestCase):
 
         result = evaluate_moving_average_lifecycle(frame)
 
-        self.assertFalse(result["safetyMarginPassed"])
-        self.assertIsNone(result["initialStartDate"])
-        self.assertNotEqual(result["label"], "初始启动")
+        # 几何读数只认收盘价与均线：97 > ma60(96) → above_ma60，
+        # 不受安全边际门槛影响（安全边际是资格语义，不再是几何位置的一部分）。
+        self.assertEqual(result["stateCode"], "above_ma60")
+        # 资格语义仍被安全边际 / 收敛门槛挡住：上穿事件不成立。
+        self.assertFalse(result["stateAboveMa60"])
+        self.assertIsNone(result["ma60CrossUpDate"])
 
 
 if __name__ == "__main__":

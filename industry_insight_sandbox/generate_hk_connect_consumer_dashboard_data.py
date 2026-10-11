@@ -21,7 +21,6 @@ from generate_hk_qdii_dashboard_data import (
     evaluate_hk_breadth,
     evaluate_hk_leader_event,
     evaluate_low_position,
-    evaluate_short_term_rhythm,
     fetch_tencent_daily,
     normalize_daily,
     return_over_period,
@@ -142,7 +141,6 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
     latest = index_daily.iloc[-1]
     previous = index_daily.iloc[-2]
     latest_etf = etf_daily.iloc[-1]
-    rhythm_label = evaluate_short_term_rhythm(index_daily)
     ma_lifecycle = evaluate_moving_average_lifecycle(index_daily)
     ma60_above = bool(latest["close"] > latest["ma60"])
     ma250_confirmed = bool(
@@ -228,34 +226,6 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
     stage_pass_count = sum(
         [low_state["passed"], breakout_passed, leader_passed]
     )
-    if stage_pass_count == 3:
-        label = "启动确认"
-        conclusion = "低位、指数量价与权重龙头三层条件已经闭环。"
-    elif low_state["passed"] and breakout_passed and leader_warning:
-        label = "接近启动"
-        conclusion = "低位与指数量价条件已完成，等待前三权重龙头严格确认。"
-    elif (
-        stage_pass_count
-        or low_state["warning"]
-        or breakout_warning
-        or leader_warning
-    ):
-        label = "观察中"
-        clues = []
-        if low_state["passed"]:
-            clues.append("低位条件通过")
-        elif low_state["warning"]:
-            clues.append("低位提前预警")
-        if ma60_above:
-            clues.append("指数站上MA60")
-        if funding_confirmed:
-            clues.append("指数成交分位达标")
-        if leader_warning:
-            clues.append("权重成分出现转强线索")
-        conclusion = f"当前线索：{'、'.join(clues) or '尚未形成明确闭环'}。"
-    else:
-        label = "未启动"
-        conclusion = "指数低位、量价与权重龙头尚未形成可验证的启动链路。"
 
     chart = index_daily.tail(400)[
         ["trade_date", "close", "ma20", "ma60", "ma250", "amountRank"]
@@ -361,7 +331,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
                     crowding_hot,
                     f"{amount_rank_pct:.0f}%" if amount_rank_pct is not None else "—",
                     "指数成交额历史分位达到95%提示过热",
-                    "只做风险提示，不参与启动确认。",
+                    "只做风险提示，不参与三组读数判定。",
                 ),
             ],
         },
@@ -461,10 +431,7 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
             "name": "景顺长城恒生消费",
         },
         "summary": {
-            "label": label,
-            "rhythmLabel": rhythm_label,
             "maLifecycle": ma_lifecycle,
-            "conclusion": conclusion,
             "stagePassCount": stage_pass_count,
             "lowWarning": low_state["warning"],
             "belowMa250Days": below_ma250_days,
@@ -474,7 +441,6 @@ def build_dashboard(pro: Any, requested_end_date: str) -> dict[str, Any]:
             "ma250Gap": as_float(ma250_gap),
             "amountRankPct": amount_rank_pct,
             "etfAmountRankPct": etf_amount_rank_pct,
-            "fundingConfirmed": funding_confirmed,
             "strictLeaderConfirmed": strict_leader_confirmed,
             "breadthConfirmed": breadth["confirmed"],
             "freshConstituentCount": breadth["freshCount"],
@@ -543,7 +509,7 @@ def main() -> None:
     print(
         f"Generated {args.output} "
         f"as_of={dashboard['meta']['latestDate']} "
-        f"label={dashboard['summary']['label']}"
+        f"stagePassCount={dashboard['summary']['stagePassCount']}"
     )
 
 

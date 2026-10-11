@@ -3,9 +3,9 @@ import "./globals.css";
 
 
 export const metadata: Metadata = {
-  title: "ETF与主题指数核心成分观察总览",
+  title: "ETF与主题指数核心成分读数总览",
   description:
-    "在隔离沙盒中，以ETF真实跟踪指数和指数权重核心成分股直接观察长期低位行业启动状态。",
+    "在隔离沙盒中，以ETF真实跟踪指数和指数权重核心成分股记录长期低于MA250 行业的均线与成交额读数。",
 };
 
 export default function RootLayout({

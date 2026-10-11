@@ -47,11 +47,23 @@ def _status_label(status: str) -> str:
     }.get(status, status or "未知")
 
 
-def _format_named_targets(overview: dict[str, Any], label: str) -> str:
+# 与页面口径一致：只按收盘价相对均线的位置分组，不做方向性表述。
+MA_STATE_TEXT = {
+    "above_ma250": "收盘在MA250上方",
+    "above_ma60": "收盘在MA60上方",
+    "above_ma20": "收盘在MA20上方",
+    "below_ma20_converged": "收盘在MA20下方",
+    "below_ma20": "收盘在MA20下方",
+}
+
+
+def _format_state_targets(
+    overview: dict[str, Any], state_codes: tuple[str, ...]
+) -> str:
     targets = [
         str(item.get("name", ""))
         for item in overview.get("targets", [])
-        if item.get("label") == label
+        if item.get("maStateCode") in state_codes
     ]
     return "、".join(targets) if targets else "无"
 
@@ -102,7 +114,7 @@ def _build_text(
 
     lines = [
         keyword,
-        "ETF 核心成分启动观察",
+        "ETF 核心成分观察",
         f"状态：{_status_label(effective_status)}",
         f"交易日：{summary.get('end_date', metrics.get('latest_date', '-'))}",
         (
@@ -110,10 +122,10 @@ def _build_text(
             f"{metrics.get('target_count', 0)} 个"
             f"（ETF {metrics.get('etf_count', 0)}｜指数 {metrics.get('index_count', 0)}）"
         ),
-        f"趋势延续：{_format_named_targets(overview, '趋势延续')}",
-        f"接近启动：{_format_named_targets(overview, '接近启动')}",
-        f"观察中：{_format_named_targets(overview, '观察中')}",
-        f"未启动：{_format_named_targets(overview, '未启动')}",
+        f"收盘在MA250上方：{_format_state_targets(overview, ('above_ma250',))}",
+        f"收盘在MA60上方：{_format_state_targets(overview, ('above_ma60',))}",
+        f"收盘在MA20上方：{_format_state_targets(overview, ('above_ma20',))}",
+        f"收盘在MA20下方：{_format_state_targets(overview, ('below_ma20_converged', 'below_ma20'))}",
         f"指数权重日：{weight_text}",
         f"问题：{issues_text}",
     ]

@@ -22,6 +22,7 @@ def build_overview_row(config: dict[str, Any], dashboard: dict[str, Any]) -> dic
     stages = dashboard["stages"]
     if meta.get("productionIntegrated") is not True:
         raise RuntimeError(f"{target['code']} is not marked as production integrated.")
+    lifecycle = summary["maLifecycle"]
     return {
         "slug": target["slug"],
         "bucket": config["bucket"],
@@ -32,26 +33,21 @@ def build_overview_row(config: dict[str, Any], dashboard: dict[str, Any]) -> dic
         "route": config["route"],
         "indexCode": target["indexCode"],
         "indexName": target["indexName"],
-        "label": summary["label"],
-        "rhythmLabel": summary["rhythmLabel"],
-        "maLifecycleLabel": summary["maLifecycle"]["label"],
-        "maSafetyMarginPassed": summary["maLifecycle"]["safetyMarginPassed"],
-        "maSeparationPct": summary["maLifecycle"]["separationPct"],
-        "maSeparationRankPct": summary["maLifecycle"]["separationRankPct"],
-        "initialStartToday": summary["maLifecycle"]["initialStartToday"],
-        "trendConfirmedToday": summary["maLifecycle"]["trendConfirmedToday"],
-        "capitalInterface": summary["maLifecycle"]["capitalInterface"],
+        # 观察层只输出几何读数：均线排列 + 收盘相对均线位置 + 观察四件套。
+        # 不含任何方向性判断（不写启动 / 延续 / 确认 / 强弱）。
+        "maStackCode": lifecycle.get("maStackCode"),
+        "maStateCode": lifecycle.get("stateCode"),
+        "maSeparationPct": lifecycle.get("separationPct"),
+        "maSeparationRankPct": lifecycle.get("separationRankPct"),
+        "ma60CrossUpToday": lifecycle.get("ma60CrossUpToday"),
+        "aboveMa250Today": lifecycle.get("aboveMa250Today"),
+        "observation": summary.get("observation"),
         "latestDate": meta["latestDate"],
         "weightDate": meta["constituentDate"],
         "latestClose": target["latestClose"],
         "latestPct": target["latestPct"],
         "ma250Gap": summary["ma250Gap"],
         "absorptionRankPct": summary["amountRankPct"],
-        "fundingConfirmed": summary["fundingConfirmed"],
-        "crowdingHot": bool(
-            summary["amountRankPct"] is not None
-            and summary["amountRankPct"] >= 95
-        ),
         "belowMa250Days": summary["belowMa250Days"],
         "belowMa250TenDays": summary["belowMa250TenDays"],
         "stagePassCount": summary["stagePassCount"],
@@ -97,7 +93,11 @@ def merge_overview(
             "hkQdiiCount": len(hk_rows),
             "etfCount": sum(row["kind"] in {"etf", "hk_qdii"} for row in all_rows),
             "indexCount": sum(row["kind"] == "index" for row in all_rows),
-            "source": "Tushare Pro + Hang Seng Indexes + Tencent Securities",
+            "source": (
+                "Tushare Pro + Hang Seng Indexes + Tencent Securities"
+                if hk_rows
+                else "Tushare Pro + Tencent Securities"
+            ),
         }
     )
     return overview

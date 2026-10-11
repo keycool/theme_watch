@@ -17,8 +17,8 @@ export async function generateMetadata({
   const topic = allTopics.find((item) => item.target.slug === slug);
   if (!topic) return {};
   return {
-    title: `${topic.target.name} · 核心成分启动观察`,
-    description: `${topic.target.name}直接观察${topic.target.indexName}及指数权重核心成分股。`,
+    title: `${topic.target.name} · 核心成分读数`,
+    description: `${topic.target.name}拆解${topic.target.indexName}及指数权重核心成分股。`,
   };
 }
 

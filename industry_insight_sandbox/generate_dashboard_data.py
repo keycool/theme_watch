@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Callable
 
+import numpy as np
 import pandas as pd
 
 from moving_average_lifecycle import evaluate_moving_average_lifecycle
@@ -296,57 +297,142 @@ def evaluate_structure_state(index_daily: pd.DataFrame) -> dict:
     }
 
 
-def evaluate_strategy_label(
+OBSERVATION_WINDOW_DAYS = 320
+
+
+def _rank_pct(series: pd.Series, value: float | None) -> float | None:
+    """当前值在自身历史分布中的百分位（0-100）。
+
+    只做排序统计，不含任何方向性解读。样本不足 60 个交易日返回 None，
+    避免用太短的窗口冒充分位。
+    """
+    if value is None:
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not np.isfinite(numeric):
+        return None
+    clean = pd.to_numeric(series, errors="coerce").dropna()
+    if len(clean) < 60:
+        return None
+    return round(float((clean <= numeric).mean() * 100), 2)
+
+
+def _consecutive_days(mask: pd.Series) -> int:
+    """序列末尾连续满足条件的交易日数（截至最新一根）。"""
+    values = mask.fillna(False).to_numpy()
+    count = 0
+    for flag in reversed(values):
+        if not flag:
+            break
+        count += 1
+    return count
+
+
+def build_observation_block(
     *,
-    trend_extension: bool,
-    structure_passed: bool,
-    structure_warning: bool,
-    breakout_confirmed: bool,
-    breakout_emerged: bool,
-    leader_confirmed: bool,
-    leader_group_monitor: bool,
-    ma60_near: bool,
-) -> str:
-    if trend_extension:
-        return "趋势延续"
-    if structure_passed and breakout_confirmed and leader_confirmed:
-        return "启动确认"
-    if structure_passed and breakout_emerged and leader_group_monitor:
-        return "接近启动"
-    if (structure_passed or structure_warning) and ma60_near:
-        return "观察中"
-    return "未启动"
+    index_daily: pd.DataFrame,
+    ma_lifecycle: dict,
+    active_count: int,
+    ma60_count: int,
+    ma250_count: int,
+    core_count: int,
+    core_coverage: float | None,
+    amount_ratio_latest: float | None,
+    absorption_rank_latest: float | None,
+    etf_amount_rank_pct: float | None,
+    relative_excess: float | None,
+) -> dict:
+    """观察四件套：位置 / 时间 / 广度 / 强度。
 
+    设计约束（客户甲 2026-09-19 拍板）：
+    - 每一项都必须能用一个数字直接复算；
+    - 不出现任何方向性判断词（不写强/弱、启动/延续、高/低位）；
+    - 能算分位的一律给分位，分位窗口统一为近 320 个交易日。
+    """
+    frame = index_daily.tail(OBSERVATION_WINDOW_DAYS).copy()
+    close = pd.to_numeric(frame["close"], errors="coerce")
+    ma20 = pd.to_numeric(frame.get("ma20"), errors="coerce")
+    ma60 = pd.to_numeric(frame.get("ma60"), errors="coerce")
+    ma250 = pd.to_numeric(frame.get("ma250"), errors="coerce")
 
-def evaluate_short_term_rhythm(index_daily: pd.DataFrame) -> str:
-    if len(index_daily) < 6:
-        return "震荡整理"
+    latest_close = close.iloc[-1] if len(close) else None
+    gap60_series = (close / ma60 - 1) * 100
+    gap250_series = (close / ma250 - 1) * 100
+    amount_series = pd.to_numeric(frame.get("amountRatio20"), errors="coerce")
 
-    latest = index_daily.iloc[-1]
-    five_days_ago = index_daily.iloc[-6]
-    values = [
-        latest.get("close"),
-        latest.get("ma20"),
-        latest.get("ma60"),
-        five_days_ago.get("ma20"),
-    ]
-    if any(pd.isna(value) for value in values):
-        return "震荡整理"
+    def scalar(series: pd.Series):
+        if series is None or not len(series):
+            return None
+        value = series.iloc[-1]
+        return None if pd.isna(value) else float(value)
 
-    close = float(latest["close"])
-    ma20 = float(latest["ma20"])
-    ma60 = float(latest["ma60"])
-    ma20_rising = ma20 > float(five_days_ago["ma20"])
+    gap60 = scalar(gap60_series)
+    gap250 = scalar(gap250_series)
+    high = close.max()
+    drawdown = (
+        float(latest_close / high - 1) * 100
+        if latest_close is not None and pd.notna(high) and high
+        else None
+    )
 
-    if close >= ma20 and ma20 >= ma60 and ma20_rising:
-        return "短期转强"
-    if close >= ma20 and ma20 < ma60:
-        return "低位反弹"
-    if close < ma20 and ma20 >= ma60 and ma20_rising:
-        return "上升回踩"
-    if close < ma20 and not ma20_rising:
-        return "短期转弱"
-    return "震荡整理"
+    above_ma60 = close >= ma60
+    above_ma250 = close >= ma250
+    below_ma60 = close < ma60
+
+    return {
+        "position": {
+            "maStackCode": ma_lifecycle.get("maStackCode"),
+            "ma20GapPct": round(scalar((close / ma20 - 1) * 100), 4)
+            if scalar((close / ma20 - 1) * 100) is not None
+            else None,
+            "ma60GapPct": None if gap60 is None else round(gap60, 4),
+            "ma250GapPct": None if gap250 is None else round(gap250, 4),
+            "ma60GapRankPct": _rank_pct(gap60_series, gap60),
+            "ma250GapRankPct": _rank_pct(gap250_series, gap250),
+            "closeRankPct": _rank_pct(close, latest_close),
+            "drawdownFromWindowHighPct": None if drawdown is None else round(drawdown, 4),
+            "windowDays": int(len(frame)),
+        },
+        "duration": {
+            "aboveMa60Days": _consecutive_days(above_ma60),
+            "aboveMa250Days": _consecutive_days(above_ma250),
+            "belowMa60Days": _consecutive_days(below_ma60),
+            "ma60CrossUpDate": ma_lifecycle.get("ma60CrossUpDate"),
+            "firstAboveMa250Date": ma_lifecycle.get("firstAboveMa250Date"),
+            "ma60CrossUpDaysAgo": None,
+        },
+        "breadth": {
+            "coreCount": core_count,
+            "coreCoveragePct": None if core_coverage is None else round(float(core_coverage), 4),
+            "activeCount": active_count,
+            "aboveMa60Count": ma60_count,
+            "aboveMa250Count": ma250_count,
+            "aboveMa60Pct": round(ma60_count / active_count * 100, 2)
+            if active_count
+            else None,
+            "aboveMa250Pct": round(ma250_count / active_count * 100, 2)
+            if active_count
+            else None,
+        },
+        "strength": {
+            "amountRatio20": None
+            if amount_ratio_latest is None
+            else round(float(amount_ratio_latest), 4),
+            "amountRatio20RankPct": _rank_pct(amount_series, amount_ratio_latest),
+            "absorptionRankPct": None
+            if absorption_rank_latest is None
+            else round(float(absorption_rank_latest) * 100, 2),
+            "etfAmountRankPct": None
+            if etf_amount_rank_pct is None
+            else round(float(etf_amount_rank_pct), 2),
+            "relativeExcess120Pct": None
+            if relative_excess is None
+            else round(float(relative_excess) * 100, 4),
+        },
+    }
 
 
 def evaluate_breakout_state(index_daily: pd.DataFrame) -> dict:
@@ -584,7 +670,6 @@ def build_topic(
         history_trade_day_count >= LONG_CYCLE_MIN_TRADE_DAYS
         and ma250_valid_day_count >= LONG_CYCLE_MIN_TRADE_DAYS - 249
     )
-    rhythm_label = evaluate_short_term_rhythm(index_daily)
     ma_lifecycle = evaluate_moving_average_lifecycle(index_daily)
     last_120 = index_daily.tail(120).copy()
     structure_state = evaluate_structure_state(index_daily)
@@ -688,114 +773,57 @@ def build_topic(
     leader_warning = (top_ten_limit_alert or leader_monitor_ok) and not leader_confirmed
 
     close_to_high = float(latest["close"] / last_120["close"].max())
-    trend_extension = bool(
-        (pd.notna(latest["ma250"]) and latest["close"] > latest["ma250"] * 1.15)
-        or relative_excess >= 0.15
-        or (
-            close_to_high >= 0.95
-            and ma60_count / len(component_rows) >= 0.67
-            and ma250_count / len(component_rows) >= 0.67
-        )
+
+    # 中性事实输入：只记录"量到了多少 / 天数够不够"，不含方向性结论。
+    # 需要资格语义的下游（build_allocation_handoff）从这里自行推导，
+    # 观察层不替执行层下判断。
+    breadth_ma60 = ma60_count / len(component_rows) if component_rows else 0.0
+    breadth_ma250 = ma250_count / len(component_rows) if component_rows else 0.0
+    state_inputs = {
+        "belowMa250FiveDaysGe60": bool(
+            below_ma250_5_days >= LOW_BELOW_MA250_5_PASS_DAYS
+        ),
+        "belowMa250FiveDaysGe40": bool(
+            below_ma250_5_days >= LOW_BELOW_MA250_5_WARNING_DAYS
+        ),
+        "belowMa250FiveDays": below_ma250_5_days,
+        "belowMa250TenDays": below_ma250_10_days,
+        "belowMa250FifteenDays": below_ma250_15_days,
+        "ma60WindowEntered": bool(ma60_near),
+        "ma60CrossUpEmerged": bool(breakout_emerged),
+        "ma60CrossUpConfirmed": bool(breakout_confirmed),
+        "leaderGroupMonitored": bool(leader_monitor_ok),
+        "leaderStreakMet": bool(leader_confirmed),
+        "ma250ExceedPct15": bool(
+            pd.notna(latest["ma250"]) and latest["close"] > latest["ma250"] * 1.15
+        ),
+        "relativeExcessGe15Pct": bool(
+            relative_excess is not None and relative_excess >= 0.15
+        ),
+        "nearWindowHighBreadth": bool(
+            close_to_high >= 0.95 and breadth_ma60 >= 0.67 and breadth_ma250 >= 0.67
+        ),
+        "breadthMa60Pct": round(breadth_ma60 * 100, 2),
+        "breadthMa250Pct": round(breadth_ma250 * 100, 2),
+        "closeToWindowHighPct": round(close_to_high * 100, 2),
+    }
+
+    # 观察层不再产出 label / conclusion：那两类字段是方向性结论，
+    # 客户甲 2026-09-19 拍板改为客观描述（位置 / 时间 / 广度 / 强度 + 分位数）。
+    # 2026-09-21：evaluate_strategy_label 与 evaluate_short_term_rhythm 已删除。
+    observation = build_observation_block(
+        index_daily=index_daily,
+        ma_lifecycle=ma_lifecycle,
+        active_count=active_count,
+        ma60_count=ma60_count,
+        ma250_count=ma250_count,
+        core_count=len(component_rows),
+        core_coverage=sum(usable_core_weights),
+        amount_ratio_latest=amount_ratio_latest,
+        absorption_rank_latest=absorption_rank_latest,
+        etf_amount_rank_pct=etf_amount_rank_pct,
+        relative_excess=relative_excess,
     )
-
-    low_position_clues: list[str] = []
-    if below_ma250_5_days >= LOW_BELOW_MA250_5_PASS_DAYS:
-        low_position_clues.append(f"年线下5%停留{below_ma250_5_days}/120日")
-    if (
-        below_ma250_days >= LOW_DEEP_10_PASS_MIN_BELOW_DAYS
-        and below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS
-    ):
-        low_position_clues.append(f"深跌10%达{below_ma250_10_days}/120日")
-    if not structure_ok:
-        if below_ma250_5_days >= LOW_BELOW_MA250_5_WARNING_DAYS:
-            low_position_clues.append(
-                f"年线下5%停留{below_ma250_5_days}/120日"
-            )
-        if (
-            below_ma250_days >= LOW_DEEP_10_WARNING_MIN_BELOW_DAYS
-            and below_ma250_10_days >= LOW_DEEP_10_WARNING_DAYS
-        ):
-            low_position_clues.append(f"深跌10%达{below_ma250_10_days}/120日")
-
-    observation_clues: list[str] = []
-    if structure_ok:
-        observation_clues.append(
-            f"低位条件已通过（{'、'.join(low_position_clues)}）"
-        )
-    elif structure_warning:
-        observation_clues.append(
-            f"低位条件预警（{'、'.join(low_position_clues)}）"
-        )
-    if ma60_watch_ok:
-        observation_clues.append(
-            "当日站上MA60" if ma60_breakout_today else "已站上MA60"
-        )
-    elif ma60_near and ma60_gap is not None:
-        observation_clues.append(f"距MA60 {ma60_gap * 100:.1f}%，进入观察窗口")
-    if hold_two_days_ok:
-        observation_clues.append("连续2日站上MA250")
-    if funding_confirmed:
-        observation_clues.append("资金集中度连续3日达到80%分位")
-    if strict_limit_ok and not leader_confirmed:
-        observation_clues.append("前三权重股出现涨停，持续性尚未确认")
-    if secondary_limit_alert:
-        observation_clues.append("第4至10名权重股出现有效异动")
-    if leader_monitor_ok:
-        observation_clues.append("核心成分群体转强")
-
-    final_label = evaluate_strategy_label(
-        trend_extension=trend_extension,
-        structure_passed=structure_ok,
-        structure_warning=structure_warning,
-        breakout_confirmed=breakout_confirmed,
-        breakout_emerged=breakout_emerged,
-        leader_confirmed=leader_confirmed,
-        leader_group_monitor=leader_monitor_ok,
-        ma60_near=ma60_near,
-    )
-    if final_label == "趋势延续":
-        conclusion = "指数与核心成分整体已脱离低位启动区，更适合按趋势延续与风险管理观察。"
-    elif final_label == "启动确认":
-        conclusion = "低位结构、跟踪指数成交额占全A成交额分位、年线突破与权重龙头持续性已经闭环。"
-    elif final_label == "接近启动":
-        conclusion = "指数突破与核心成分开始共振，但站稳或龙头严格确认仍不完整。"
-    elif final_label == "观察中":
-        conclusion = (
-            f"当前观察线索：{'、'.join(observation_clues)}；"
-            "其余核心条件尚未闭环。"
-        )
-    else:
-        side_clues = [
-            clue for clue in observation_clues if not clue.startswith("低位条件")
-        ]
-        if structure_ok or structure_warning:
-            structure_text = (
-                f"低位结构已通过（{'、'.join(low_position_clues)}）"
-                if structure_ok
-                else f"低位结构已预警（{'、'.join(low_position_clues)}）"
-            )
-            ma60_text = (
-                f"当前距MA60 {ma60_gap * 100:.1f}%"
-                if ma60_gap is not None
-                else "当前缺少有效MA60"
-            )
-            conclusion = (
-                f"{structure_text}；{ma60_text}，尚未进入启动观察窗口。"
-                + (
-                    f"旁侧提示：{'、'.join(side_clues)}，不改变总状态。"
-                    if side_clues
-                    else ""
-                )
-            )
-        else:
-            conclusion = (
-                "低位结构尚未达到预警门槛；"
-                + (
-                    f"当前仅有旁侧提示：{'、'.join(side_clues)}，不提升总状态。"
-                    if side_clues
-                    else "当前也没有均线、资金或龙头旁侧信号。"
-                )
-            )
 
     chart = index_daily.tail(320).copy()
     benchmark_chart = benchmark[["trade_date", "close"]].rename(
@@ -846,24 +874,19 @@ def build_topic(
             "latestPct": as_float(target_daily.iloc[-1]["pct_chg"]),
         },
         "summary": {
-            "label": final_label,
-            "rhythmLabel": rhythm_label,
+            "observation": observation,
+            "stateInputs": state_inputs,
             "maLifecycle": ma_lifecycle,
-            "conclusion": conclusion,
             "coreCount": len(component_rows),
             "coreCoverage": as_float(sum(usable_core_weights)),
             "activeCount": active_count,
             "aboveMa60Count": ma60_count,
             "aboveMa250Count": ma250_count,
-            "strictLeaderConfirmed": leader_confirmed,
-            "lowWarning": structure_warning,
             "belowMa250Days": below_ma250_days,
             "belowMa250FiveDays": below_ma250_5_days,
             "belowMa250TenDays": below_ma250_10_days,
             "belowMa250FifteenDays": below_ma250_15_days,
-            "ma60Watch": ma60_watch_ok,
-            "ma60Near": ma60_near,
-            "ma60BreakoutToday": ma60_breakout_today,
+            "ma60CrossUpToday": ma60_breakout_today,
             "ma60Gap": as_float(None if ma60_gap is None else ma60_gap * 100),
             "ma250Gap": as_float(None if ma250_gap is None else ma250_gap * 100),
             "amountRatio20": as_float(amount_ratio_latest),
@@ -873,65 +896,60 @@ def build_topic(
                 else absorption_rank_latest * 100
             ),
             "etfAmountRankPct": as_float(etf_amount_rank_pct),
-            "fundingConfirmed": funding_confirmed,
-            "crowdingHot": crowding_hot,
-            "crowdingOverheated": crowding_overheated,
             "relativeExcess120": as_float(relative_excess * 100),
             "topThreeNames": top_three_names,
             "topTenNames": top_ten_names,
-            "topTenLimitAlert": top_ten_limit_alert,
-            "secondaryLimitAlert": secondary_limit_alert,
             "stagePassCount": sum([structure_ok, breakout_confirmed, leader_confirmed]),
         },
         "stages": [
             {
                 "id": "structure",
                 "number": "01",
-                "title": "低位收敛",
-                "subtitle": "长期停留或加速下跌",
+                "title": "价格位置",
+                "subtitle": "相对 MA250 的距离与停留时长",
                 "passed": structure_ok,
                 "warning": structure_warning,
                 "items": [
                     condition(
-                        "有效低位停留",
+                        "低于MA250 5% 的天数",
                         (
                             below_ma250_5_days
                             >= LOW_BELOW_MA250_5_PASS_DAYS
                         ),
                         f"{below_ma250_5_days}/120日",
                         "过去120日中，收盘低于MA250至少5%的天数 ≥ 60",
-                        "有效低位达到40日先预警，达到60日可通过低位条件。",
+                        "低于MA250 5% 达40日先提示刻度，达60日达到该项门槛。",
                     ),
                     condition(
-                        "加速下跌记录",
+                        "单日跌幅记录",
                         (
                             below_ma250_days
                             >= LOW_DEEP_10_PASS_MIN_BELOW_DAYS
                             and below_ma250_10_days >= LOW_DEEP_10_PASS_DAYS
                         ),
                         f"{below_ma250_10_days}/120日",
-                        "年线下停留 ≥ 40日，且其中深跌10% ≥ 24日",
-                        "预警要求年线下至少24日且深跌10%至少12日；通过要求分别达到40日和24日。",
+                        "收于MA250下方 ≥ 40日，且其中低于MA250 10% ≥ 24日",
+                        "刻度要求MA250下方至少24日且低于MA250 10%至少12日；达到门槛分别要求40日和24日。",
                     ),
                     condition(
-                        "深度低位记录",
+                        "低于MA250 10% 的天数",
                         below_ma250_15_days > 0,
                         f"{below_ma250_15_days}/120日",
                         "展示低于MA250至少15%的天数，不作为硬性条件",
-                        "用于区分低位停留的深度，不重复增加通过门槛。",
+                        "用于区分低于MA250 的幅度，不重复增加门槛。",
                     ),
                 ],
             },
             {
                 "id": "breakout",
                 "number": "02",
-                "title": "带量突破年线",
-                "subtitle": "MA60观察窗，MA250确认",
+                "title": "均线与成交额",
+                "subtitle": "相对 MA60 / MA250 的位置与成交额分位",
                 "passed": breakout_confirmed,
                 "warning": ma60_near and not breakout_confirmed,
                 "items": [
                     condition(
-                        "MA60观察窗口",
+                        "距MA60 区间",
                         ma60_near,
                         (
                             "今日突破"
@@ -947,10 +965,10 @@ def build_topic(
                             )
                         ),
                         "跟踪指数收盘距MA60不低于-3%",
-                        "进入观察窗口；站上MA60为正式提前提示，但不替代MA250确认。",
+                        "进入距MA60 3% 区间；站上MA60 只是位置记录，不替代连续2日收于MA250上方。",
                     ),
                     condition(
-                        "连续站上年线",
+                        "连续站上MA250",
                         hold_two_days_ok,
                         (
                             "-"
@@ -961,7 +979,7 @@ def build_topic(
                         "取消3%幅度要求，用连续收盘过滤单日假突破。",
                     ),
                     condition(
-                        "资金持续集中",
+                        "成交额分位持续",
                         funding_confirmed,
                         " / ".join(
                             [
@@ -972,63 +990,63 @@ def build_topic(
                         )
                         + f"（{funding_qualified_days}/3达标）",
                         "指数成交额占全A成交额的历史分位连续3日 ≥ 80%",
-                        "逐日展示最近3日分位；只有3日全部达到80%才完成资金确认。",
+                        "逐日展示最近3日分位；只有3日全部达到80%才满足该项。",
                     ),
                     condition(
-                        "拥挤风险",
+                        "拥挤度分位",
                         not crowding_hot,
                         (
                             "-"
                             if absorption_rank_latest is None
                             else f"{absorption_rank_latest:.0%}"
                         ),
-                        "达到95%分位提示过热；连续3日达到95%视为高度拥挤",
-                        "95%分位只做风险提示，不作为启动确认。",
+                        "达到95%分位记为拥挤刻度；连续3日达到95%记为高度拥挤",
+                        "95%分位只是历史分位刻度，不作为其它条件的前提。",
                     ),
                 ],
             },
             {
                 "id": "leader",
                 "number": "03",
-                "title": "权重龙头确认",
-                "subtitle": "前三闭环，第4至10名短期预警",
+                "title": "核心成分股",
+                "subtitle": "成分股位置、涨停与成交额记录",
                 "passed": leader_confirmed,
                 "warning": leader_warning,
                 "items": [
                     condition(
-                        "观察对象明确",
+                        "成分样本数",
                         len(top_ten_codes) == LEADER_WATCH_COUNT,
                         f"权重前{len(top_ten_codes)}",
                         "直接观察指数前10大权重股，而非申万市值龙头",
-                        "权重前3用于严格确认，第4至10名用于渐进预警。",
+                        "权重前3用于严格口径，第4至10名用于提前提示。",
                     ),
                     condition(
-                        "次级龙头异动",
+                        "第4至10名异动记录",
                         secondary_limit_alert,
                         f"{sum(event['weightRank'] > STRICT_LEADER_COUNT and event['qualified'] for event in limit_events)}次",
                         "权重第4至10名近3日涨停，且次日继续收红",
-                        "只触发黄色预警，不能单独完成第三层闭环。",
+                        "只触发黄色刻度，不能单独替代严格口径。",
                     ),
                     condition(
-                        "前三龙头涨停",
+                        "前三名涨停记录",
                         strict_limit_ok,
                         f"{len(strict_limit_events)}次",
                         "权重前3近5日内至少一只触及涨停阈值",
                         "保留原策略对标志性龙头的严格要求。",
                     ),
                     condition(
-                        "涨停后持续",
+                        "涨停后连续性",
                         strict_continuation_ok,
-                        "已确认" if strict_continuation_ok else "未确认",
+                        "次日收红且未回吐" if strict_continuation_ok else "未达",
                         "次日继续收红，且最新收盘不低于涨停日收盘",
                         "同时过滤单日脉冲和随后完全回吐。",
                     ),
                     condition(
-                        "核心群体转强",
+                        "核心成分 MA60 广度",
                         leader_monitor_ok,
-                        f"{active_count}/{len(component_rows)} 活跃",
-                        "至少1只明显转强，且≥50%核心成分站上MA60",
-                        "这是监控辅助条件，不能替代严格龙头确认。",
+                        f"{ma60_count}/{len(component_rows)} 站上MA60",
+                        "≥50% 核心成分站上MA60",
+                        "这是辅助读数，不能替代前三名涨停记录。",
                     ),
                 ],
             },
@@ -1066,8 +1084,8 @@ def build_topic(
             "这是封闭沙盒中的方法实验，不接入现有申万二级扫描、日报或发布流程。",
             "目标清单来自现有项目 theme_watch_config.py 的正式跟踪对象，并用 theme_watch_dashboard.py 补充分组和显示名称。",
             "指数权重采用最新可用月末数据；页面同时展示权重日期，防止前视偏差。",
-            "申万二级只保留为行业归属和横向对照，不决定本专题的启动标签。",
-            "资金集中度使用跟踪指数成交额占全A成交额的过去252日历史分位；80%用于确认，95%用于过热提示。",
+            "申万二级只保留为行业归属和横向对照，不参与本专题的读数计算。",
+            "成交额集中度使用跟踪指数成交额占全A成交额的过去252日历史分位；80% 与 95% 均为刻度。",
         ],
     }
 
@@ -1294,37 +1312,27 @@ def main(end_date: str | None = None) -> None:
                 "kind": topic["target"]["kind"],
                 "indexCode": topic["target"]["indexCode"],
                 "indexName": topic["target"]["indexName"],
-                "label": topic["summary"]["label"],
-                "rhythmLabel": topic["summary"]["rhythmLabel"],
-                "maLifecycleLabel": topic["summary"]["maLifecycle"]["label"],
-                "maSafetyMarginPassed": topic["summary"]["maLifecycle"][
-                    "safetyMarginPassed"
-                ],
+                "maStackCode": topic["summary"]["maLifecycle"]["maStackCode"],
+                "maStateCode": topic["summary"]["maLifecycle"]["stateCode"],
                 "maSeparationPct": topic["summary"]["maLifecycle"][
                     "separationPct"
                 ],
                 "maSeparationRankPct": topic["summary"]["maLifecycle"][
                     "separationRankPct"
                 ],
-                "initialStartToday": topic["summary"]["maLifecycle"][
-                    "initialStartToday"
+                "ma60CrossUpToday": topic["summary"]["maLifecycle"][
+                    "ma60CrossUpToday"
                 ],
-                "trendConfirmedToday": topic["summary"]["maLifecycle"][
-                    "trendConfirmedToday"
+                "aboveMa250Today": topic["summary"]["maLifecycle"][
+                    "aboveMa250Today"
                 ],
-                "capitalInterface": topic["summary"]["maLifecycle"][
-                    "capitalInterface"
-                ],
-                "conclusion": topic["summary"]["conclusion"],
+                "observation": topic["summary"]["observation"],
                 "latestDate": topic["meta"]["latestDate"],
                 "weightDate": topic["meta"]["weightDate"],
                 "latestPct": topic["target"]["latestPct"],
                 "ma250Gap": topic["summary"]["ma250Gap"],
                 "amountRatio20": topic["summary"]["amountRatio20"],
                 "absorptionRankPct": topic["summary"]["absorptionRankPct"],
-                "fundingConfirmed": topic["summary"]["fundingConfirmed"],
-                "crowdingHot": topic["summary"]["crowdingHot"],
-                "lowWarning": topic["summary"]["lowWarning"],
                 "belowMa250Days": topic["summary"]["belowMa250Days"],
                 "belowMa250FiveDays": topic["summary"]["belowMa250FiveDays"],
                 "belowMa250TenDays": topic["summary"]["belowMa250TenDays"],
@@ -1334,11 +1342,7 @@ def main(end_date: str | None = None) -> None:
                 "activeCount": topic["summary"]["activeCount"],
                 "aboveMa60Count": topic["summary"]["aboveMa60Count"],
                 "aboveMa250Count": topic["summary"]["aboveMa250Count"],
-                "ma60Watch": topic["summary"]["ma60Watch"],
-                "ma60Near": topic["summary"]["ma60Near"],
-                "ma60BreakoutToday": topic["summary"]["ma60BreakoutToday"],
-                "topTenLimitAlert": topic["summary"]["topTenLimitAlert"],
-                "secondaryLimitAlert": topic["summary"]["secondaryLimitAlert"],
+                "ma60CrossUpToday": topic["summary"]["ma60CrossUpToday"],
                 "stagePassCount": topic["summary"]["stagePassCount"],
                 "stageStates": [
                     {
@@ -1353,7 +1357,8 @@ def main(end_date: str | None = None) -> None:
             }
         )
         print(
-            f"Wrote {topic_path.name} | label={topic['summary']['label']} "
+            f"Wrote {topic_path.name} | state={topic['summary']['maLifecycle']['stateCode']} "
+            f"| stack={topic['summary']['maLifecycle']['maStackCode']} "
             f"| components={topic['summary']['coreCount']}"
         )
 

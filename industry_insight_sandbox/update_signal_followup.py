@@ -14,7 +14,17 @@ ALL_TOPICS_PATH = DATA_DIR / "all_topics.json"
 HK_TARGETS_PATH = ROOT / "hk_qdii_targets.json"
 OUTPUT_PATH = DATA_DIR / "signal_followup.json"
 HORIZONS = (5, 20, 60)
-SIGNAL_LABEL = "启动确认"
+SIGNAL_CONDITION = "three_groups_met"
+NOT_MET = "not_met"
+
+
+def _three_groups_met(topic: dict[str, Any]) -> bool:
+    """三组读数是否全部达到门槛（替代旧口径的整体判断字段）。"""
+    stages = {stage.get("id"): stage for stage in topic.get("stages", [])}
+    return all(
+        stages.get(stage_id, {}).get("passed") is True
+        for stage_id in ("structure", "breakout", "leader")
+    )
 
 
 def _topic_map(
@@ -50,7 +60,7 @@ def _new_event(topic: dict[str, Any], as_of: str) -> dict[str, Any]:
         "code": code,
         "name": topic["target"].get("name"),
         "signalDate": as_of,
-        "signalLabel": SIGNAL_LABEL,
+        "signalCondition": SIGNAL_CONDITION,
         "benchmarkCode": benchmark_code,
         "sourceTargetNormalized": row[target_field],
         "sourceBenchmarkNormalized": row[benchmark_field],
@@ -167,29 +177,24 @@ def build_signal_followup(
     prior_as_of = prior.get("meta", {}).get("asOf")
     if isinstance(prior_as_of, str) and prior_as_of > as_of:
         raise ValueError("Signal follow-up date cannot move backwards.")
-    # 港股 QDII 已停用：历史事件与最新标签只保留仍属于当前目标池的代码。
-    events = [
-        event
-        for event in prior.get("events", [])
-        if str(event.get("code")) in topics
-    ]
-    latest_labels = {
-        str(code): label
-        for code, label in prior.get("latestLabels", {}).items()
-        if str(code) in topics
-    }
+    events = list(prior.get("events", []))
+    latest_states = dict(prior.get("latestStates", {}))
 
     for item in targets:
         code = str(item["code"])
         topic = topics.get(code)
         if topic is None:
             raise ValueError(f"Signal follow-up is missing topic {code}.")
-        current_label = topic.get("summary", {}).get("label")
-        if current_label == SIGNAL_LABEL and latest_labels.get(code) != SIGNAL_LABEL:
+        # 观察层不再输出 label；触发条件改由「三组读数是否全部达到门槛」判定，
+        # 与旧口径的整体判断字段等价（structure / breakout / leader 全 passed）。
+        current_state = (
+            SIGNAL_CONDITION if _three_groups_met(topic) else NOT_MET
+        )
+        if current_state == SIGNAL_CONDITION and latest_states.get(code) != SIGNAL_CONDITION:
             event_id = f"{code}:{as_of}"
             if not any(event.get("eventId") == event_id for event in events):
                 events.append(_new_event(topic, as_of))
-        latest_labels[code] = current_label
+        latest_states[code] = current_state
 
     for event in events:
         topic = topics.get(str(event.get("code")))
@@ -199,17 +204,17 @@ def build_signal_followup(
     events.sort(key=lambda event: (event["signalDate"], event["code"]))
     return {
         "meta": {
-            "schemaVersion": "1.0",
+            "schemaVersion": "1.1",
             "generatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "asOf": as_of,
-            "signalLabel": SIGNAL_LABEL,
+            "signalCondition": SIGNAL_CONDITION,
             "horizonsTradeDays": list(HORIZONS),
             "decisionUse": False,
             "lookaheadAllowed": False,
             "eventCount": len(events),
         },
         "summary": _summary(events),
-        "latestLabels": latest_labels,
+        "latestStates": latest_states,
         "events": events,
     }
 
@@ -219,14 +224,14 @@ def validate_signal_followup(
 ) -> list[str]:
     issues: list[str] = []
     meta = followup.get("meta", {})
-    if meta.get("schemaVersion") != "1.0":
+    if meta.get("schemaVersion") != "1.1":
         issues.append("Signal follow-up schemaVersion is invalid.")
     if meta.get("asOf") != end_date:
         issues.append("Signal follow-up asOf does not equal end_date.")
     if meta.get("decisionUse") is not False or meta.get("lookaheadAllowed") is not False:
         issues.append("Signal follow-up must remain outside production decisions.")
-    if set(followup.get("latestLabels", {})) != expected_codes:
-        issues.append("Signal follow-up latestLabels do not match target universe.")
+    if set(followup.get("latestStates", {})) != expected_codes:
+        issues.append("Signal follow-up latestStates do not match target universe.")
     for event in followup.get("events", []):
         if event.get("code") not in expected_codes:
             issues.append(f"{event.get('eventId')}: unknown target code.")
