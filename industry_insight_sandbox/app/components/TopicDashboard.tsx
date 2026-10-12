@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MovingAverageLifecycle, {
+  maAlignmentLabel,
   type MovingAverageLifecycleData,
   type ObservationBlock,
 } from "./MovingAverageLifecycle";
@@ -546,22 +547,23 @@ export default function TopicDashboard({
 
       <section className="hero shell">
         <div className="hero-copy">
-          <p className="eyebrow">ETF DIRECT OBSERVATION / METHOD PROTOTYPE</p>
-          <h1>
-            从ETF跟踪指数出发，
-            <br />
-            以<span>权重成分股</span>为样本
-          </h1>
-          <p className="hero-description">
-            取消“ETF → 申万二级”的强制中间映射。价格结构看跟踪指数，
-            增量资金看指数成交额占全A成交额的历史分位，市场共识看指数权重龙头。
+          <p className="eyebrow">
+            {dashboardData.target.bucket} · {dashboardData.target.code} · 跟踪{
+              " "
+            }{dashboardData.target.indexName}
+          </p>
+          <h1>{dashboardData.target.name}</h1>
+          <p className="hero-description mono">
+            最新收盘 {formatNumber(dashboardData.target.latestClose, 3)}（
+            {formatPercent(dashboardData.target.latestPct, 2)}）
           </p>
         </div>
         <div className="hero-status">
           <p>本期读数</p>
-          <strong className="mono">
-            {dashboardData.summary.maLifecycle.maStackCode}
+          <strong>
+            {maAlignmentLabel(dashboardData.summary.maLifecycle.maStackCode)}
           </strong>
+          <small>均线排列 {dashboardData.summary.maLifecycle.maStackCode}</small>
           <small>
             收盘位于 MA60 {dashboardData.summary.maLifecycle.aboveMa60 ? "上方" : "下方"}
             {" · "}MA250{" "}
@@ -573,8 +575,14 @@ export default function TopicDashboard({
             {formatPercent(dashboardData.summary.observation.position.ma250GapPct, 2)}
           </small>
           <span>
-            广度 {formatPercent(dashboardData.summary.observation.breadth.aboveMa60Pct, 0)}
-            成分股位于MA60上方；量能倍数{" "}
+            MA60 上方成分
+            {
+              dashboardData.summary.observation.breadth.aboveMa60Pct === null ||
+              dashboardData.summary.observation.breadth.aboveMa60Pct === undefined
+                ? "—"
+                : `${dashboardData.summary.observation.breadth.aboveMa60Pct.toFixed(0)}%`
+            }
+            ；量能倍数{" "}
             {formatNumber(dashboardData.summary.observation.strength.amountRatio20, 2)}
           </span>
         </div>

@@ -410,11 +410,13 @@ def build_observation_block(
             "activeCount": active_count,
             "aboveMa60Count": ma60_count,
             "aboveMa250Count": ma250_count,
-            "aboveMa60Pct": round(ma60_count / active_count * 100, 2)
-            if active_count
+            # 广度分母是核心成分总数；active_count 是「当日异动」口径，
+            # 用它当分母会得出 400% / 750% 这类越界值（2026-10-12 修正）。
+            "aboveMa60Pct": round(ma60_count / core_count * 100, 2)
+            if core_count
             else None,
-            "aboveMa250Pct": round(ma250_count / active_count * 100, 2)
-            if active_count
+            "aboveMa250Pct": round(ma250_count / core_count * 100, 2)
+            if core_count
             else None,
         },
         "strength": {

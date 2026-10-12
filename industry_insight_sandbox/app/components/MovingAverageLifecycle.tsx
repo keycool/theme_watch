@@ -83,6 +83,14 @@ function formatDate(value: string | null) {
   return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
 }
 
+// 均线排列的命名：只描述三条均线的相对顺序，不含方向预测。
+// 多头排列 = 短均线在上（MA20>MA60>MA250）；空头排列 = 长均线在上；其余为交错。
+export function maAlignmentLabel(maStackCode: string | null | undefined): string {
+  if (maStackCode === "MA20>MA60>MA250") return "多头排列";
+  if (maStackCode === "MA250>MA60>MA20") return "空头排列";
+  return "交错排列";
+}
+
 // 均线读数是收盘价走完之后的派生结果：图表在前，这里只留三格摘要并沉到页面底部。
 export default function MovingAverageLifecycle({
   lifecycle,
@@ -96,7 +104,9 @@ export default function MovingAverageLifecycle({
           <p className="eyebrow">MOVING AVERAGE GEOMETRY / DERIVED READOUT</p>
           <h2>均线几何位置</h2>
         </div>
-        <span className="mono">{lifecycle.maStackCode}</span>
+        <span className="mono">
+          {maAlignmentLabel(lifecycle.maStackCode)} · {lifecycle.maStackCode}
+        </span>
       </div>
       <div className="ma-lifecycle-grid">
         <article>
