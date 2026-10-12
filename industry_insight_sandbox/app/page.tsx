@@ -110,9 +110,7 @@ function TargetRow({ target }: { target: Target }) {
           {target.maStackCode ?? "均线待更新"}
         </span>
       </div>
-      <MaPositionCell gap={position?.ma20GapPct} label="MA20" />
       <MaPositionCell gap={position?.ma60GapPct} label="MA60" />
-      <MaPositionCell gap={position?.ma250GapPct} label="MA250" />
       <div className="target-row-metric">
         <span>距MA250</span>
         <strong className={(target.ma250Gap || 0) >= 0 ? "up" : "down"}>
@@ -141,9 +139,7 @@ function DashboardHeader() {
       <span>标的</span>
       <span>判断指数</span>
       <span>均线排列</span>
-      <span>MA20</span>
       <span>MA60</span>
-      <span>MA250</span>
       <span>距MA250</span>
       <span>资金分位</span>
       <span />
