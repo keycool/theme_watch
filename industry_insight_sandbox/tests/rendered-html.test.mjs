@@ -225,11 +225,12 @@ test("server-renders the overview and links every unified target", async () => {
   assert.match(html, /生成于/);
   assert.doesNotMatch(html, /封闭沙盒 · 不接入生产/);
   assert.match(html, /23个正式标的集中在同一张读数表中/);
-  assert.match(html, /价格位置/);
-  assert.match(html, /均线与成交额/);
-  assert.match(html, /核心成分股/);
+  // 列表列调整（2026-10-12）：均线排列判定词 + 三条均线独立状态列。
+  assert.match(html, /均线排列/);
+  assert.match(html, /(多头排列|空头排列|交错排列)/);
+  assert.doesNotMatch(html, /三层条件读数/);
   assert.match(html, /今日均线位置读数/);
-  assert.match(html, /均线位置 \/ 排列/);
+  assert.match(html, /均线排列/);
   assert.doesNotMatch(html, /当前标签分布/);
   assert.doesNotMatch(html, /最接近闭环的目标/);
 

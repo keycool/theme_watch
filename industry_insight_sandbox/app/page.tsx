@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import bundledOverviewData from "../data/overview.json";
 import StatusStrip from "./components/StatusStrip";
+import { maAlignmentLabel } from "./components/MovingAverageLifecycle";
 
 
 type OverviewData = typeof bundledOverviewData;
@@ -13,13 +14,13 @@ type Target = OverviewData["targets"][number] & {
   maStateCode?: string;
   observation?: {
     position?: {
+      ma20GapPct?: number | null;
       ma60GapPct?: number | null;
       ma250GapPct?: number | null;
     };
   };
   route?: string;
 };
-type StageState = Target["stageStates"][number] & { warning?: boolean };
 
 const LIVE_OVERVIEW_URL =
   "https://raw.githubusercontent.com/keycool/theme_watch/etf-watch-data/overview.json";
@@ -58,14 +59,21 @@ function formatDate(value: string) {
   return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
 }
 
-function maStateClass(value: string | undefined) {
-  if (value === "above_ma250") return "label-trend";
-  if (value === "above_ma60") return "label-near";
-  if (value === "above_ma20") return "label-watch";
-  return "label-idle";
+function MaPositionCell({ label, gap }: { label: string; gap: number | null | undefined }) {
+  const known = gap !== null && gap !== undefined;
+  return (
+    <div className="target-row-metric">
+      <span>{label}</span>
+      <strong className={!known ? "" : gap >= 0 ? "up" : "down"}>
+        {known ? (gap >= 0 ? "上方" : "下方") : "—"}
+      </strong>
+    </div>
+  );
 }
 
 function TargetRow({ target }: { target: Target }) {
+  const alignment = maAlignmentLabel(target.maStackCode);
+  const position = target.observation?.position;
   return (
     <Link
       className="target-row"
@@ -87,45 +95,24 @@ function TargetRow({ target }: { target: Target }) {
         <small className="mono">{target.indexCode}</small>
       </div>
       <div className="target-row-status">
-        <span className={`overview-label ${maStateClass(target.maStateCode)}`}>
-          {maStateText(target.maStateCode)}
-        </span>
+        <strong
+          className={
+            alignment === "多头排列"
+              ? "up"
+              : alignment === "空头排列"
+                ? "down"
+                : ""
+          }
+        >
+          {alignment}
+        </strong>
         <span className="ma-lifecycle-label mono">
           {target.maStackCode ?? "均线待更新"}
         </span>
-        <span className="rhythm-label">
-          距MA60 {formatPercent(target.observation?.position?.ma60GapPct)}
-          {" · "}距MA250{" "}
-          {formatPercent(target.observation?.position?.ma250GapPct)}
-        </span>
       </div>
-      <div className="target-row-stages">
-        {target.stageStates.map((rawStage, index) => {
-          const stage = rawStage as StageState;
-          const state = stage.passed
-            ? "达到"
-            : stage.warning
-              ? "接近"
-              : "未达";
-          return (
-            <span
-              className={
-                stage.passed
-                  ? "stage-pass"
-                  : stage.warning
-                    ? "stage-warning"
-                    : "stage-wait"
-              }
-              key={stage.title}
-              title={`${stage.title}：${state}`}
-            >
-              <i />
-              {index === 0 ? "位置" : index === 1 ? "均线" : "成分"}
-            </span>
-          );
-        })}
-        <small>{target.stagePassCount}/3</small>
-      </div>
+      <MaPositionCell gap={position?.ma20GapPct} label="MA20" />
+      <MaPositionCell gap={position?.ma60GapPct} label="MA60" />
+      <MaPositionCell gap={position?.ma250GapPct} label="MA250" />
       <div className="target-row-metric">
         <span>距MA250</span>
         <strong className={(target.ma250Gap || 0) >= 0 ? "up" : "down"}>
@@ -141,12 +128,6 @@ function TargetRow({ target }: { target: Target }) {
             : `${target.absorptionRankPct.toFixed(0)}%`}
         </strong>
       </div>
-      <div className="target-row-metric">
-        <span>当日</span>
-        <strong className={(target.latestPct || 0) >= 0 ? "up" : "down"}>
-          {formatPercent(target.latestPct, 2)}
-        </strong>
-      </div>
       <span className="target-row-arrow" aria-hidden="true">
         →
       </span>
@@ -159,11 +140,12 @@ function DashboardHeader() {
     <div className="target-dashboard-head" aria-hidden="true">
       <span>标的</span>
       <span>判断指数</span>
-      <span>均线位置 / 排列</span>
-      <span>三层条件读数</span>
+      <span>均线排列</span>
+      <span>MA20</span>
+      <span>MA60</span>
+      <span>MA250</span>
       <span>距MA250</span>
       <span>资金分位</span>
-      <span>当日</span>
       <span />
     </div>
   );
@@ -253,7 +235,6 @@ export default function Home() {
       .sort(
         (left, right) =>
           maStateRank(left.maStateCode) - maStateRank(right.maStateCode) ||
-          right.stagePassCount - left.stagePassCount ||
           (right.absorptionRankPct || 0) - (left.absorptionRankPct || 0) ||
           left.order - right.order,
       );
@@ -308,9 +289,9 @@ export default function Home() {
       <section className="overview-dashboard shell">
         <div className="dashboard-title-row">
           <div>
-            <p className="eyebrow">ALL TARGETS / THREE-STAGE WATCH</p>
+            <p className="eyebrow">ALL TARGETS / MA GEOMETRY</p>
             <h2>全部标的读数</h2>
-            <p>默认按三层条件达到数排序，全部标的集中展示，不再按行业分块。</p>
+            <p>按收盘价相对均线位置分组排序，全部标的集中展示，点击任一行进入成分股专题。</p>
           </div>
           <div className="overview-control-right">
             <select
