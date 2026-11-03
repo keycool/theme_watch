@@ -1,2 +1,7 @@
 pandas>=2.2,<3
 tushare>=1.4,<2
+
+python-dateutil>=2.8.2,<3
+# 2026-11-03：dateutil 4.0.0 去除了 six 传递依赖，tushare 又未声明 six，
+# 显式锁定 dateutil 2.x 并显式声明 six，防止 runner 依赖漂移。
+six>=1.16
